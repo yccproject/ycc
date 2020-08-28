@@ -1,0 +1,35 @@
+language: go
+go_import_path: github.com/yccproject/ycc
+os: linux
+dist: xenial
+
+notifications:
+  email: false
+jobs:
+  include:
+    - stage: check_fmt
+      sudo: require
+      go: "1.12.x"
+      env:
+        - GO111MODULE=on
+      install:
+        - go get -u golang.org/x/tools/cmd/goimports
+        - go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+        - go get -u mvdan.cc/sh/cmd/shfmt
+        - go get -u mvdan.cc/sh/cmd/gosh
+      script:
+        - make checkgofmt && make fmt
+        - make linter
+
+
+    - stage: build
+      go: "1.13.x"
+      env:
+        - GO111MODULE=on
+      install: skip
+      before_script: make
+      script:
+        - make clean
+
+
+
