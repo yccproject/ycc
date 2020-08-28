@@ -14,7 +14,7 @@ all:  build
 
 build: toolimport
 	go build ${BUILD_FLAGS} -v -i -o ycc
-# 	go build ${BUILD_FLAGS} -v -i -o ycc-cli
+	go build ${BUILD_FLAGS} -v -i -o ycc-cli github.com/yccproject/ycc/cli
 
 
 
@@ -75,6 +75,6 @@ clean:
 	@rm -rf logs
 	@rm -rf wallet
 	@rm -rf grpc33.log
-	@rm -rf bityuan
-	@rm -rf bityuan-cli
+	@rm -rf ycc
+	@rm -rf ycc-cli
 	@rm -rf tool
