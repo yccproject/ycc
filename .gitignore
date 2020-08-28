@@ -1,7 +1,7 @@
 .DS_Store
 .idea
-bityuan
-bityuan-cli
+ycc
+ycc-cli
 tool
 datadir/
 grpc33.log
