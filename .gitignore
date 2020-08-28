@@ -1,0 +1,16 @@
+.DS_Store
+.idea
+bityuan
+bityuan-cli
+tool
+datadir/
+grpc33.log
+logs/
+/wallet
+/data2
+*.log
+*.tar.gz
+build/ci
+build/chain33
+build/chain33-cli
+build/chain33.toml
