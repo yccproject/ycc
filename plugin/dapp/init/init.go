@@ -10,4 +10,5 @@ import (
 	_ "github.com/33cn/plugin/plugin/dapp/token"     //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/trade"     //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/unfreeze"  //auto gen
+	_ "github.com/yccproject/ycc/plugin/dapp/pos33"  //auto gen
 )
