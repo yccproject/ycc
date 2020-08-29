@@ -1,4 +1,7 @@
 # type字段仅支持 consensus  dapp store
+[dapp-pos33]
+gitrepo = "github.com/yccproject/ycc/tree/master/plugin/dapp/pos33"
+
 [dapp-evm]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/evm"
 
@@ -34,4 +37,3 @@ gitrepo = "github.com/33cn/plugin/plugin/mempool/price"
 
 [store-kvmvccmavl]
 gitrepo = "github.com/33cn/plugin/plugin/store/kvmvccmavl"
-

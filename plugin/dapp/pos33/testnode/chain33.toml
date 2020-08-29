@@ -1,8 +1,4 @@
-package main
-
-//ycc 这部分配置随代码发布，不能修改
-var yccconfig = `
-Title="ycc3_test"
+Title="YCC"
 coinSymbol="YCC"
 TestNet=true
 FixTime=false
@@ -11,7 +7,7 @@ version="6.3.0"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
-loglevel = "info"
+loglevel = "dbug"
 logConsoleLevel = "error"
 # 日志文件名，可带目录，所有生成的日志文件都放到此目录下
 logFile = "logs/chain33.log"
@@ -39,14 +35,13 @@ driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=false
-singleMode=false
+singleMode=true
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
 enableTxQuickIndex=true
 enableReExecLocal=true
-txHeight=false
-disableShard=true
+txHeight=true
 
 [p2p]
 # p2p类型
@@ -64,24 +59,45 @@ grpcLogFile="grpc33.log"
 #waitPid 等待seed导入
 waitPid=false
 
+[p2p.sub.gossip]
+channel=2
+seeds=[]
+isSeed=true
+serverStart=true
+innerSeedEnable=false
+useGithub=false
+innerBounds=300
+
 [p2p.sub.dht]
-bootstraps=["/ip4/183.129.226.76/tcp/13801/p2p/16Uiu2HAmQiU11LNm4mQPXatnxKpGyYBVzJWD34VEcVKY1t5hroGQ"]
+seeds=[]
 port=13801
 channel=2
-minLtBlockTxNum=20000
 
 [rpc]
-jrpcBindAddr="localhost:8803"
-grpcBindAddr="localhost:8804"
+jrpcBindAddr="localhost:8801"
+grpcBindAddr="localhost:8802"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
 
 [mempool]
 name="price"
-poolCacheSize=1024000
-minTxFeeRate=10000
+poolCacheSize=10240
+minTxFee=100000
 maxTxNumPerAccount=10000
+maxTxFee=1000000000
+isLevelFee=true
+[mempool.sub.timeline]
+poolCacheSize=10240
+
+[mempool.sub.score]
+poolCacheSize=10240
+timeParam=1      #时间占价格比例
+priceConstant=10  #手续费相对于时间的一个的常量,排队时手续费高1e3的分数~=快1h的分数
+pricePower=1     #常量比例
+
+[mempool.sub.price]
+poolCacheSize=10240
 
 [consensus]
 name="pos33"
@@ -93,7 +109,6 @@ minerExecs=["pos33"]
 [consensus.sub.pos33]
 genesisBlockTime=1514533394
 listenPort="10901"
-bootPeers=["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
 
 [[consensus.sub.pos33.genesis]]
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -101,22 +116,21 @@ returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 count=10000
 
 [mver.consensus]
-fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
+fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 powLimitBits="0x1f00ffff"
-maxTxNumber=10000
-
-[mver.consensus.ForkChainParamV1]
-maxTxNumber=10000
-
-[mver.consensus.ForkChainParamV2]
-powLimitBits = "0x1f2fffff"
-
-[mver.consensus.ForkTicketFundAddrV1]
-fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
+maxTxNumber = 5000
 
 [mver.consensus.pos33]
+coinReward = 15
+coinDevFund = 5
 ticketPrice = 10000
-ticketWithdrawTime = 50
+retargetAdjustmentFactor = 4
+futureBlockTime = 16
+ticketFrozenTime = 43200
+ticketWithdrawTime = 172800
+ticketMinerWaitTime = 7200
+targetTimespan=2304
+targetTimePerBlock=16
 
 [store]
 name="kvmvccmavl"
@@ -332,4 +346,3 @@ database="chain33metrics"
 username=""
 password=""
 namespace=""
-`
