@@ -303,14 +303,6 @@ func (policy *ticketPolicy) checkNeedFlushPos33Ticket(tx *types.Transaction, rec
 	return policy.needFlushPos33Ticket(tx, receipt)
 }
 
-func (policy *ticketPolicy) forceClosePos33Ticket(height int64, minerAddr string, count int) (*types.ReplyHashes, error) {
-	if minerAddr != "" {
-		return policy.forceClosePos33TicketByReturnAddr(height, minerAddr, count)
-	}
-
-	return policy.forceCloseAllPos33Ticket(height, count)
-}
-
 //通过minerAddr地址找到绑定的ticket的returnAddr，通过returnAddr的私钥close ticket，防止miner的私钥丢失场景
 func (policy *ticketPolicy) forceClosePos33TicketByReturnAddr(height int64, minerAddr string, count int) (*types.ReplyHashes, error) {
 	tListMiner, err := policy.getForceClosePos33Tickets(minerAddr)
@@ -346,33 +338,30 @@ func (policy *ticketPolicy) forceClosePos33TicketByReturnAddr(height int64, mine
 	return &hashes, nil
 }
 
-func (policy *ticketPolicy) forceCloseAllPos33Ticket(height int64, count int) (*types.ReplyHashes, error) {
+func (policy *ticketPolicy) forceClosePos33Tickets(height int64, string, count int) (*types.ReplyHashes, error) {
 	var err error
 
-	keys, err := policy.getWalletOperate().GetAllPrivKeys()
+	priv, minerAddr, err := policy.getMiner(height)
 	if err != nil {
 		return nil, err
 	}
 
-	var hashes types.ReplyHashes
-	for _, key := range keys {
-		addr := address.PubKeyToAddress(key.PubKey().Bytes()).String()
-		tlist, err := policy.getForceClosePos33Tickets(addr)
-		if err != nil {
-			bizlog.Error("forceCloseAllPos33Ticket getPos33Tickets", "error", err, "addr", addr)
-			continue
-		}
-		hash, err := policy.forceClosePos33TicketList(height, key, tlist, count)
-		if err != nil {
-			bizlog.Error("forceCloseAllPos33Ticket", "error", err, "addr", addr)
-			continue
-		}
-		if hash == nil {
-			continue
-		}
-		hashes.Hashes = append(hashes.Hashes, hash)
+	tlist, err := policy.getForceClosePos33Tickets(minerAddr)
+	if err != nil {
+		bizlog.Error("forceClosePos33Tickets getPos33Tickets", "error", err, "addr", minerAddr)
+		return nil, err
 	}
-	return &hashes, nil
+
+	hash, err := policy.forceClosePos33TicketList(height, priv, tlist, count)
+	if err != nil {
+		bizlog.Error("forceClosePos33Tickets", "error", err, "addr", minerAddr)
+		return nil, err
+	}
+	if hash == nil {
+		return nil, err
+	}
+
+	return &types.ReplyHashes{Hashes: [][]byte{hash}}, nil
 }
 
 func (policy *ticketPolicy) getPos33Tickets(addr string, status int32) ([]*ty.Pos33Ticket, error) {
@@ -424,7 +413,7 @@ func (policy *ticketPolicy) forceClosePos33TicketList(height int64, priv crypto.
 
 //通过rpc 精选close 操作
 func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, ids []string, count int) ([]byte, error) {
-	if len(ids) > count {
+	if len(ids) > count && count > 0 {
 		ids = ids[:count]
 	}
 	ta := &ty.Pos33TicketAction{}
@@ -675,7 +664,7 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 	if hash != nil {
 		hashes = append(hashes, hash)
 	}
-	bizlog.Debug("ticketPolicy buyPos33Ticket", "Address", minerAddr, "txhash", hex.EncodeToString(hash), "n", n)
+	bizlog.Info("ticketPolicy buyPos33Ticket", "Address", minerAddr, "txhash", hex.EncodeToString(hash), "n", n)
 	return hashes, count, nil
 }
 
@@ -804,7 +793,7 @@ func (policy *ticketPolicy) buyMinerAddrPos33Ticket(height int64) ([][]byte, int
 	if hashlist != nil {
 		hashes = append(hashes, hashlist...)
 	}
-	bizlog.Debug("ticketPolicy buyMinerAddrPos33Ticket", "Address", minerAddr, "n", n)
+	bizlog.Info("ticketPolicy buyMinerAddrPos33Ticket", "Address", minerAddr, "n", n)
 	bizlog.Debug("ticketPolicy buyMinerAddrPos33Ticket end")
 	return hashes, count, nil
 }

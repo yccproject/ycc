@@ -175,12 +175,14 @@ func (client *Client) getTicketsMap(height int64) map[string]string {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
 	mp := make(map[string]string)
-	// plog.Info("client.ticketsMap", "len", len(client.ticketsMap))
 	for tid, t := range client.ticketsMap {
 		if getTicketHeight(tid) > height {
 			continue
 		}
 		mp[tid] = t.MinerAddress
+	}
+	if height%10 == 0 {
+		plog.Info("client.ticketsMap", "len", len(client.ticketsMap), "slen", len(mp))
 	}
 	return mp
 }
@@ -310,7 +312,6 @@ func (client *Client) CreateBlock() {
 	client.n.runLoop()
 }
 
-//316190000 coins
 func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count int32, height int64) (ret []*types.Transaction) {
 	//给hotkey 10000 个币，作为miner的手续费
 	tx1 := types.Transaction{}
@@ -403,6 +404,9 @@ func (client *Client) setBlock(b *types.Block) error {
 func getMiner(b *types.Block) (*pt.Pos33Miner, error) {
 	if b == nil {
 		return nil, fmt.Errorf("b is nil")
+	}
+	if len(b.Txs) == 0 {
+		panic("No tx in the block")
 	}
 	tx := b.Txs[0]
 	var pact pt.Pos33TicketAction

@@ -20,7 +20,7 @@ import (
 // Pos33TicketCmd ticket command type
 func Pos33TicketCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "pos33.ticket",
+		Use:   "pos33",
 		Short: "Pos33Ticket management",
 		Args:  cobra.MinimumNArgs(1),
 	}
@@ -148,7 +148,7 @@ func ClosePos33TicketCmd() *cobra.Command {
 
 func addCloseBindAddr(cmd *cobra.Command) {
 	cmd.Flags().StringP("miner_addr", "m", "", "miner address (optional)")
-	cmd.Flags().Int32P("count", "c", 200, "close ticket count (optional, default 200)")
+	cmd.Flags().Int32P("count", "c", 0, "close ticket count (optional, default 0 is all)")
 }
 
 // listTicketCmd get ticket count

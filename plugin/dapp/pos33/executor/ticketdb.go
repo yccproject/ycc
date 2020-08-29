@@ -28,7 +28,7 @@ var tlog = log.New("module", "ticket.db")
 
 // DB db
 type DB struct {
-	ty.Pos33Ticket
+	*ty.Pos33Ticket
 	prevstatus int32
 }
 
@@ -91,7 +91,7 @@ func (t *DB) GetReceiptLog(typ int32) *types.ReceiptLog {
 
 // GetKVSet get kv set
 func (t *DB) GetKVSet() (kvset []*types.KeyValue) {
-	value := types.Encode(&t.Pos33Ticket)
+	value := types.Encode(t.Pos33Ticket)
 	kvset = append(kvset, &types.KeyValue{Key: Key(t.TicketId), Value: value})
 	return kvset
 }
@@ -319,7 +319,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33Miner, index int) (*types.
 		t.MinerValue += ty.Pos33VoteReward
 		prevStatus := t.Status
 		t.Status = 1 // here, Don't change to 2,
-		db := &DB{*t, prevStatus}
+		db := &DB{t, prevStatus}
 		db.Save(action.db)
 		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
 		kvs = append(kvs, db.GetKVSet()...)
@@ -346,7 +346,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33Miner, index int) (*types.
 		t.MinerValue += bpReward
 		prevStatus := t.Status
 		t.Status = 1
-		db := &DB{*t, prevStatus}
+		db := &DB{t, prevStatus}
 		db.Save(action.db)
 		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
 		kvs = append(kvs, db.GetKVSet()...)
@@ -398,7 +398,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 		}
 		prevstatus := ticket.Status
 		ticket.Status = 3
-		tickets[i] = &DB{*ticket, prevstatus}
+		tickets[i] = &DB{ticket, prevstatus}
 	}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue

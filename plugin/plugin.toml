@@ -1,6 +1,9 @@
 # type字段仅支持 consensus  dapp store
 [dapp-pos33]
-gitrepo = "github.com/yccproject/ycc/tree/master/plugin/dapp/pos33"
+gitrepo = "github.com/yccproject/ycc/plugin/dapp/pos33"
+
+[consensus-pos33]
+gitrepo = "github.com/yccproject/ycc/plugin/consensus/pos33"
 
 [dapp-evm]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/evm"

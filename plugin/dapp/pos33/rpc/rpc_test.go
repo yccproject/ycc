@@ -414,11 +414,6 @@ Enable=0
 [fork.sub.coins]
 Enable=0
 
-[fork.sub.ticket]
-Enable=0
-ForkTicketId =0
-ForkTicketVrf =0
-
 [fork.sub.retrieve]
 Enable=0
 ForkRetrive=0
