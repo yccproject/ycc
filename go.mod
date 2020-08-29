@@ -13,7 +13,7 @@ require (
 	github.com/dchest/blake256 v1.0.0 // indirect
 	github.com/decred/base58 v1.0.2 // indirect
 	github.com/dgraph-io/badger v1.6.1 // indirect
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.2
 	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
@@ -52,8 +52,10 @@ require (
 	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1 // indirect
 	golang.org/x/tools v0.0.0-20200615222825-6aa8f57aacd9 // indirect
 	google.golang.org/grpc v1.28.0
+	google.golang.org/protobuf v1.25.0
 	mvdan.cc/sh v2.6.4+incompatible // indirect
 )
 
 replace github.com/ipfs/go-datastore => github.com/ipfs/go-datastore v0.1.0
+
 replace github.com/libp2p/go-libp2p-connmgr => github.com/libp2p/go-libp2p-connmgr v0.2.4

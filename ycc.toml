@@ -1,0 +1,129 @@
+FixTime = false
+Title = "ycc"
+
+[log]
+# 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
+logConsoleLevel = "eror"
+loglevel = "info"
+# 日志文件名，可带目录，所有生成的日志文件都放到此目录下
+logFile = "logs/chain33.log"
+# 单个日志文件的最大值（单位：兆）
+maxFileSize = 300
+# 最多保存的历史日志文件个数
+maxBackups = 100
+# 最多保存的历史日志消息（单位：天）
+maxAge = 28
+# 日志文件名是否使用本地事件（否则使用UTC时间）
+localTime = true
+# 历史日志文件是否压缩（压缩格式为gz）
+compress = true
+# 是否打印调用源文件和行号
+callerFile = true
+# 是否打印调用方法
+callerFunction = false
+
+[blockchain]
+batchsync = false
+dbCache = 64
+dbPath = "datadir"
+enableTxQuickIndex = true
+isRecordBlockSequence = false
+# 升级storedb是否重新执行localdb，bityuan主链升级不需要开启，平行链升级需要开启
+enableReExecLocal = false
+# 使能精简localdb
+enableReduceLocaldb = true
+
+[p2p]
+dbCache = 4
+dbPath = "datadir/addrbook"
+grpcLogFile = "grpc33.log"
+types = ["dht"]
+#waitPid 等待seed导入
+waitPid = false
+
+[p2p.sub.gossip]
+innerBounds = 300
+innerSeedEnable = true
+isSeed = false
+port = 13802
+seeds = []
+useGithub = true
+
+[p2p.sub.dht]
+#可以自定义设置连接节点
+port = 13801
+seeds = []
+#dht 版本还不稳定，暂时限定较小的连接数
+maxConnectNum = 50
+#区块轻广播最低区块大小，1k
+minLtBlockSize = 1
+
+[rpc]
+certFile = "cert.pem"
+enableTLS = false
+grpcBindAddr = "localhost:8802"
+grpcFuncWhitelist = ["*"]
+jrpcBindAddr = "localhost:8801"
+jrpcFuncWhitelist = ["*"]
+keyFile = "key.pem"
+whitelist = ["127.0.0.1"]
+
+[mempool]
+maxTxNumPerAccount = 100
+
+[store]
+dbCache = 128
+dbPath = "datadir/mavltree"
+
+[store.sub.mavl]
+enableMVCC = false
+enableMavlPrefix = true
+enableMavlPrune = true
+enableMemTree = true
+enableMemVal = true
+pruneHeight = 10000
+# 缓存close ticket数目，该缓存越大同步速度越快，最大设置到1500000,默认200000
+tkCloseCacheLen = 200000
+
+[store.sub.kvmvccmavl]
+enableMVCC = false
+enableMVCCIter = true
+enableMVCCPrune = false
+enableMavlPrefix = true
+enableMavlPrune = true
+enableMemTree = true
+enableMemVal = true
+pruneMVCCHeight = 10000
+pruneMavlHeight = 10000
+# 缓存close ticket数目，该缓存越大同步速度越快，最大设置到1500000,默认200000
+tkCloseCacheLen = 200000
+
+[wallet]
+dbCache = 16
+dbPath = "wallet"
+
+[wallet.sub.ticket]
+minerdisable = false
+minerwhitelist = ["*"]
+
+[exec]
+enableMVCC = false
+enableStat = false
+
+[exec.sub.token]
+saveTokenTxList = false
+
+[metrics]
+#是否使能发送metrics数据的发送
+enableMetrics = false
+#数据保存模式
+dataEmitMode = "influxdb"
+
+[metrics.sub.influxdb]
+#以纳秒为单位的发送间隔
+database = "chain33metrics"
+duration = 1000000000
+namespace = ""
+password = ""
+url = "http://influxdb:8086"
+username = ""
