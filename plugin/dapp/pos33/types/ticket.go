@@ -62,7 +62,6 @@ func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(Pos33TicketX))
 	types.RegFork(Pos33TicketX, InitFork)
 	types.RegExec(Pos33TicketX, InitExecutor)
-
 }
 
 func InitFork(cfg *types.Chain33Config) {

@@ -62,7 +62,7 @@ returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 count=10000
 
 [mver.consensus]
-fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
+fundKeyAddr="1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
 powLimitBits="0x1f00ffff"
 maxTxNumber=10000
 
@@ -70,22 +70,22 @@ maxTxNumber=10000
 maxTxNumber=10000
 
 [mver.consensus.ForkChainParamV2]
-powLimitBits = "0x1f2fffff"
+powLimitBits="0x1f2fffff"
 
 [mver.consensus.ForkTicketFundAddrV1]
-fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
+fundKeyAddr="1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
 
 [mver.consensus.pos33]
-coinReward = 18
-coinDevFund = 12
-ticketPrice = 10000
-retargetAdjustmentFactor = 4
-futureBlockTime = 15
-ticketFrozenTime = 43200
-ticketWithdrawTime = 172800
-ticketMinerWaitTime = 7200
-targetTimespan = 2160
-targetTimePerBlock = 15
+coinReward=18
+coinDevFund=12
+ticketPrice=10000
+retargetAdjustmentFactor=4
+futureBlockTime=15
+ticketFrozenTime=43200
+ticketWithdrawTime=172800
+ticketMinerWaitTime=7200
+targetTimespan=2160
+targetTimePerBlock=15
 
 [store]
 name="kvmvccmavl"
@@ -100,7 +100,7 @@ signType="secp256k1"
 [exec]
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
-tokenApprs = []
+tokenApprs=[]
 [exec.sub.relay]
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
@@ -121,88 +121,89 @@ useBalance=false
 #系统中所有的fork,默认用chain33的测试网络的
 #但是我们可以替换
 [fork.system]
-ForkChainParamV1= 0
+ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash= 1
-ForkMinerTime= 0
-ForkTransferExec= 100000
-ForkExecKey= 200000
-ForkTxGroup= 200000
-ForkResetTx0= 200000
-ForkWithdraw= 200000
-ForkExecRollback= 450000
-ForkCheckBlockTime=2270000
-ForkTxHeight= -1
-ForkTxGroupPara= 2270000
-ForkChainParamV2= 2270000
-ForkMultiSignAddress=2270000
-ForkStateDBSet=2270000
-ForkLocalDBAccess=2270000
-ForkBlockCheck=2270000
-ForkBase58AddressCheck=2270000
-ForkEnableParaRegExec=2270000
-ForkCacheDriver=4320000
-ForkTicketFundAddrV1=4320000
-#fork for 6.4
-ForkRootHash=7200000           
+ForkBlockHash=10000000000000000
+ForkMinerTime=0
+ForkTransferExec=0
+ForkExecKey=0
+ForkTxGroup=0
+ForkResetTx0=0
+ForkWithdraw=0
+ForkExecRollback=0
+ForkCheckBlockTime=0
+ForkTxHeight=0
+ForkTxGroupPara=0
+ForkChainParamV2=0
+ForkMultiSignAddress=0
+ForkStateDBSet=0
+ForkLocalDBAccess=0
+ForkBlockCheck=0
+ForkBase58AddressCheck=0
+#平行链上使能平行链执行器如user.p.x.coins执行器的注册，缺省为0，对已有的平行链需要设置一个fork高度
+ForkEnableParaRegExec=0
+ForkCacheDriver=0
+ForkTicketFundAddrV1=-1 #fork6.3
+#主链和平行链都使用同一个fork高度
+ForkRootHash=0 
 
 [fork.sub.coins]
 Enable=0
 
-[fork.sub.ticket]
+[fork.sub.pos33]
 Enable=0
-ForkTicketId = 1600000
-ForkTicketVrf = 2270000
+ForkTicketId=0
+ForkTicketVrf=0
 
 [fork.sub.retrieve]
 Enable=0
 ForkRetrive=0
-ForkRetriveAsset=4320000
+ForkRetriveAsset=0
 
 [fork.sub.hashlock]
 Enable=0
-ForkBadRepeatSecret=4320000
+ForkBadRepeatSecret=0
 
 [fork.sub.manage]
 Enable=0
-ForkManageExec=100000
+ForkManageExec=0
 
 [fork.sub.token]
 Enable=0
-ForkTokenBlackList= 0
-ForkBadTokenSymbol= 0
-ForkTokenPrice= 300000
-ForkTokenSymbolWithNumber=1600000
-ForkTokenCheck= 2270000
+ForkTokenBlackList=0
+ForkBadTokenSymbol=0
+ForkTokenPrice=300000
+ForkTokenSymbolWithNumber=0
+ForkTokenCheck=0
 
 [fork.sub.trade]
 Enable=0
-ForkTradeBuyLimit= 0
-ForkTradeAsset= 2270000
-ForkTradeID = 2270000
-ForkTradeFixAssetDB=4320000
-ForkTradePrice=4320000
+ForkTradeBuyLimit=0
+ForkTradeAsset=0
+ForkTradeID=0
+ForkTradeFixAssetDB=0
+ForkTradePrice=0
 
 [fork.sub.paracross]
-Enable=1600000
-ForkParacrossWithdrawFromParachain=1600000
-ForkParacrossCommitTx=2270000
-ForkLoopCheckCommitTxDone=4320000
+Enable=0
+ForkParacrossWithdrawFromParachain=0
+ForkParacrossCommitTx=0
+ForkLoopCheckCommitTxDone=0
 #fork for 6.4
-ForkParaAssetTransferRbk=7200000    
-ForkParaSelfConsStages=7200000
+ForkParaAssetTransferRbk=0    
+ForkParaSelfConsStages=0
 
 [fork.sub.multisig]
-Enable=1600000
+Enable=0
 
 [fork.sub.autonomy]
-Enable=7200000
+Enable=0
 
 [fork.sub.unfreeze]
-Enable=1600000
-ForkTerminatePart=1600000
-ForkUnfreezeIDX= 2270000
+Enable=0
+ForkTerminatePart=0
+ForkUnfreezeIDX=0
 
 [fork.sub.store-kvmvccmavl]
-ForkKvmvccmavl=2270000
+ForkKvmvccmavl=0
 `

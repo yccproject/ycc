@@ -2,7 +2,6 @@
 .idea
 ycc
 ycc-cli
-cli
 tool
 datadir/
 grpc33.log
