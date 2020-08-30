@@ -338,7 +338,7 @@ func (policy *ticketPolicy) forceClosePos33TicketByReturnAddr(height int64, mine
 	return &hashes, nil
 }
 
-func (policy *ticketPolicy) forceClosePos33Tickets(height int64, string, count int) (*types.ReplyHashes, error) {
+func (policy *ticketPolicy) forceClosePos33Tickets(height int64, addr string, count int) (*types.ReplyHashes, error) {
 	var err error
 
 	priv, minerAddr, err := policy.getMiner(height)

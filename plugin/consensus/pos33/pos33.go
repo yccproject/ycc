@@ -401,7 +401,7 @@ func (client *Client) setBlock(b *types.Block) error {
 	return nil
 }
 
-func getMiner(b *types.Block) (*pt.Pos33Miner, error) {
+func getMiner(b *types.Block) (*pt.Pos33TicketMiner, error) {
 	if b == nil {
 		return nil, fmt.Errorf("b is nil")
 	}

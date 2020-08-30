@@ -243,7 +243,7 @@ func (m *Pos33Rands) ToString() string {
 */
 
 // ToString is reword to string
-func (act *Pos33Miner) ToString() string {
+func (act *Pos33TicketMiner) ToString() string {
 	b, err := json.MarshalIndent(act, "", "  ")
 	if err != nil {
 		return err.Error()

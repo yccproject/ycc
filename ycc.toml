@@ -3,7 +3,7 @@ Title = "ycc"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
-logConsoleLevel = "info"
+logConsoleLevel = "debug"
 loglevel = "info"
 # 日志文件名，可带目录，所有生成的日志文件都放到此目录下
 logFile = "logs/chain33.log"
@@ -20,7 +20,7 @@ compress = true
 # 是否打印调用源文件和行号
 callerFile = true
 # 是否打印调用方法
-callerFunction = false
+callerFunction = true
 
 [blockchain]
 batchsync = false
