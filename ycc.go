@@ -82,7 +82,7 @@ ticketPrice=10000
 retargetAdjustmentFactor=4
 futureBlockTime=15
 ticketFrozenTime=43200
-ticketWithdrawTime=172800
+ticketWithdrawTime=10
 ticketMinerWaitTime=7200
 targetTimespan=2160
 targetTimePerBlock=15
@@ -98,6 +98,10 @@ driver="leveldb"
 signType="secp256k1"
 
 [exec]
+[exec.sub.pos33]
+ForkTicketId=0
+ForkTicketVrf=0
+
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
 tokenApprs=[]
@@ -152,8 +156,6 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkTicketId=0
-ForkTicketVrf=0
 
 [fork.sub.retrieve]
 Enable=0

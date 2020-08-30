@@ -68,6 +68,9 @@ jrpcFuncWhitelist = ["*"]
 keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
+[consensus.sub.pos33]
+# bootPeers=["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+
 [mempool]
 maxTxNumPerAccount = 100
 

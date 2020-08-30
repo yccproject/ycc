@@ -10,10 +10,12 @@ import (
 	"reflect"
 	"time"
 
-	//log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/crypto"
+	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 )
+
+var tlog = log.New("module", "pos33.types")
 
 const (
 	//log for ticket
@@ -113,9 +115,8 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 		ticketMiner := action.GetMiner()
 		nvs := len(ticketMiner.Votes)
 		bpr := Pos33BpReward * int64(nvs)
-		vsr := Pos33VoteReward * int64(nvs)
-		all := types.Coin * 15
-		return all - bpr - vsr, nil
+		tlog.Info("Amount", "amount", bpr)
+		return bpr, nil
 	}
 	return 0, nil
 }

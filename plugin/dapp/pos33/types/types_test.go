@@ -113,20 +113,20 @@ func TestDecodeLogPos33TicketBind(t *testing.T) {
 	assert.Equal(t, "LogPos33TicketBind", result.Logs[0].TyName)
 }
 
-func TestProtoNewEncodeOldDecode(t *testing.T) {
-	tnew := &Pos33TicketMiner{
-		Bits:     1,
-		Reward:   1,
-		TicketId: "id",
-		Modify:   []byte("modify"),
-		PrivHash: []byte("hash"),
-	}
-	data := types.Encode(tnew)
-	told := &Pos33TicketMinerOld{}
-	err := types.Decode(data, told)
-	assert.Nil(t, err)
-	assert.Equal(t, told.Bits, uint32(1))
-	assert.Equal(t, told.Reward, int64(1))
-	assert.Equal(t, told.TicketId, "id")
-	assert.Equal(t, told.Modify, []byte("modify"))
-}
+// func TestProtoNewEncodeOldDecode(t *testing.T) {
+// 	tnew := &Pos33TicketMiner{
+// 		Bits:     1,
+// 		Reward:   1,
+// 		TicketId: "id",
+// 		Modify:   []byte("modify"),
+// 		PrivHash: []byte("hash"),
+// 	}
+// 	data := types.Encode(tnew)
+// 	told := &Pos33TicketMinerOld{}
+// 	err := types.Decode(data, told)
+// 	assert.Nil(t, err)
+// 	assert.Equal(t, told.Bits, uint32(1))
+// 	assert.Equal(t, told.Reward, int64(1))
+// 	assert.Equal(t, told.TicketId, "id")
+// 	assert.Equal(t, told.Modify, []byte("modify"))
+// }
