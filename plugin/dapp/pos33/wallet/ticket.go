@@ -569,6 +569,7 @@ func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]b
 		return nil, err
 	}
 	if acc.Balance > 0 {
+		bizlog.Info("withdraw", "amount", acc.Balance)
 		hash, err := operater.SendToAddress(priv, address.ExecAddress(ty.Pos33TicketX), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
 			return nil, err
