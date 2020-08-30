@@ -1,5 +1,7 @@
 syntax = "proto3";
 package types;
+// option go_package =
+// "github.com/yccproject/ycc/plugin/dapp/pos33/types;types";
 
 import "common.proto";
 import "transaction.proto";
@@ -31,7 +33,7 @@ message Pos33TicketAction {
     Pos33TicketOpen topen = 1;
     Pos33TicketGenesis genesis = 2;
     Pos33TicketClose tclose = 3;
-    Pos33Miner miner = 6;
+    Pos33TicketMiner miner = 6;
   }
   int32 ty = 10;
 }
@@ -89,30 +91,9 @@ message Pos33VoteMsg {
 
 message Pos33Votes { repeated Pos33VoteMsg vs = 1; }
 
-message Pos33Miner {
+message Pos33TicketMiner {
   repeated Pos33VoteMsg votes = 1;
   Pos33SortMsg sort = 2;
-  repeated string stopBps = 3;
-}
-
-message Pos33TicketMiner {
-  uint32 bits = 1;
-  int64 reward = 2;
-  string ticketId = 3;
-  bytes modify = 4;
-  //挖到区块时公开
-  bytes privHash = 5;
-  // VRF计算得到的hash
-  bytes vrfHash = 6;
-  // VRF计算得到的proof
-  bytes vrfProof = 7;
-}
-
-message Pos33TicketMinerOld {
-  uint32 bits = 1;
-  int64 reward = 2;
-  string ticketId = 3;
-  bytes modify = 4;
 }
 
 message Pos33MinerFlag {

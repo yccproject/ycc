@@ -288,7 +288,7 @@ func readPos33Ticket(db dbm.KV, id string) (*ty.Pos33Ticket, error) {
 }
 
 // Pos33TicketMiner ticket miner
-func (action *Action) Pos33TicketMiner(miner *ty.Pos33Miner, index int) (*types.Receipt, error) {
+func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*types.Receipt, error) {
 	if index != 0 {
 		return nil, types.ErrCoinBaseIndex
 	}

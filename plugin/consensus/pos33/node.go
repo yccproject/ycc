@@ -34,10 +34,7 @@ type node struct {
 	// receive candidate verifers
 	css map[int64]map[int][]*pt.Pos33SortMsg
 
-	// slowly address
-	slowAddrs map[string]int64
-	slowBps   []string
-	tids      map[int64]map[int]string
+	tids map[int64]map[int]string
 
 	// for new block incoming to add
 	bch     chan *types.Block
@@ -48,14 +45,13 @@ type node struct {
 // New create pos33 consensus client
 func newNode(conf *subConfig) *node {
 	n := &node{
-		ips:       make(map[int64]map[int]*pt.Pos33SortMsg),
-		ivs:       make(map[int64]map[int][]*pt.Pos33SortMsg),
-		cps:       make(map[int64]map[int]map[string]*pt.Pos33SortMsg),
-		cvs:       make(map[int64]map[int]map[string][]*pt.Pos33VoteMsg),
-		css:       make(map[int64]map[int][]*pt.Pos33SortMsg),
-		tids:      make(map[int64]map[int]string),
-		slowAddrs: make(map[string]int64),
-		bch:       make(chan *types.Block, 16),
+		ips:  make(map[int64]map[int]*pt.Pos33SortMsg),
+		ivs:  make(map[int64]map[int][]*pt.Pos33SortMsg),
+		cps:  make(map[int64]map[int]map[string]*pt.Pos33SortMsg),
+		cvs:  make(map[int64]map[int]map[string][]*pt.Pos33VoteMsg),
+		css:  make(map[int64]map[int][]*pt.Pos33SortMsg),
+		tids: make(map[int64]map[int]string),
+		bch:  make(chan *types.Block, 16),
 	}
 
 	plog.Info("@@@@@@@ node start:", "addr", addr, "conf", conf)
@@ -80,10 +76,9 @@ func (n *node) minerTx(height int64, sm *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg,
 
 	act := &pt.Pos33TicketAction{
 		Value: &pt.Pos33TicketAction_Miner{
-			Miner: &pt.Pos33Miner{
-				Votes:   vs,
-				Sort:    sm,
-				StopBps: n.slowBps,
+			Miner: &pt.Pos33TicketMiner{
+				Votes: vs,
+				Sort:  sm,
 			},
 		},
 		Ty: pt.Pos33TicketActionMiner,
@@ -103,15 +98,6 @@ func (n *node) minerTx(height int64, sm *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg,
 func (n *node) blockDiff(lb *types.Block, w int) uint32 {
 	powLimitBits := n.GetAPI().GetConfig().GetP(lb.Height).PowLimitBits
 	return powLimitBits
-	// oldTarget := difficulty.CompactToBig(lb.Difficulty)
-	// newTarget := new(big.Int).Mul(oldTarget, big.NewInt(11)) // pt.Pos33MustVotes))
-	// newTarget.Div(newTarget, big.NewInt(int64(w+1)))
-
-	// powLimit := difficulty.CompactToBig(powLimitBits)
-	// if newTarget.Cmp(powLimit) > 0 {
-	// 	newTarget.Set(powLimit)
-	// }
-	// return difficulty.BigToCompact(newTarget)
 }
 
 func (n *node) myVotes(height int64, round int) []*pt.Pos33SortMsg {
@@ -216,27 +202,6 @@ func (n *node) addBlock(b *types.Block) {
 		return
 	}
 
-	/*
-		fn := func(nb *types.Block) {
-			select {
-			case n.bch <- nb:
-			default:
-				<-n.bch
-				n.bch <- nb
-			}
-		}
-	*/
-
-	act, err := getMiner(b)
-	if err != nil {
-		plog.Info("getMiner error", "err", err, "height", b.Height)
-	}
-	if err == nil && act != nil {
-		for _, bp := range act.StopBps {
-			n.slowAddrs[bp] = b.Height + stopedBlocks
-		}
-	}
-
 	plog.Info("node.addBlock", "height", b.Height, "hash", common.ToHex(b.Hash(n.GetAPI().GetConfig())))
 	if b.BlockTime-n.lastBlock().BlockTime < 1 {
 		time.AfterFunc(time.Millisecond*300, func() {
@@ -278,12 +243,6 @@ func (n *node) clear(height int64) {
 			delete(n.tids, h)
 		}
 	}
-	for tid, h := range n.slowAddrs {
-		if h < height {
-			delete(n.slowAddrs, tid)
-		}
-	}
-	n.slowBps = nil
 }
 
 func addr(sig *types.Signature) string {
@@ -560,11 +519,6 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	}
 	allw := n.allw(height, true)
 
-	// if !n.checkVotes(vms.Vs, height, round) {
-	// 	plog.Info("checkVotes error", "height", height, "round", round)
-	// 	return
-	// }
-
 	for _, vm := range vms.Vs {
 		if !myself {
 			err := n.checkVote(vm, height, round, seed, allw, tid)
@@ -687,12 +641,6 @@ func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg) {
 	if n.lastBlock().Height >= height {
 		err := fmt.Errorf("sort msg too late, lbHeight=%d, sortHeight=%d", n.lastBlock().Height, height)
 		plog.Info("handleSort error", "err", err)
-	}
-	addr := address.PubKeyToAddr(m.Proof.Pubkey)
-	sl, ok := n.slowAddrs[addr]
-	if ok && height <= sl {
-		plog.Info("addr is slow addr", "addr", addr, "height", height, "stop height", sl)
-		return
 	}
 	if n.cps[height] == nil {
 		n.cps[height] = make(map[int]map[string]*pt.Pos33SortMsg)
@@ -843,25 +791,6 @@ func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
 	return ch
 }
 
-func (n *node) checkTimeout(height int64, round int) {
-	mp, ok := n.tids[height]
-	if !ok {
-		return
-	}
-	tid, ok := mp[round]
-	if !ok {
-		return
-	}
-
-	t, err := n.queryTid(tid, height)
-	if err != nil {
-		plog.Error("query Ticket error", "err", err, "height", height)
-		return
-	}
-	plog.Info("stop slowly address", "height", height, "stop height", height+3600, "address", t.MinerAddress)
-	n.slowBps = append(n.slowBps, t.MinerAddress)
-}
-
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
 	if err != nil {
@@ -906,7 +835,6 @@ func (n *node) runLoop() {
 		select {
 		case height := <-ch:
 			if height == n.lastBlock().Height+1 {
-				//n.checkTimeout(height, round)
 				round++
 				plog.Info("@@@ make timeout: ", "height", height, "round", round)
 				n.reSortition(height, round)
@@ -969,9 +897,6 @@ func (n *node) vote(height int64, round int) {
 		plog.Info("I'm not verifer", "height", height)
 		return
 	}
-	// if len(ss) > pt.Pos33VoterSize {
-	// 	ss = ss[:pt.Pos33VoterSize]
-	// }
 	plog.Info("vote bp", "height", height, "round", round, "tid", tid)
 	var vs []*pt.Pos33VoteMsg
 	for _, s := range ss {
