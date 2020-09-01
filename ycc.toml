@@ -20,7 +20,7 @@ compress = true
 # 是否打印调用源文件和行号
 callerFile = true
 # 是否打印调用方法
-callerFunction = true
+callerFunction = false
 
 [blockchain]
 batchsync = false
@@ -52,7 +52,7 @@ useGithub = true
 [p2p.sub.dht]
 #可以自定义设置连接节点
 port = 13801
-seeds = []
+seeds = ["/ip4/183.129.226.76/tcp/13804/p2p/16Uiu2HAmQiU11LNm4mQPXatnxKpGyYBVzJWD34VEcVKY1t5hroGQ"]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -69,7 +69,7 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-# bootPeers=["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+bootPeers=["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
 
 [mempool]
 maxTxNumPerAccount = 100
