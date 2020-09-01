@@ -18,6 +18,17 @@ import (
 var tlog = log.New("module", "pos33.types")
 
 const (
+	//Pos33TicketInit ticket　init status
+	Pos33TicketInit = iota
+	//Pos33TicketOpened ticket opened status
+	Pos33TicketOpened
+	//Pos33TicketMined ticket mined status
+	//Pos33TicketMined
+	//Pos33TicketClosed ticket closed status
+	Pos33TicketClosed
+)
+
+const (
 	//log for ticket
 
 	//TyLogNewPos33Ticket new ticket log type

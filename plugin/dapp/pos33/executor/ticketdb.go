@@ -48,9 +48,9 @@ func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, bloc
 	t.MinerAddress = minerAddress
 	t.ReturnAddress = returnWallet
 	t.CreateTime = blocktime
-	t.Status = 1
+	t.Status = ty.Pos33TicketOpened
 	t.IsGenesis = isGenesis
-	t.prevstatus = 0
+	t.prevstatus = ty.Pos33TicketInit
 	//height == 0 的情况下，不去改变 genesis block
 	if cfg.IsFork(height, "ForkChainParamV2") && height > 0 {
 		t.Price = price
@@ -60,7 +60,6 @@ func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, bloc
 
 //ticket 的状态变化：
 //1. status == 1 (NewPos33Ticket的情况)
-//2. status == 2 (已经挖矿的情况)
 //3. status == 3 (Close的情况)
 
 //add prevStatus:  便于回退状态，以及删除原来状态
@@ -70,15 +69,6 @@ func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, bloc
 // GetReceiptLog get receipt
 func (t *DB) GetReceiptLog(typ int32) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	/*
-		if t.Status == 1 {
-			log.Ty = ty.TyLogNewPos33Ticket
-		} else if t.Status == 2 {
-			log.Ty = ty.TyLogMinerPos33Ticket
-		} else if t.Status == 3 {
-			log.Ty = ty.TyLogClosePos33Ticket
-		}
-	*/
 	log.Ty = typ
 	r := &ty.ReceiptPos33Ticket{}
 	r.TicketId = t.TicketId
@@ -246,17 +236,7 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	for i := 0; i < int(topen.Count); i++ {
 		id := prefix + fmt.Sprintf("%010d", i)
-		/*
-			//add pubHash
-			if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "ForkTicketId") {
-				if len(topen.PubHashes) == 0 {
-					return nil, ty.ErrOpenPos33TicketPubHash
-				}
-				id = id + ":" + fmt.Sprintf("%x:%d", topen.PubHashes[i], topen.RandSeed)
-			}
-		*/
 		t := NewDB(chain33Cfg, id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, action.height, cfg.Pos33TicketPrice, false)
-
 		//冻结子账户资金
 		receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice)
 		if err != nil {
@@ -307,8 +287,8 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		if err != nil {
 			return nil, err
 		}
-		if t.Status != 1 {
-			panic("can't go here")
+		if t.Status != ty.Pos33TicketOpened {
+			panic("can't go here: Mining vote is NOT opened 0")
 		}
 
 		receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, ty.Pos33VoteReward)
@@ -319,7 +299,6 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 		t.MinerValue += ty.Pos33VoteReward
 		prevStatus := t.Status
-		t.Status = 1 // here, Don't change to 2,
 		db := &DB{*t, prevStatus}
 		db.Save(action.db)
 		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
@@ -336,8 +315,8 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		if err != nil {
 			return nil, err
 		}
-		if t.Status != 1 {
-			panic("can't go here")
+		if t.Status != ty.Pos33TicketOpened {
+			panic("can't go here: Mining vote is NOT opened 1")
 		}
 
 		receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, bpReward)
@@ -349,7 +328,6 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		tlog.Info("bp rerward", "height", action.height, "tid", t.TicketId, "minerAddr", t.MinerAddress, "returnAddr", t.ReturnAddress, "reward", bpReward)
 		t.MinerValue += bpReward
 		prevStatus := t.Status
-		t.Status = 1
 		db := &DB{*t, prevStatus}
 		db.Save(action.db)
 		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
@@ -382,47 +360,40 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
 	var dbs []*DB
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	for i := 0; i < len(tclose.TicketId); i++ {
 		ticket, err := readPos33Ticket(action.db, tclose.TicketId[i])
 		if err != nil {
 			return nil, err
 		}
-		//ticket 的生成时间超过 2天,可提款
-		if ticket.Status != 1 {
+		if ticket.Status != ty.Pos33TicketOpened {
 			tlog.Error("ticket", "id", ticket.GetTicketId(), "status", ticket.GetStatus())
 			return nil, ty.ErrPos33TicketClosed
-		}
-		if !ticket.IsGenesis {
-			if action.blocktime-ticket.GetCreateTime() < cfg.Pos33TicketWithdrawTime {
-				return nil, ty.ErrTime
-			}
 		}
 		//check from address
 		if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
 			return nil, types.ErrFromAddr
 		}
 		prevstatus := ticket.Status
-		ticket.Status = 3
+		ticket.Status = ty.Pos33TicketClosed
 		db := &DB{*ticket, prevstatus}
 		dbs = append(dbs, db)
 	}
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	for i := 0; i < len(dbs); i++ {
-		t := dbs[i]
-		retValue := t.GetRealPrice(chain33Cfg) + t.MinerValue
-		receipt1, err := action.coinsAccount.ExecActive(t.ReturnAddress, action.execaddr, retValue)
+		db := dbs[i]
+		retValue := db.GetRealPrice(chain33Cfg) + db.MinerValue
+		receipt1, err := action.coinsAccount.ExecActive(db.ReturnAddress, action.execaddr, retValue)
 		if err != nil {
-			tlog.Error("Pos33TicketClose.ExecActive user", "addr", t.ReturnAddress, "execaddr", action.execaddr, "value", retValue)
+			tlog.Error("Pos33TicketClose.ExecActive user", "addr", db.ReturnAddress, "execaddr", action.execaddr, "value", retValue)
 			return nil, err
 		}
-		tlog.Info("close pos33.ticket", "tid", t.TicketId, "height", action.height, "activeValue", retValue)
-		logs = append(logs, t.GetReceiptLog(ty.TyLogClosePos33Ticket))
-		kv = append(kv, t.GetKVSet()...)
+		tlog.Info("close pos33.ticket", "tid", db.TicketId, "height", action.height, "activeValue", retValue)
+		logs = append(logs, db.GetReceiptLog(ty.TyLogClosePos33Ticket))
+		kv = append(kv, db.GetKVSet()...)
 		logs = append(logs, receipt1.Logs...)
 		kv = append(kv, receipt1.KV...)
-		t.Save(action.db)
+		db.Save(action.db)
 	}
 	tlog.Info("@@@@@@@ pos33.ticket close", "ntid", len(dbs), "height", action.height)
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
