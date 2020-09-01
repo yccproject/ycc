@@ -141,7 +141,7 @@ func NewAction(t *Pos33Ticket, tx *types.Transaction) *Action {
 // GenesisInit init genesis
 func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	prefix := fmt.Sprintf("%s:%d:", genesis.MinerAddress[:8], action.height)
+	prefix := fmt.Sprintf("%s-%d-", genesis.MinerAddress[:8], action.height)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
@@ -229,7 +229,7 @@ func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt
 // Pos33TicketOpen ticket open
 func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	prefix := fmt.Sprintf("%s:%d:", topen.MinerAddress[:8], action.height)
+	prefix := fmt.Sprintf("%s-%d-", topen.MinerAddress[:8], action.height)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	//addr from
@@ -317,9 +317,6 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 			return nil, err
 		}
 
-		kvs = append(kvs, receipt.GetKV()...)
-		logs = append(logs, receipt.GetLogs()...)
-
 		t.MinerValue += ty.Pos33VoteReward
 		prevStatus := t.Status
 		t.Status = 1 // here, Don't change to 2,
@@ -327,6 +324,8 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		db.Save(action.db)
 		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
 		kvs = append(kvs, db.GetKVSet()...)
+		logs = append(logs, receipt.Logs...)
+		kvs = append(kvs, receipt.KV...)
 	}
 
 	// bp reward
@@ -341,13 +340,11 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 			panic("can't go here")
 		}
 
-		receipt1, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, bpReward)
+		receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, bpReward)
 		if err != nil {
 			tlog.Error("Pos33TicketMiner.ExecDepositFrozen error", "error", err, "bp", t.ReturnAddress, "value", bpReward)
 			return nil, err
 		}
-		kvs = append(kvs, receipt1.GetKV()...)
-		logs = append(logs, receipt1.GetLogs()...)
 
 		tlog.Info("bp rerward", "height", action.height, "tid", t.TicketId, "minerAddr", t.MinerAddress, "returnAddr", t.ReturnAddress, "reward", bpReward)
 		t.MinerValue += bpReward
@@ -357,23 +354,25 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		db.Save(action.db)
 		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
 		kvs = append(kvs, db.GetKVSet()...)
+		logs = append(logs, receipt.Logs...)
+		kvs = append(kvs, receipt.KV...)
 	}
 
 	// fund reward
 	fundReward := ty.Pos33BlockReward - (ty.Pos33VoteReward+ty.Pos33BpReward)*int64(sumw)
 	tlog.Info("fund rerward", "height", action.height, "reward", fundReward)
 	if fundReward > 0 {
-		var receipt2 *types.Receipt
+		var receipt *types.Receipt
 		var err error
 		// issue coins to exec addr
 		addr := chain33Cfg.MGStr("mver.consensus.fundKeyAddr", action.height)
-		receipt2, err = action.coinsAccount.ExecIssueCoins(addr, fundReward)
+		receipt, err = action.coinsAccount.ExecIssueCoins(addr, fundReward)
 		if err != nil {
 			tlog.Error("Pos33TicketMiner.ExecIssueCoins fund to autonomy fund", "addr", addr, "error", err)
 			return nil, err
 		}
-		logs = append(logs, receipt2.Logs...)
-		kvs = append(kvs, receipt2.KV...)
+		logs = append(logs, receipt.Logs...)
+		kvs = append(kvs, receipt.KV...)
 	}
 
 	return &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}, nil

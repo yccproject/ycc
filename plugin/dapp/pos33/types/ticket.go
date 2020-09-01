@@ -21,13 +21,13 @@ const (
 	//log for ticket
 
 	//TyLogNewPos33Ticket new ticket log type
-	TyLogNewPos33Ticket = 111
+	TyLogNewPos33Ticket = 331
 	// TyLogClosePos33Ticket close ticket log type
-	TyLogClosePos33Ticket = 112
+	TyLogClosePos33Ticket = 332
 	// TyLogMinerPos33Ticket miner ticket log type
-	TyLogMinerPos33Ticket = 113
+	TyLogMinerPos33Ticket = 333
 	// TyLogPos33TicketBind bind ticket log type
-	TyLogPos33TicketBind = 114
+	TyLogPos33TicketBind = 334
 )
 
 //ticket
@@ -113,6 +113,9 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 	}
 	if action.Ty == Pos33TicketActionMiner && action.GetMiner() != nil {
 		ticketMiner := action.GetMiner()
+		if ticketMiner == nil {
+			return 0, nil
+		}
 		nvs := len(ticketMiner.Votes)
 		bpr := Pos33BpReward * int64(nvs)
 		tlog.Info("Amount", "amount", bpr)

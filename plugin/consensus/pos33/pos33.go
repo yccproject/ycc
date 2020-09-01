@@ -162,7 +162,7 @@ func (client *Client) getPriv(mineAddr string) crypto.PrivKey {
 }
 
 func getTicketHeight(tid string) int64 {
-	ss := strings.Split(tid, ":")
+	ss := strings.Split(tid, "-")
 	height, _ := strconv.Atoi(ss[1])
 	h := int64(height)
 	if h == 0 {
