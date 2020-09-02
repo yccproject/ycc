@@ -47,7 +47,6 @@ func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, bloc
 	t.TicketId = id
 	t.MinerAddress = minerAddress
 	t.ReturnAddress = returnWallet
-	t.CreateTime = blocktime
 	t.Status = ty.Pos33TicketOpened
 	t.IsGenesis = isGenesis
 	t.prevstatus = ty.Pos33TicketInit
@@ -287,9 +286,6 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		if err != nil {
 			return nil, err
 		}
-		if t.Status != ty.Pos33TicketOpened {
-			panic("can't go here: Mining vote is NOT opened 0")
-		}
 
 		receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, ty.Pos33VoteReward)
 		if err != nil {
@@ -375,6 +371,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 		}
 		prevstatus := ticket.Status
 		ticket.Status = ty.Pos33TicketClosed
+		ticket.CloseHeight = action.height
 		db := &DB{*ticket, prevstatus}
 		dbs = append(dbs, db)
 	}

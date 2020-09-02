@@ -13,10 +13,10 @@ message Pos33Ticket {
   int32 status = 2;
   // genesis 创建的私钥比较特殊
   bool isGenesis = 3;
-  //创建时间
-  int64 createTime = 4;
-  //挖矿时间
-  int64 minerTime = 5;
+  // 开启的高度
+  int64 openHeight = 4;
+  // 关闭的高度
+  int64 closeHeight = 5;
   //挖到的币的数目
   int64 minerValue = 8;
   string minerAddress = 6;

@@ -112,6 +112,9 @@ func (client *Client) newBlock(lastBlock *types.Block, txs []*types.Transaction,
 
 // CheckBlock check block callback
 func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	if current.Receipts[0].Ty != types.ExecOk {
+		return types.ErrCoinBaseExecErr
+	}
 	return client.n.checkBlock(current.Block, parent)
 }
 

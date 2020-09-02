@@ -133,12 +133,13 @@ func (n *node) queryTid(tid string, height int64) (*pt.Pos33Ticket, error) {
 
 	var rt *pt.Pos33Ticket
 	for _, t := range reply.Tickets {
-		// if t.Status != 1 {
-		// 	continue
-		// }
-		if t.TicketId == tid && getTicketHeight(t.TicketId) <= height {
-			rt = t
-			break
+		if t.TicketId != tid {
+			continue
+		} else {
+			if t.Status == pt.Pos33TicketOpened || checkTicketHeight(t, height) {
+				rt = t
+				break
+			}
 		}
 	}
 	if rt == nil {
@@ -146,6 +147,16 @@ func (n *node) queryTid(tid string, height int64) (*pt.Pos33Ticket, error) {
 	}
 
 	return rt, nil
+}
+
+func checkTicketHeight(t *pt.Pos33Ticket, height int64) bool {
+	actHeight := height
+	if t.Status == pt.Pos33TicketOpened {
+		actHeight = t.OpenHeight
+	} else if t.Status == pt.Pos33TicketClosed {
+		actHeight = t.CloseHeight
+	}
+	return actHeight+pt.Pos33SortitionSize-actHeight%pt.Pos33SortitionSize < height
 }
 
 func calcDiff(step, round, allw int) float64 {
