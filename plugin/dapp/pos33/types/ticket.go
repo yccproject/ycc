@@ -283,3 +283,24 @@ func (v Votes) Less(i, j int) bool {
 	return string(v[i].Sort.SortHash.Hash) < string(v[i].Sort.SortHash.Hash)
 }
 func (v Votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
+
+func CheckTicketHeight(t *Pos33Ticket, height int64) bool {
+	if t.IsGenesis {
+		return true
+	}
+	actHeight := height
+	b := false
+	if t.Status == Pos33TicketOpened {
+		actHeight = t.OpenHeight
+	} else if t.Status == Pos33TicketClosed {
+		actHeight = t.CloseHeight
+		b = true
+	} else {
+		return false
+	}
+	r := actHeight+Pos33SortitionSize-actHeight%Pos33SortitionSize <= height-height%Pos33SortitionSize
+	if b {
+		return !r
+	}
+	return r
+}

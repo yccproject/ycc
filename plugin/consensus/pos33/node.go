@@ -358,13 +358,14 @@ func (n *node) getMinerSeed(height int64) ([]byte, error) {
 var zeroHash [32]byte
 
 func (n *node) reSortition(height int64, round int) bool {
-	seed, err := n.getMinerSeed(height)
+	sortHeight := height - pt.Pos33SortitionSize
+	seed, err := n.getMinerSeed(sortHeight)
 	if err != nil {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return false
 	}
 	const staps = 2
-	allw := n.allw(height, false)
+	allw := n.allw(sortHeight, false)
 	for s := 0; s < staps; s++ {
 		sms := n.sort(seed, height, round, s, allw)
 		if sms == nil {
