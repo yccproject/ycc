@@ -358,14 +358,14 @@ func (n *node) getMinerSeed(height int64) ([]byte, error) {
 var zeroHash [32]byte
 
 func (n *node) reSortition(height int64, round int) bool {
-	sortHeight := height - pt.Pos33SortitionSize
+	sortHeight := height // - pt.Pos33SortitionSize
 	seed, err := n.getMinerSeed(sortHeight)
 	if err != nil {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return false
 	}
 	const staps = 2
-	allw := n.allw(sortHeight, false)
+	allw := n.allw(sortHeight, true) // set to true
 	for s := 0; s < staps; s++ {
 		sms := n.sort(seed, height, round, s, allw)
 		if sms == nil {
@@ -573,7 +573,7 @@ func (n *node) makeNextBlock(height int64, round int) {
 	if checkVotesEnough(vs, height, round) {
 		err := n.makeBlock(height, round, mtid, vs)
 		if err != nil {
-			plog.Error("makeBlock error", "err", err, "height", height, "round", round)
+			plog.Info("can't make block", "err", err, "height", height, "round", round)
 		}
 	}
 }

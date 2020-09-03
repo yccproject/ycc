@@ -136,9 +136,11 @@ func (n *node) queryTid(tid string, height int64) (*pt.Pos33Ticket, error) {
 		if t.TicketId != tid {
 			continue
 		} else {
-			if t.Status == pt.Pos33TicketOpened || checkTicketHeight(t, height) {
+			if t.Status == pt.Pos33TicketOpened || pt.CheckTicketHeight(t, height) {
 				rt = t
 				break
+			} else {
+				
 			}
 		}
 	}

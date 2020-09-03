@@ -298,9 +298,10 @@ func CheckTicketHeight(t *Pos33Ticket, height int64) bool {
 	} else {
 		return false
 	}
-	r := actHeight+Pos33SortitionSize-actHeight%Pos33SortitionSize <= height-height%Pos33SortitionSize
+	h1 := actHeight + Pos33SortitionSize - actHeight%Pos33SortitionSize
+	h2 := height - height%Pos33SortitionSize
 	if b {
-		return !r
+		return h1 >= h2
 	}
-	return r
+	return h1 <= h2
 }
