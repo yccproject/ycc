@@ -311,9 +311,6 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		if err != nil {
 			return nil, err
 		}
-		if t.Status != ty.Pos33TicketOpened {
-			panic("can't go here: Mining vote is NOT opened 1")
-		}
 
 		receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, bpReward)
 		if err != nil {
@@ -321,7 +318,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 			return nil, err
 		}
 
-		tlog.Info("bp rerward", "height", action.height, "tid", t.TicketId, "minerAddr", t.MinerAddress, "returnAddr", t.ReturnAddress, "reward", bpReward)
+		tlog.Info("bp rerward", "height", action.height, "tid", t.TicketId, "reward", bpReward)
 		t.MinerValue += bpReward
 		prevStatus := t.Status
 		db := &DB{*t, prevStatus}
@@ -362,8 +359,9 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 			return nil, err
 		}
 		if ticket.Status != ty.Pos33TicketOpened {
-			tlog.Error("ticket", "id", ticket.GetTicketId(), "status", ticket.GetStatus())
-			return nil, ty.ErrPos33TicketClosed
+			tlog.Debug("ticket is NOT opened", "id", ticket.GetTicketId(), "status", ticket.GetStatus())
+			//return nil, ty.ErrPos33TicketClosed
+			continue
 		}
 		//check from address
 		if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
@@ -399,7 +397,13 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 
 // List list db
 func List(db dbm.Lister, db2 dbm.KV, tlist *ty.Pos33TicketList) (types.Message, error) {
-	values, err := db.List(calcPos33TicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
+	var err error
+	var values [][]byte
+	if tlist.Status > 0 {
+		values, err = db.List(calcPos33TicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
+	} else {
+		values, err = db.List(calcPos33TicketPrefix2(tlist.Addr), nil, 0, 0)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -411,11 +415,11 @@ func List(db dbm.Lister, db2 dbm.KV, tlist *ty.Pos33TicketList) (types.Message, 
 		ids.TicketIds = append(ids.TicketIds, string(values[i]))
 	}
 	tlog.Info("GetTicketList", "len", len(values))
-	return Infos(db2, &ids)
+	return Infos(db2, &ids, tlist.Height)
 }
 
 // Infos info
-func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos) (types.Message, error) {
+func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos, height int64) (types.Message, error) {
 	var tickets []*ty.Pos33Ticket
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]
@@ -423,6 +427,11 @@ func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos) (types.Message, error) {
 		//数据库可能会不一致，读的过程中可能会有写
 		if err != nil {
 			continue
+		}
+		if height > 0 {
+			if !ty.CheckTicketHeight(ticket, height) {
+				continue
+			}
 		}
 		tickets = append(tickets, ticket)
 	}

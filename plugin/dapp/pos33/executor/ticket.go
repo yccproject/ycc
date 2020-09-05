@@ -232,6 +232,11 @@ func calcPos33TicketPrefix(addr string, status int32) []byte {
 	return []byte(key)
 }
 
+func calcPos33TicketPrefix2(addr string) []byte {
+	key := fmt.Sprintf("LODB-pos33-tl:%s", addr)
+	return []byte(key)
+}
+
 func addticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcPos33TicketKey(addr, ticketID, status)

@@ -362,8 +362,8 @@ func (policy *ticketPolicy) forceClosePos33Tickets(addr string, count int) (*typ
 	return &types.ReplyHashes{Hashes: [][]byte{hash}}, nil
 }
 
-func (policy *ticketPolicy) getPos33Tickets(addr string, status int32) ([]*ty.Pos33Ticket, error) {
-	reqaddr := &ty.Pos33TicketList{Addr: addr, Status: status}
+func (policy *ticketPolicy) getPos33Tickets(addr string, status int32, height int64) ([]*ty.Pos33Ticket, error) {
+	reqaddr := &ty.Pos33TicketList{Addr: addr, Status: status, Height: height}
 	api := policy.getAPI()
 	msg, err := api.Query(ty.Pos33TicketX, "Pos33TicketList", reqaddr)
 	if err != nil {
@@ -378,7 +378,7 @@ func (policy *ticketPolicy) getForceClosePos33Tickets(addr string) ([]*ty.Pos33T
 	if addr == "" {
 		return nil, nil
 	}
-	tlist1, err1 := policy.getPos33Tickets(addr, ty.Pos33TicketOpened)
+	tlist1, err1 := policy.getPos33Tickets(addr, ty.Pos33TicketOpened, 0)
 	if err1 != nil && err1 != types.ErrNotFound {
 		return nil, err1
 	}
@@ -415,7 +415,11 @@ func (policy *ticketPolicy) getPos33TicketsByStatus(status int32) ([]*ty.Pos33Ti
 	if err != nil {
 		return nil, nil, err
 	}
-	tickets, err := policy.getPos33Tickets(minerAddr, status)
+	height := int64(0)
+	if status >= 0 {
+		height = policy.walletOperate.GetLastHeader().Height + 1
+	}
+	tickets, err := policy.getPos33Tickets(minerAddr, status, height)
 	if err == types.ErrNotFound {
 		return nil, nil, err
 	}
@@ -433,7 +437,7 @@ func (policy *ticketPolicy) isAutoMining() bool {
 
 func (policy *ticketPolicy) closePos33TicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	tlist, err := policy.getPos33Tickets(addr, 1)
+	tlist, err := policy.getPos33Tickets(addr, ty.Pos33TicketOpened, 0)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
