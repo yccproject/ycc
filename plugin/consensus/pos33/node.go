@@ -128,8 +128,8 @@ func (n *node) mySort(height int64, round int) *pt.Pos33SortMsg {
 	return sort
 }
 
-func (n *node) getPrivByTid(tid string) (crypto.PrivKey, error) {
-	t := n.getTicket(tid)
+func (n *node) getPrivByTid(tid string, height int64) (crypto.PrivKey, error) {
+	t := n.getTicket(tid, height)
 	if t == nil {
 		return nil, fmt.Errorf("getTicket error: %s", tid)
 	}
@@ -165,7 +165,7 @@ func (n *node) makeBlock(height int64, round int, tid string, vs []*pt.Pos33Vote
 		return err
 	}
 
-	priv, err := n.getPrivByTid(sort.SortHash.Tid)
+	priv, err := n.getPrivByTid(sort.SortHash.Tid, height)
 	if err != nil {
 		return err
 	}
@@ -902,7 +902,7 @@ func (n *node) vote(height int64, round int) {
 	var vs []*pt.Pos33VoteMsg
 	for _, s := range ss {
 		v := &pt.Pos33VoteMsg{Sort: s, Tid: tid, SortsCount: uint32(len(n.css[height][round]))}
-		t := n.getTicket(s.SortHash.Tid)
+		t := n.getTicket(s.SortHash.Tid, height)
 		if t == nil {
 			plog.Info("vote error: my ticket is gone", "ticketID", s.SortHash.Tid)
 			continue

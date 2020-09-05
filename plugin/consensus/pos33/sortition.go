@@ -140,7 +140,7 @@ func (n *node) queryTid(tid string, height int64) (*pt.Pos33Ticket, error) {
 				rt = t
 				break
 			} else {
-				
+
 			}
 		}
 	}

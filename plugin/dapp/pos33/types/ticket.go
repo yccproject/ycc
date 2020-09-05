@@ -285,9 +285,6 @@ func (v Votes) Less(i, j int) bool {
 func (v Votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
 func CheckTicketHeight(t *Pos33Ticket, height int64) bool {
-	if t.IsGenesis {
-		return true
-	}
 	actHeight := height
 	b := false
 	if t.Status == Pos33TicketOpened {
