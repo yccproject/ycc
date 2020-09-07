@@ -287,6 +287,11 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 			return nil, err
 		}
 
+		// if closed, not reward
+		if t.Status == ty.Pos33TicketClosed {
+			continue
+		}
+
 		receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, ty.Pos33VoteReward)
 		if err != nil {
 			tlog.Error("Pos33TicketMiner.ExecDepositFrozen error", "voter", t.ReturnAddress, "execaddr", action.execaddr)
@@ -312,21 +317,24 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 			return nil, err
 		}
 
-		receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, bpReward)
-		if err != nil {
-			tlog.Error("Pos33TicketMiner.ExecDepositFrozen error", "error", err, "bp", t.ReturnAddress, "value", bpReward)
-			return nil, err
-		}
+		// reward if only opened
+		if t.Status == ty.Pos33TicketOpened {
+			receipt, err := action.coinsAccount.ExecDepositFrozen(t.ReturnAddress, action.execaddr, bpReward)
+			if err != nil {
+				tlog.Error("Pos33TicketMiner.ExecDepositFrozen error", "error", err, "bp", t.ReturnAddress, "value", bpReward)
+				return nil, err
+			}
 
-		tlog.Info("bp rerward", "height", action.height, "tid", t.TicketId, "reward", bpReward)
-		t.MinerValue += bpReward
-		prevStatus := t.Status
-		db := &DB{*t, prevStatus}
-		db.Save(action.db)
-		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
-		kvs = append(kvs, db.GetKVSet()...)
-		logs = append(logs, receipt.Logs...)
-		kvs = append(kvs, receipt.KV...)
+			tlog.Info("bp rerward", "height", action.height, "tid", t.TicketId, "reward", bpReward)
+			t.MinerValue += bpReward
+			prevStatus := t.Status
+			db := &DB{*t, prevStatus}
+			db.Save(action.db)
+			logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
+			kvs = append(kvs, db.GetKVSet()...)
+			logs = append(logs, receipt.Logs...)
+			kvs = append(kvs, receipt.KV...)
+		}
 	}
 
 	// fund reward
