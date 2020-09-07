@@ -378,12 +378,12 @@ func (policy *ticketPolicy) getForceClosePos33Tickets(addr string) ([]*ty.Pos33T
 	if addr == "" {
 		return nil, nil
 	}
-	tlist1, err1 := policy.getPos33Tickets(addr, ty.Pos33TicketOpened, 0)
-	if err1 != nil && err1 != types.ErrNotFound {
-		return nil, err1
+	tlist, err := policy.getPos33Tickets(addr, ty.Pos33TicketOpened, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	return tlist1, nil
+	return tlist, nil
 }
 
 func (policy *ticketPolicy) forceClosePos33TicketList(priv crypto.PrivKey, tlist []*ty.Pos33Ticket, count int) ([]byte, error) {

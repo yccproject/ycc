@@ -112,7 +112,7 @@ func (client *Client) newBlock(lastBlock *types.Block, txs []*types.Transaction,
 
 // CheckBlock check block callback
 func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
-	if current.Receipts[0].Ty != types.ExecOk {
+	if len(current.Receipts) > 0 && current.Receipts[0].Ty != types.ExecOk {
 		return types.ErrCoinBaseExecErr
 	}
 	return client.n.checkBlock(current.Block, parent)
@@ -161,6 +161,7 @@ func (client *Client) getPriv(mineAddr string) crypto.PrivKey {
 		// ONLY one privKey for minning !!!
 		return p
 	}
+	plog.Info("wallet is LOCKED or NO mining account")
 	return nil
 }
 
@@ -282,7 +283,7 @@ func (client *Client) miningOK() bool {
 	ok := false
 
 	if client.getTicketRealCount() == 0 {
-		plog.Info("your ticket count is 0, you MUST buy some ticket to start mining")
+		plog.Info("wallet error: must unlock and buy some tickets to mining")
 	} else {
 		ok = true
 	}

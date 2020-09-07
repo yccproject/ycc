@@ -48,6 +48,9 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 	diff := calcDiff(step, round, allw)
 
 	priv := n.getPriv("")
+	if priv == nil {
+		return nil
+	}
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Step: int32(step)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
