@@ -3,7 +3,7 @@ module github.com/yccproject/ycc
 go 1.13
 
 require (
-	github.com/33cn/chain33 v0.0.0-20200925042114-ebfc0fab7bc5
+	github.com/33cn/chain33 v0.0.0-20200925095525-27d338723d45
 	github.com/33cn/plugin v1.64.1-0.20200819090510-0be50d74cc67
 	github.com/NebulousLabs/entropy-mnemonics v0.0.0-20170316012907-7b01a644a636 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
