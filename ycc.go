@@ -13,6 +13,7 @@ timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
 isStrongConsistency=false
+disableShard=true
 
 [p2p]
 enable=true
