@@ -156,7 +156,6 @@ func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
 func (client *Client) getPriv(mineAddr string) crypto.PrivKey {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	//return client.privmap[mineAddr]
 	for _, p := range client.privmap {
 		// ONLY one privKey for minning !!!
 		return p

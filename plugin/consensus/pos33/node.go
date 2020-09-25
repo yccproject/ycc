@@ -595,7 +595,6 @@ type votes pt.Votes
 
 func (v votes) Len() int { return len(v) }
 func (v votes) Less(i, j int) bool {
-	// use > for
 	return string(v[i].SortsCount) > string(v[i].SortsCount)
 }
 func (v votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
@@ -605,14 +604,17 @@ func checkVotesEnough(vs []*pt.Pos33VoteMsg, height int64, round int) bool {
 		plog.Info("vote < 11", "height", height, "round", round)
 		return false
 	}
+
+	// remove the largest and smallest 1/3
 	sort.Sort(votes(vs))
-	cvs := vs[:pt.Pos33MustVotes]
+	del := len(vs) / 3
+	cvs := vs[del : len(vs)-del]
 
 	sum := 0
 	for _, v := range cvs {
 		sum += int(v.SortsCount)
 	}
-	sortsCount := sum / pt.Pos33MustVotes
+	sortsCount := sum / len(cvs)
 	if sortsCount > pt.Pos33RewardVotes {
 		sortsCount = pt.Pos33RewardVotes
 	}
