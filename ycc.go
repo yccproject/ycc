@@ -109,7 +109,7 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [exec.sub.manage]
 superManager=[
-    "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP", 
+    "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 
 ]
 
 [exec.sub.paracross]

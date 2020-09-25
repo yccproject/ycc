@@ -37,10 +37,6 @@ func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 }
 
 func changeDiff(size, round int) int {
-	// if round <= 3 {
-	// 	return size
-	// }
-	// return size + round - 3
 	return size
 }
 
