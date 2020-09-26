@@ -63,5 +63,3 @@ require (
 replace github.com/ipfs/go-datastore => github.com/ipfs/go-datastore v0.1.0
 
 replace github.com/libp2p/go-libp2p-connmgr => github.com/libp2p/go-libp2p-connmgr v0.2.4
-
-replace github.com/33cn/chain33 v0.0.0-20200827033620-7439c5125d5e => /Users/w/pos33/chain33
