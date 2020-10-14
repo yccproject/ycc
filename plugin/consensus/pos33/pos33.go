@@ -193,7 +193,10 @@ func (client *Client) getTicketsMap(height int64) map[string]string {
 func (client *Client) getTicket(tid string, height int64) *pt.Pos33Ticket {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	t := client.ticketsMap[tid]
+	t, ok := client.ticketsMap[tid]
+	if !ok {
+		return nil
+	}
 	if t.Status == pt.Pos33TicketOpened {
 		return t
 	} else if pt.CheckTicketHeight(t, height) {
