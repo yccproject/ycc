@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/merkle"
@@ -237,14 +236,12 @@ func (client *Client) setTicket(tlist *pt.ReplyPos33TicketList, privmap map[stri
 	}
 
 	client.privmap = privmap
-	plog.Info("setTicket", "n", len(tlist.GetTickets()))
 }
 
 func (client *Client) flushTicket() error {
 	//list accounts
 	tickets, privs, err := client.getTickets()
 	if err != nil {
-		plog.Error("flushTicket error", "err", err)
 		client.setTicket(nil, nil)
 		return err
 	}
@@ -267,7 +264,6 @@ func (client *Client) getTickets() ([]*pt.Pos33Ticket, []crypto.PrivKey, error) 
 		}
 		keys = append(keys, priv)
 	}
-	plog.Info("getTickets", "ticket n", len(reply.Tickets), "nkey", len(keys))
 	return reply.Tickets, keys, nil
 }
 
@@ -421,7 +417,6 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 
 // write block to chain
 func (client *Client) setBlock(b *types.Block) error {
-	plog.Info("setBlock", "height", b.Height, "txCount", len(b.Txs), "hash", common.ToHex(b.Hash(client.GetAPI().GetConfig())))
 	lastBlock, err := client.RequestBlock(b.Height - 1)
 	if err != nil {
 		return err
@@ -466,28 +461,6 @@ func (client *Client) Get(key []byte) ([]byte, error) {
 		return nil, types.ErrNotFound
 	}
 	return value, nil
-}
-
-func (client *Client) sendTx(tx *types.Transaction) error {
-	qcli := client.GetQueueClient()
-	if qcli == nil {
-		panic("client not bind message queue.")
-	}
-	msg := qcli.NewMessage("mempool", types.EventTx, tx)
-	err := qcli.Send(msg, true)
-	if err != nil {
-		return err
-	}
-	resp, err := qcli.Wait(msg)
-	if err != nil {
-		return err
-	}
-	r := resp.GetData().(*types.Reply)
-	if r.IsOk {
-		return nil
-	}
-	plog.Info("sendTx error:", "error", string(r.Msg))
-	return fmt.Errorf(string(r.Msg))
 }
 
 // CmpBestBlock 比较newBlock是不是最优区块
