@@ -34,8 +34,6 @@ type node struct {
 	// receive candidate verifers
 	css map[int64]map[int][]*pt.Pos33SortMsg
 
-	tids map[int64]map[int]string
-
 	// for new block incoming to add
 	bch     chan *types.Block
 	lheight int64
@@ -45,13 +43,12 @@ type node struct {
 // New create pos33 consensus client
 func newNode(conf *subConfig) *node {
 	n := &node{
-		ips:  make(map[int64]map[int]*pt.Pos33SortMsg),
-		ivs:  make(map[int64]map[int][]*pt.Pos33SortMsg),
-		cps:  make(map[int64]map[int]map[string]*pt.Pos33SortMsg),
-		cvs:  make(map[int64]map[int]map[string][]*pt.Pos33VoteMsg),
-		css:  make(map[int64]map[int][]*pt.Pos33SortMsg),
-		tids: make(map[int64]map[int]string),
-		bch:  make(chan *types.Block, 16),
+		ips: make(map[int64]map[int]*pt.Pos33SortMsg),
+		ivs: make(map[int64]map[int][]*pt.Pos33SortMsg),
+		cps: make(map[int64]map[int]map[string]*pt.Pos33SortMsg),
+		cvs: make(map[int64]map[int]map[string][]*pt.Pos33VoteMsg),
+		css: make(map[int64]map[int][]*pt.Pos33SortMsg),
+		bch: make(chan *types.Block, 16),
 	}
 
 	plog.Info("@@@@@@@ node start:", "addr", addr, "conf", conf)
@@ -141,13 +138,6 @@ func (n *node) getPrivByTid(tid string, height int64) (crypto.PrivKey, error) {
 }
 
 func (n *node) makeBlock(height int64, round int, tid string, vs []*pt.Pos33VoteMsg) error {
-	mp, ok := n.tids[height]
-	if !ok {
-		mp = make(map[int]string)
-		n.tids[height] = mp
-	}
-	n.tids[height][round] = tid
-
 	lb := n.lastBlock()
 	if height != lb.Height+1 {
 		return fmt.Errorf("makeBlock height error")
@@ -236,11 +226,6 @@ func (n *node) clear(height int64) {
 	for h := range n.ivs {
 		if h+10 <= height {
 			delete(n.ivs, h)
-		}
-	}
-	for h := range n.tids {
-		if h < height {
-			delete(n.tids, h)
 		}
 	}
 }
@@ -595,7 +580,7 @@ type votes pt.Votes
 
 func (v votes) Len() int { return len(v) }
 func (v votes) Less(i, j int) bool {
-	return string(v[i].SortsCount) > string(v[i].SortsCount)
+	return string(v[i].SortsCount) < string(v[i].SortsCount)
 }
 func (v votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
