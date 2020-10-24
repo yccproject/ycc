@@ -53,11 +53,11 @@ useGithub = true
 [p2p.sub.dht]
 #可以自定义设置连接节点
 port = 13801
-seeds = ["/ip4/183.129.226.76/tcp/13804/p2p/16Uiu2HAmQiU11LNm4mQPXatnxKpGyYBVzJWD34VEcVKY1t5hroGQ"]
+#seeds = ["/ip4/183.129.226.76/tcp/13804/p2p/16Uiu2HAmQiU11LNm4mQPXatnxKpGyYBVzJWD34VEcVKY1t5hroGQ"]
 #dht 版本还不稳定，暂时限定较小的连接数
-maxConnectNum = 50
+maxConnectNum = 500
 #区块轻广播最低区块大小，1k
-minLtBlockSize = 1
+minLtBlockSize = 10
 
 [rpc]
 certFile = "cert.pem"
@@ -70,7 +70,8 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-bootPeers = ["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+#bootPeers = ["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+onlyVote=false
 
 [mempool]
 maxTxNumPerAccount = 100

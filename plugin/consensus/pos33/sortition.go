@@ -130,26 +130,18 @@ func (n *node) queryTid(tid string, height int64) (*pt.Pos33Ticket, error) {
 	}
 	reply := resp.(*pt.ReplyPos33TicketList)
 
-	var rt *pt.Pos33Ticket
 	for _, t := range reply.Tickets {
-		if t.TicketId != tid {
-			continue
-		} else {
-			if t.Status == pt.Pos33TicketOpened || pt.CheckTicketHeight(t, height) {
-				rt = t
-				break
-			} else {
-
+		if t.TicketId == tid {
+			if t.Status == pt.Pos33TicketClosed && t.CloseHeight < height-pt.Pos33SortitionSize {
+				return nil, fmt.Errorf("ticketID error, %s is closed", tid)
 			}
+			return t, nil
 		}
 	}
-	if rt == nil {
-		return nil, fmt.Errorf("ticketID error, %s NOT open", tid)
-	}
-
-	return rt, nil
+	return nil, fmt.Errorf("ticketID error, %s NOT open", tid)
 }
 
+/*
 func checkTicketHeight(t *pt.Pos33Ticket, height int64) bool {
 	actHeight := height
 	if t.Status == pt.Pos33TicketOpened {
@@ -159,6 +151,7 @@ func checkTicketHeight(t *pt.Pos33Ticket, height int64) bool {
 	}
 	return actHeight+pt.Pos33SortitionSize-actHeight%pt.Pos33SortitionSize < height
 }
+*/
 
 func calcDiff(step, round, allw int) float64 {
 	// 本轮难度：委员会票数 / (总票数 * 在线率)

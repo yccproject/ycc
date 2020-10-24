@@ -445,11 +445,11 @@ func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos, height int64) (types.Message,
 		if err != nil {
 			continue
 		}
-		if height > 0 {
-			if !ty.CheckTicketHeight(ticket, height) {
-				continue
-			}
-		}
+		// if height > 0 {
+		// 	if !ty.CheckTicketHeight(ticket, height) {
+		// 		continue
+		// 	}
+		// }
 		tickets = append(tickets, ticket)
 	}
 	return &ty.ReplyPos33TicketList{Tickets: tickets}, nil

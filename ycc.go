@@ -208,4 +208,9 @@ ForkUnfreezeIDX=0
 
 [fork.sub.store-kvmvccmavl]
 ForkKvmvccmavl=0
+
+[health]
+listenAddr="localhost:8809"
+checkInterval=1
+unSyncMaxTimes=2
 `

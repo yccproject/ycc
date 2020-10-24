@@ -126,7 +126,7 @@ func (n *node) mySort(height int64, round int) *pt.Pos33SortMsg {
 }
 
 func (n *node) getPrivByTid(tid string, height int64) (crypto.PrivKey, error) {
-	t := n.getTicket(tid, height)
+	t := n.getTicket(tid)
 	if t == nil {
 		return nil, fmt.Errorf("getTicket error: %s", tid)
 	}
@@ -352,6 +352,9 @@ func (n *node) reSortition(height int64, round int) bool {
 	const staps = 2
 	allw := n.allw(sortHeight, true) // set to true
 	for s := 0; s < staps; s++ {
+		if s == 0 && n.conf.OnlyVote {
+			continue
+		}
 		sms := n.sort(seed, height, round, s, allw)
 		if sms == nil {
 			plog.Info("node.sortition nil", "height", height, "round", round)
@@ -396,6 +399,9 @@ func (n *node) sortition(b *types.Block, round int) {
 		seed = act.Sort.SortHash.Hash
 	}
 	for s := 0; s < steps; s++ {
+		if s == 0 && n.conf.OnlyVote {
+			continue
+		}
 		for i := 0; i < loop; i++ {
 			height := startHeight + int64(i)
 			sms := n.sort(seed, height, round, s, allw)
@@ -780,19 +786,23 @@ func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
 }
 
 func (n *node) runLoop() {
+	plog.Info("go here0")
 	lb, err := n.RequestLastBlock()
 	if err != nil {
-		plog.Error(err.Error())
-		return
+		panic(err)
 	}
 
+	plog.Info("go here1")
 	svcTag := n.GetAPI().GetConfig().GetTitle()
+	plog.Info("go here2")
 	n.gss = newGossip2(n.getPriv(""), n.conf.ListenPort, svcTag, pos33Topic)
+	plog.Info("go here3")
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
 		n.gss.bootstrap(n.conf.BootPeers...)
 	}
 
+	plog.Info("go here4")
 	time.AfterFunc(time.Second, func() {
 		n.addBlock(lb)
 	})
@@ -889,10 +899,16 @@ func (n *node) vote(height int64, round int) {
 	var vs []*pt.Pos33VoteMsg
 	for _, s := range ss {
 		v := &pt.Pos33VoteMsg{Sort: s, Tid: tid, SortsCount: uint32(len(n.css[height][round]))}
-		t := n.getTicket(s.SortHash.Tid, height)
+		t := n.getTicket(s.SortHash.Tid)
 		if t == nil {
 			plog.Info("vote error: my ticket is gone", "ticketID", s.SortHash.Tid)
 			continue
+		}
+		if t.Status == pt.Pos33TicketClosed {
+			if t.CloseHeight < height-pt.Pos33SortitionSize {
+				plog.Info("vote error: my ticket is closed", "ticketID", s.SortHash.Tid)
+				continue
+			}
 		}
 		priv := n.getPriv(t.MinerAddress)
 		if priv == nil {

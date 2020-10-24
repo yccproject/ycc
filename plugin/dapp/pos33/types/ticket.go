@@ -284,21 +284,21 @@ func (v Votes) Less(i, j int) bool {
 }
 func (v Votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
-func CheckTicketHeight(t *Pos33Ticket, height int64) bool {
-	actHeight := height
-	b := false
-	if t.Status == Pos33TicketOpened {
-		actHeight = t.OpenHeight
-	} else if t.Status == Pos33TicketClosed {
-		actHeight = t.CloseHeight
-		b = true
-	} else {
-		return false
-	}
-	h1 := actHeight + Pos33SortitionSize - actHeight%Pos33SortitionSize
-	h2 := height - height%Pos33SortitionSize
-	if b {
-		return h1 >= h2
-	}
-	return h1 <= h2
-}
+// func CheckTicketHeight(t *Pos33Ticket, height int64) bool {
+// 	actHeight := height
+// 	b := false
+// 	if t.Status == Pos33TicketOpened {
+// 		actHeight = t.OpenHeight
+// 	} else if t.Status == Pos33TicketClosed {
+// 		actHeight = t.CloseHeight
+// 		b = true
+// 	} else {
+// 		return false
+// 	}
+// 	h1 := actHeight + Pos33SortitionSize - actHeight%Pos33SortitionSize
+// 	h2 := height - height%Pos33SortitionSize
+// 	if b {
+// 		return h1 >= h2
+// 	}
+// 	return h1 <= h2
+// }

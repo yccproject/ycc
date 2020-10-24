@@ -18,7 +18,6 @@ EventTransfer -> 转移资产
 
 import (
 	"fmt"
-	"strconv"
 
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -110,84 +109,84 @@ func (t *Pos33Ticket) delPos33TicketBind(b *ty.ReceiptPos33TicketBind) (kvs []*t
 	return kvs
 }
 
-func (t *Pos33Ticket) getAllPos33TicketCount(height int64) (int, error) {
-	preH := height - height%ty.Pos33SortitionSize
-	if preH == height {
-		preH -= ty.Pos33SortitionSize
-	}
-	key := []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", preH))
-	count := 0
-	value, err := t.GetLocalDB().Get(key)
-	if err != nil {
-		clog.Error("getAllPos33TicketCount error", "error", err, "key", string(key))
-		return 0, err
-	}
+// func (t *Pos33Ticket) getAllPos33TicketCount(height int64) (int, error) {
+// 	preH := height - height%ty.Pos33SortitionSize
+// 	if preH == height {
+// 		preH -= ty.Pos33SortitionSize
+// 	}
+// 	key := []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", preH))
+// 	count := 0
+// 	value, err := t.GetLocalDB().Get(key)
+// 	if err != nil {
+// 		clog.Error("getAllPos33TicketCount error", "error", err, "key", string(key))
+// 		return 0, err
+// 	}
 
-	count, err = strconv.Atoi(string(value))
-	if err != nil {
-		clog.Error("getAllPos33TicketCount error", "error", err, "key", string(key))
-		return 0, err
-	}
-	clog.Info("getAllPos33TicketCount", "key", string(key), "count", count)
-	return count, nil
-}
+// 	count, err = strconv.Atoi(string(value))
+// 	if err != nil {
+// 		clog.Error("getAllPos33TicketCount error", "error", err, "key", string(key))
+// 		return 0, err
+// 	}
+// 	clog.Info("getAllPos33TicketCount", "key", string(key), "count", count)
+// 	return count, nil
+// }
 
-func (t *Pos33Ticket) saveAllPos33TicketCount(n int) (kvs []*types.KeyValue) {
-	if n == 0 {
-		return nil
-	}
-	return t.updateAllPos33TicketCount(n)
-}
+// func (t *Pos33Ticket) saveAllPos33TicketCount(n int) (kvs []*types.KeyValue) {
+// 	if n == 0 {
+// 		return nil
+// 	}
+// 	return t.updateAllPos33TicketCount(n)
+// }
 
-func (t *Pos33Ticket) chechAndUpdateTicketCount() (kvs []*types.KeyValue) {
-	height := t.GetHeight()
-	if height%ty.Pos33SortitionSize == 0 {
-		return t.updateAllPos33TicketCount(0)
-	}
-	return nil
-}
+// func (t *Pos33Ticket) chechAndUpdateTicketCount() (kvs []*types.KeyValue) {
+// 	height := t.GetHeight()
+// 	if height%ty.Pos33SortitionSize == 0 {
+// 		return t.updateAllPos33TicketCount(0)
+// 	}
+// 	return nil
+// }
 
-func (t *Pos33Ticket) updateAllPos33TicketCount(n int) (kvs []*types.KeyValue) {
-	height := t.GetHeight()
-	preH := height - height%ty.Pos33SortitionSize
-	if preH == height {
-		preH -= ty.Pos33SortitionSize
-	}
+// func (t *Pos33Ticket) updateAllPos33TicketCount(n int) (kvs []*types.KeyValue) {
+// 	height := t.GetHeight()
+// 	preH := height - height%ty.Pos33SortitionSize
+// 	if preH == height {
+// 		preH -= ty.Pos33SortitionSize
+// 	}
 
-	count := 0
-	nxtH := preH + ty.Pos33SortitionSize
-	key := []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", nxtH))
-	value, err := t.GetLocalDB().Get(key)
-	if err != nil {
-		if err != types.ErrNotFound {
-			tlog.Error("GetLocalDB error", "err", err)
-			return
-		}
-		key = []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", preH))
-		value, err = t.GetLocalDB().Get(key)
-		if err != nil {
-			tlog.Info("GetLocalDB error", "err", err)
-		} else {
-			count, err = strconv.Atoi(string(value))
-			if err != nil {
-				panic(err)
-			}
-		}
-	} else {
-		if n == 0 {
-			return
-		}
-		count, err = strconv.Atoi(string(value))
-		if err != nil {
-			panic(err)
-		}
-	}
+// 	count := 0
+// 	nxtH := preH + ty.Pos33SortitionSize
+// 	key := []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", nxtH))
+// 	value, err := t.GetLocalDB().Get(key)
+// 	if err != nil {
+// 		if err != types.ErrNotFound {
+// 			tlog.Error("GetLocalDB error", "err", err)
+// 			return
+// 		}
+// 		key = []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", preH))
+// 		value, err = t.GetLocalDB().Get(key)
+// 		if err != nil {
+// 			tlog.Info("GetLocalDB error", "err", err)
+// 		} else {
+// 			count, err = strconv.Atoi(string(value))
+// 			if err != nil {
+// 				panic(err)
+// 			}
+// 		}
+// 	} else {
+// 		if n == 0 {
+// 			return
+// 		}
+// 		count, err = strconv.Atoi(string(value))
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 	}
 
-	count += n
-	key = []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", nxtH))
-	clog.Info("@@@@@@@ saveAllPos33TicketCount", "key", string(key), "count", count, "new", n)
-	return []*types.KeyValue{{Key: key, Value: []byte(fmt.Sprintf("%d", count))}}
-}
+// 	count += n
+// 	key = []byte(ty.Pos33AllTicketCountKeyPrefix + fmt.Sprintf("%d", nxtH))
+// 	clog.Info("@@@@@@@ saveAllPos33TicketCount", "key", string(key), "count", count, "new", n)
+// 	return []*types.KeyValue{{Key: key, Value: []byte(fmt.Sprintf("%d", count))}}
+// }
 
 func (t *Pos33Ticket) savePos33Ticket(ticketlog *ty.ReceiptPos33Ticket) (kvs []*types.KeyValue) {
 	if ticketlog.PrevStatus > 0 {
@@ -209,6 +208,11 @@ func (t *Pos33Ticket) delPos33Ticket(ticketlog *ty.ReceiptPos33Ticket) (kvs []*t
 
 func calcPos33TicketKey(addr string, ticketID string, status int32) []byte {
 	key := fmt.Sprintf("LODB-pos33-tl:%s:%d:%s", addr, status, ticketID)
+	return []byte(key)
+}
+
+func calcPos33TicketKey2(addr string, height int64) []byte {
+	key := fmt.Sprintf("LODB-pos33-tl:%s:%d", addr, height)
 	return []byte(key)
 }
 
@@ -247,6 +251,20 @@ func addticket(addr string, ticketID string, status int32) *types.KeyValue {
 func delticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcPos33TicketKey(addr, ticketID, status)
+	kv.Value = nil
+	return kv
+}
+
+func addticket2(addr string, height int64, tid string, status int32) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = calcPos33TicketKey2(addr, height)
+	kv.Value = []byte(fmt.Sprintf("%s:%d", tid, status))
+	return kv
+}
+
+func delticket2(addr string, height int64) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = calcPos33TicketKey2(addr, height)
 	kv.Value = nil
 	return kv
 }
