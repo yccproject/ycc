@@ -37,14 +37,16 @@ func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 type gossip2 struct {
-	C      chan []byte
-	h      host.Host
-	tmap   map[string]*pubsub.Topic
-	ctx    context.Context
-	cancel context.CancelFunc
+	C         chan []byte
+	h         host.Host
+	tmap      map[string]*pubsub.Topic
+	ctx       context.Context
+	cancel    context.CancelFunc
+	bootPeers []string
 }
 
 func (g *gossip2) bootstrap(addrs ...string) error {
+	g.bootPeers = addrs
 	for _, addr := range addrs {
 		targetAddr, err := multiaddr.NewMultiaddr(addr)
 		if err != nil {
@@ -79,11 +81,6 @@ func newGossip2(priv ccrypto.PrivKey, port, stag string, topics ...string) *goss
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		for range time.NewTicker(time.Minute).C {
-			plog.Info("@@@@@@@ ", "peers", ps.ListPeers(topics[0]))
-		}
-	}()
 	tmap := make(map[string]*pubsub.Topic)
 	for _, t := range topics {
 		topic, err := ps.Join(t)
@@ -93,11 +90,11 @@ func newGossip2(priv ccrypto.PrivKey, port, stag string, topics ...string) *goss
 		tmap[t] = topic
 	}
 	g := &gossip2{C: make(chan []byte, 16), h: h, tmap: tmap, ctx: ctx, cancel: cancel}
-	g.run()
+	go g.run(ps, topics)
 	return g
 }
 
-func (g *gossip2) run() {
+func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
 	smap := make(map[string]*pubsub.Subscription)
 	for t, topic := range g.tmap {
 		s, err := topic.Subscribe()
@@ -125,6 +122,15 @@ func (g *gossip2) run() {
 			}
 		}(sb)
 	}
+	go func() {
+		for range time.NewTicker(time.Minute).C {
+			np := ps.ListPeers(topics[0])
+			plog.Info("@@@@@@@ ", "peers", len(np))
+			if len(np) < 3 {
+				g.bootstrap(g.bootPeers...)
+			}
+		}
+	}()
 }
 
 func (g *gossip2) gossip(topic string, data []byte) error {

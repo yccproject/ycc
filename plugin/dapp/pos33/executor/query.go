@@ -52,9 +52,7 @@ func (ticket *Pos33Ticket) Query_MinerSourceList(param *types.ReqString) (types.
 
 // Query_Pos33AllPos33TicketCount query all ticket count
 func (ticket *Pos33Ticket) Query_Pos33AllPos33TicketCount(param *pty.Pos33AllPos33TicketCount) (types.Message, error) {
-	count, err := ticket.getAllPos33TicketCount(param.Height)
-	if err != nil {
-		return nil, err
-	}
+	// count, err := ticket.getAllPos33TicketCount(param.Height)
+	count := ticket.GetLocalDB().PrefixCount([]byte("LODB-pos33-tl"))
 	return &pty.ReplyPos33AllPos33TicketCount{Count: int64(count)}, nil
 }

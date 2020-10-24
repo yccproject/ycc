@@ -52,6 +52,7 @@ type subConfig struct {
 	GenesisBlockTime int64            `json:"genesisBlockTime"`
 	ListenPort       string           `json:"listenPort,omitempty"`
 	BootPeers        []string         `json:"BootPeers,omitempty"`
+	OnlyVote         bool             `json:"onlyVote,omitempty"`
 }
 
 // New create pos33 consensus client
@@ -118,30 +119,36 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 }
 
 func (client *Client) allWeight(height int64) int {
-	preH := height - height%pt.Pos33SortitionSize
-	if preH == height {
-		preH -= pt.Pos33SortitionSize
-	}
+	/*
+		preH := height - height%pt.Pos33SortitionSize
+		if preH == height {
+			preH -= pt.Pos33SortitionSize
+		}
+	*/
 
 	client.tmLock.Lock()
 	defer client.tmLock.Unlock()
 
-	tc, ok := client.tcMap[preH]
+	tc, ok := client.tcMap[height]
 	if ok {
 		return tc
 	}
-	if height%pt.Pos33SortitionSize == 0 {
-		client.tcMap = make(map[int64]int)
-	}
+	return 0
 
-	msg, err := client.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: height})
-	if err != nil {
-		plog.Info("query Pos33AllPos33TicketCount error", "error", err)
-		return 0
-	}
-	tc = int(msg.(*pt.ReplyPos33AllPos33TicketCount).Count)
-	client.tcMap[preH] = tc
-	return tc
+	/*
+		if height%pt.Pos33SortitionSize == 0 {
+			client.tcMap = make(map[int64]int)
+		}
+
+		msg, err := client.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: height})
+		if err != nil {
+			plog.Info("query Pos33AllPos33TicketCount error", "error", err)
+			return 0
+		}
+		tc = int(msg.(*pt.ReplyPos33AllPos33TicketCount).Count)
+		client.tcMap[preH] = tc
+		return tc
+	*/
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
@@ -189,19 +196,19 @@ func (client *Client) getTicketsMap(height int64) map[string]string {
 	return mp
 }
 
-func (client *Client) getTicket(tid string, height int64) *pt.Pos33Ticket {
+func (client *Client) getTicket(tid string) *pt.Pos33Ticket {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
 	t, ok := client.ticketsMap[tid]
 	if !ok {
 		return nil
 	}
-	if t.Status == pt.Pos33TicketOpened {
-		return t
-	} else if pt.CheckTicketHeight(t, height) {
-		return t
-	}
-	return nil
+	// if t.Status == pt.Pos33TicketOpened {
+	// 	return t
+	// } else if t.CloseHeight >= height-pt.Pos33SortitionSize {
+	// 	return t
+	// }
+	return t
 }
 
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
@@ -223,11 +230,11 @@ func (client *Client) setTicket(tlist *pt.ReplyPos33TicketList, privmap map[stri
 	}
 	client.ticketsMap = make(map[string]*pt.Pos33Ticket)
 	for _, t := range tlist.Tickets {
-		if t.Status != pt.Pos33TicketOpened {
-			if !pt.CheckTicketHeight(t, client.GetCurrentHeight()+1) {
-				continue
-			}
-		}
+		// if t.Status != pt.Pos33TicketOpened {
+		// 	if !pt.CheckTicketHeight(t, client.GetCurrentHeight()+1) {
+		// 		continue
+		// 	}
+		// }
 		client.ticketsMap[t.GetTicketId()] = t
 		_, ok := privmap[t.MinerAddress]
 		if !ok {
@@ -269,8 +276,23 @@ func (client *Client) getTickets() ([]*pt.Pos33Ticket, []crypto.PrivKey, error) 
 
 // AddBlock notice driver a new block incoming
 func (client *Client) AddBlock(b *types.Block) error {
+	client.updateVotesCount(b.Height)
 	client.n.addBlock(b)
 	return nil
+}
+
+func (c *Client) updateVotesCount(height int64) {
+	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: height})
+	if err != nil {
+		plog.Info("query Pos33AllPos33TicketCount error", "error", err)
+		return
+	}
+	c.tmLock.Lock()
+	defer c.tmLock.Unlock()
+	tc := int(msg.(*pt.ReplyPos33AllPos33TicketCount).Count)
+	c.tcMap[height] = tc
+	plog.Info("query Pos33AllPos33TicketCount ", "count", tc)
+	delete(c.tcMap, height-pt.Pos33SortitionSize+1)
 }
 
 func (client *Client) miningOK() bool {
@@ -293,6 +315,7 @@ func (client *Client) CreateBlock() {
 	for {
 		select {
 		case <-client.done:
+			plog.Info("pos33 client done!!!")
 			return
 		default:
 		}
@@ -369,7 +392,7 @@ func (client *Client) getTicketRealCount() int64 {
 	c := int64(0)
 	for _, t := range client.ticketsMap {
 		if t.Status != pt.Pos33TicketOpened {
-			if !pt.CheckTicketHeight(t, client.GetCurrentHeight()+1) {
+			if t.CloseHeight <= client.GetCurrentHeight()-pt.Pos33SortitionSize {
 				continue
 			}
 		}
