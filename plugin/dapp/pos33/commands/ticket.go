@@ -172,7 +172,7 @@ func listTicket(cmd *cobra.Command, args []string) {
 		var params rpctypes.Query4Jrpc
 
 		params.Execer = ty.Pos33TicketX
-		params.FuncName = "TicketList"
+		params.FuncName = "Pos33TicketList"
 		req := ty.Pos33TicketList{Addr: minerAddr, Status: status}
 		params.Payload = types.MustPBToJSON(&req)
 		var res ty.ReplyPos33TicketList

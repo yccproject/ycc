@@ -230,11 +230,11 @@ func (client *Client) setTicket(tlist *pt.ReplyPos33TicketList, privmap map[stri
 	}
 	client.ticketsMap = make(map[string]*pt.Pos33Ticket)
 	for _, t := range tlist.Tickets {
-		// if t.Status != pt.Pos33TicketOpened {
-		// 	if !pt.CheckTicketHeight(t, client.GetCurrentHeight()+1) {
-		// 		continue
-		// 	}
-		// }
+		if t.Status != pt.Pos33TicketOpened {
+			if t.CloseHeight < client.GetCurrentHeight()-pt.Pos33SortitionSize {
+				continue
+			}
+		}
 		client.ticketsMap[t.GetTicketId()] = t
 		_, ok := privmap[t.MinerAddress]
 		if !ok {
