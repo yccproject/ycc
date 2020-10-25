@@ -11,7 +11,7 @@ import (
 
 func (t *Pos33Ticket) execLocal(receiptData *types.ReceiptData) (*types.LocalDBSet, error) {
 	dbSet := &types.LocalDBSet{}
-	// n := 0
+	n := 0
 	for _, item := range receiptData.Logs {
 		//这三个是ticket 的log
 		if item.Ty == ty.TyLogNewPos33Ticket /*|| item.Ty == ty.TyLogMinerPos33Ticket */ || item.Ty == ty.TyLogClosePos33Ticket {
@@ -31,15 +31,15 @@ func (t *Pos33Ticket) execLocal(receiptData *types.ReceiptData) (*types.LocalDBS
 			kv := t.savePos33TicketBind(&ticketlog)
 			dbSet.KV = append(dbSet.KV, kv...)
 		}
-		// // save all ticket count
-		// if item.Ty == ty.TyLogNewPos33Ticket {
-		// 	n++
-		// } else if item.Ty == ty.TyLogClosePos33Ticket {
-		// 	n--
-		// }
+		// save all ticket count
+		if item.Ty == ty.TyLogNewPos33Ticket {
+			n++
+		} else if item.Ty == ty.TyLogClosePos33Ticket {
+			n--
+		}
 	}
-	// kv := t.saveAllPos33TicketCount(n)
-	// dbSet.KV = append(dbSet.KV, kv...)
+	kv := t.setAllPos33TicketCount(n)
+	dbSet.KV = append(dbSet.KV, kv...)
 	return dbSet, nil
 }
 
