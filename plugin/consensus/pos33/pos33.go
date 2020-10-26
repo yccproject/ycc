@@ -52,7 +52,10 @@ type subConfig struct {
 	GenesisBlockTime int64            `json:"genesisBlockTime"`
 	ListenPort       string           `json:"listenPort,omitempty"`
 	BootPeers        []string         `json:"BootPeers,omitempty"`
-	OnlyVote         bool             `json:"onlyVote,omitempty"`
+	// if true, you can't make block and only vote
+	OnlyVoter bool `json:"onlyVoter,omitempty"`
+	// only for test!!! if true, delay 5 second make block
+	TrubleMaker bool `json:"trubleMaker,omitempty"`
 }
 
 // New create pos33 consensus client
@@ -275,24 +278,28 @@ func (client *Client) getTickets() ([]*pt.Pos33Ticket, []crypto.PrivKey, error) 
 }
 
 // AddBlock notice driver a new block incoming
-func (client *Client) AddBlock(b *types.Block) error {
-	client.updateVotesCount(b.Height)
-	client.n.addBlock(b)
+func (c *Client) AddBlock(b *types.Block) error {
+	c.updateAllCount(b.Height)
+	c.n.addBlock(b)
 	return nil
 }
-
-func (c *Client) updateVotesCount(height int64) {
-	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: height})
-	if err != nil {
-		plog.Info("query Pos33AllPos33TicketCount error", "error", err)
-		return
-	}
+func (c *Client) updateAllCount(height int64) {
 	c.tmLock.Lock()
 	defer c.tmLock.Unlock()
+	ac := c.getAllCount()
+	c.tcMap[height] = ac
+	plog.Info("allCount", "count", ac, "height", height)
+	delete(c.tcMap, height-pt.Pos33SortitionSize-1)
+}
+
+func (c *Client) getAllCount() int {
+	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: 0})
+	if err != nil {
+		plog.Info("query Pos33AllPos33TicketCount error", "error", err)
+		return 0
+	}
 	tc := int(msg.(*pt.ReplyPos33AllPos33TicketCount).Count)
-	c.tcMap[height] = tc
-	plog.Info("query Pos33AllPos33TicketCount ", "count", tc)
-	delete(c.tcMap, height-pt.Pos33SortitionSize+1)
+	return tc
 }
 
 func (client *Client) miningOK() bool {

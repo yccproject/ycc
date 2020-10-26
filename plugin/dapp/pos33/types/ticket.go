@@ -37,6 +37,8 @@ const (
 	TyLogClosePos33Ticket = 332
 	// TyLogMinerPos33Ticket miner ticket log type
 	TyLogMinerPos33Ticket = 333
+	// TyLogVoterPos33Ticket miner ticket log type
+	TyLogVoterPos33Ticket = 335
 	// TyLogPos33TicketBind bind ticket log type
 	TyLogPos33TicketBind = 334
 )
