@@ -53,7 +53,7 @@ minerExecs=["pos33"]
 
 [consensus.sub.pos33]
 genesisBlockTime=1514533394
-listenPort="10901"
+# listenPort="10901"
 # bootPeers=["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
 
 [[consensus.sub.pos33.genesis]]

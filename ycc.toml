@@ -52,12 +52,16 @@ useGithub = true
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
-port = 13801
-#seeds = ["/ip4/183.129.226.76/tcp/13804/p2p/16Uiu2HAmQiU11LNm4mQPXatnxKpGyYBVzJWD34VEcVKY1t5hroGQ"]
+port = 12801
+seeds = [
+         "/ip4/139.155.92.3/tcp/12801/p2p/16Uiu2HAmC16P4Mx555aZqu7zPFfAY92FihPd98Ux6vj1BwEYMt9a", 
+	 "/ip4/139.155.42.205/tcp/12801/p2p/16Uiu2HAm6GfEeLfeCm7KeLD5cjoEDCuoi6TptcXJ7K1SvZmcebxx", 
+	 "/ip4/139.155.72.161/tcp/12801/p2p/16Uiu2HAm4AbrYzDpUgMhnin5T9TqFm8UJGUV3ri9KZ4Y16s76pBp" 
+	]
 #dht 版本还不稳定，暂时限定较小的连接数
-maxConnectNum = 500
+maxConnectNum = 50
 #区块轻广播最低区块大小，1k
-minLtBlockSize = 10
+minLtBlockSize = 1
 
 [rpc]
 certFile = "cert.pem"
@@ -70,8 +74,13 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-#bootPeers = ["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
-onlyVote=false
+listenPort = "10801"
+onlyVoter = false
+bootPeers = [
+	     "/ip4/139.155.92.3/tcp/10801/p2p/16Uiu2HAmVsdmAeVtRYm9SM85qSCt4Yqqz6kBYgU4FMJCa2dizwTA",
+	     "/ip4/139.155.42.205/tcp/10801/p2p/16Uiu2HAm6W5T4r1MXm1oBZYQ5uzata4ah52P9Lk1cETQunv9cpBj",
+	     "/ip4/139.155.72.161/tcp/10801/p2p/16Uiu2HAmBFyiV3vn8zyd9fefuiyY4ir2Mox5AJCbSgdgZPj72cnb"
+	    ]
 
 [mempool]
 maxTxNumPerAccount = 100
