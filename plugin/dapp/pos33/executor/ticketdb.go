@@ -10,6 +10,7 @@ import (
 	//"bytes"
 
 	"fmt"
+	"strconv"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
@@ -93,6 +94,8 @@ func (t *DB) Save(db dbm.KV) {
 	}
 }
 
+const allCountID = "allcountid"
+
 //Key address to save key
 func Key(id string) (key []byte) {
 	key = append(key, []byte("mavl-pos33-")...)
@@ -127,6 +130,25 @@ func NewAction(t *Pos33Ticket, tx *types.Transaction) *Action {
 		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer)), t.GetAPI()}
 }
 
+func getAllCount(db dbm.KV) int {
+	key := Key(allCountID)
+	value, err := db.Get(key)
+	if err != nil {
+		return 0
+	}
+	n, err := strconv.Atoi(string(value))
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+func setNewCount(db dbm.KV, n int) []*types.KeyValue {
+	key := Key(allCountID)
+	value := []byte(fmt.Sprintf("%d", getAllCount(db)+n))
+	return []*types.KeyValue{{Key: key, Value: value}}
+}
+
 // GenesisInit init genesis
 func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
@@ -155,6 +177,7 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 		panic(err)
 	}
 	tlog.Info("GenesisInit", "count", genesis.Count)
+	kv = append(kv, setNewCount(action.db, int(genesis.Count))...)
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
 	receipt.KV = append(receipt.KV, receipt1.KV...)
 	receipt.Logs = append(receipt.Logs, receipt1.Logs...)
@@ -256,6 +279,7 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 		kv = append(kv, receipt.KV...)
 	}
 	tlog.Info("@@@@@@@ pos33.ticket open", "ntid", topen.Count, "height", action.height)
+	kv = append(kv, setNewCount(action.db, int(topen.Count))...)
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
 	return receipt, nil
 }
@@ -324,7 +348,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		prevStatus := t.Status
 		db := &DB{*t, prevStatus}
 		db.Save(action.db)
-		logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
+		logs = append(logs, db.GetReceiptLog(ty.TyLogVoterPos33Ticket))
 		kvs = append(kvs, db.GetKVSet()...)
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
@@ -408,6 +432,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 		db.Save(action.db)
 	}
 	tlog.Info("@@@@@@@ pos33.ticket close", "ntid", len(dbs), "height", action.height)
+	kv = append(kv, setNewCount(action.db, int(-len(dbs)))...)
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
 	return receipt, nil
 }
@@ -445,11 +470,6 @@ func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos, height int64) (types.Message,
 		if err != nil {
 			continue
 		}
-		// if height > 0 {
-		// 	if !ty.CheckTicketHeight(ticket, height) {
-		// 		continue
-		// 	}
-		// }
 		tickets = append(tickets, ticket)
 	}
 	return &ty.ReplyPos33TicketList{Tickets: tickets}, nil

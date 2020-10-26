@@ -52,6 +52,7 @@ func (ticket *Pos33Ticket) Query_MinerSourceList(param *types.ReqString) (types.
 
 // Query_Pos33AllPos33TicketCount query all ticket count
 func (ticket *Pos33Ticket) Query_Pos33AllPos33TicketCount(param *pty.Pos33AllPos33TicketCount) (types.Message, error) {
-	count, _ := ticket.getAllPos33TicketCount()
+	// count, _ := ticket.getAllPos33TicketCount()
+	count := getAllCount(ticket.GetStateDB())
 	return &pty.ReplyPos33AllPos33TicketCount{Count: int64(count)}, nil
 }

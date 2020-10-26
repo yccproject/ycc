@@ -174,10 +174,16 @@ func (n *node) makeBlock(height int64, round int, tid string, vs []*pt.Pos33Vote
 
 	nb.Difficulty = n.blockDiff(lb, len(vs))
 	plog.Info("@@@@@@@ I make a block: ", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "diff", nb.Difficulty)
-	if nb.BlockTime-lb.BlockTime >= 1 {
-		return n.setBlock(nb)
+
+	// this code ONLY for TEST
+	if n.conf.TrubleMaker {
+		time.AfterFunc(time.Second*5, func() { n.setBlock(nb) })
+	} else {
+		if nb.BlockTime-lb.BlockTime >= 1 {
+			return n.setBlock(nb)
+		}
+		time.AfterFunc(time.Millisecond*500, func() { n.setBlock(nb) })
 	}
-	time.AfterFunc(time.Millisecond*500, func() { n.setBlock(nb) })
 	return nil
 }
 
@@ -202,29 +208,30 @@ func (n *node) addBlock(b *types.Block) {
 	}
 }
 
+// delete old data
 func (n *node) clear(height int64) {
 	for h := range n.cvs {
-		if h+10 <= height {
+		if h <= height {
 			delete(n.cvs, h)
 		}
 	}
 	for h := range n.css {
-		if h+20 <= height {
+		if h <= height {
 			delete(n.css, h)
 		}
 	}
 	for h := range n.cps {
-		if h+10 <= height {
+		if h <= height {
 			delete(n.cps, h)
 		}
 	}
 	for h := range n.ips {
-		if h+10 <= height {
+		if h <= height {
 			delete(n.ips, h)
 		}
 	}
 	for h := range n.ivs {
-		if h+10 <= height {
+		if h <= height {
 			delete(n.ivs, h)
 		}
 	}
@@ -352,7 +359,7 @@ func (n *node) reSortition(height int64, round int) bool {
 	const staps = 2
 	allw := n.allw(sortHeight, true) // set to true
 	for s := 0; s < staps; s++ {
-		if s == 0 && n.conf.OnlyVote {
+		if s == 0 && n.conf.OnlyVoter {
 			continue
 		}
 		sms := n.sort(seed, height, round, s, allw)
@@ -399,7 +406,7 @@ func (n *node) sortition(b *types.Block, round int) {
 		seed = act.Sort.SortHash.Hash
 	}
 	for s := 0; s < steps; s++ {
-		if s == 0 && n.conf.OnlyVote {
+		if s == 0 && n.conf.OnlyVoter {
 			continue
 		}
 		for i := 0; i < loop; i++ {
@@ -409,7 +416,7 @@ func (n *node) sortition(b *types.Block, round int) {
 				plog.Info("node.sortition nil", "height", height, "round", round)
 				continue
 			}
-			plog.Info("node.sortition", "height", height, "round", round, "weight", len(sms))
+			plog.Info("node.sortition", "height", height, "round", round, "weight", len(sms), "allw", allw)
 			if s == 0 {
 				mp := n.ips[height]
 				if mp == nil {
@@ -516,24 +523,23 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 			err := n.checkVote(vm, height, round, seed, allw, tid)
 			if err != nil {
 				plog.Error("check error", "height", height, "round", round, "err", err)
-				if err == errDiff {
+				if err != nil {
 					continue
 				}
-				return
 			}
 		}
 		n.addVote(vm, height, round, tid)
 	}
 	vs := n.cvs[height][round][tid]
 	plog.Info("handleVotesMsg", "height", height, "round", round, "tid", tid, "voter", addr(vm.GetSig()), "votes", len(vs))
-	if n.lastBlock().Height+1 == height {
-		if checkVotesEnough(vs, height, round) {
-			err := n.makeBlock(height, round, tid, vs)
-			if err != nil {
-				plog.Error("makeBlock error", "err", err, "height", height, "round", round)
-			}
-		}
-	}
+	// if n.lastBlock().Height+1 == height {
+	// 	if checkVotesEnough(vs, height, round) {
+	// 		err := n.makeBlock(height, round, tid, vs)
+	// 		if err != nil {
+	// 			plog.Error("makeBlock error", "err", err, "height", height, "round", round)
+	// 		}
+	// 	}
+	// }
 }
 
 func (n *node) makeNextBlock(height int64, round int) {
@@ -623,7 +629,7 @@ func (n *node) allw(height int64, check bool) int {
 		}
 		return n.allWeight(height)
 	}
-	return n.allWeight(1)
+	return n.allWeight(0)
 }
 
 func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg) {
@@ -786,23 +792,18 @@ func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
 }
 
 func (n *node) runLoop() {
-	plog.Info("go here0")
 	lb, err := n.RequestLastBlock()
 	if err != nil {
 		panic(err)
 	}
 
-	plog.Info("go here1")
 	svcTag := n.GetAPI().GetConfig().GetTitle()
-	plog.Info("go here2")
 	n.gss = newGossip2(n.getPriv(""), n.conf.ListenPort, svcTag, pos33Topic)
-	plog.Info("go here3")
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
 		n.gss.bootstrap(n.conf.BootPeers...)
 	}
 
-	plog.Info("go here4")
 	time.AfterFunc(time.Second, func() {
 		n.addBlock(lb)
 	})
@@ -813,6 +814,7 @@ func (n *node) runLoop() {
 	etm := time.NewTimer(time.Hour)
 	ch := make(chan int64, 1)
 	round := 0
+	blockTimeout := time.Second * 5
 
 	for {
 		select {
@@ -840,30 +842,39 @@ func (n *node) runLoop() {
 			}
 		case <-etm.C:
 			height := n.lastBlock().Height + 1
-			n.checkSorts(height, round)
-			n.makeNextBlock(height, round)
-			if round > 0 {
-				n.vote(height, round)
-			}
-			time.AfterFunc(time.Second*5, func() {
-				ch <- height
+			n.makeNewBlock(height, round)
+			time.AfterFunc(blockTimeout, func() {
+				ch <- height + 1
 			})
 		case b := <-n.bch: // new block add to chain
-			plog.Info("new block added", "height", b.Height)
-			if b.Height%pt.Pos33SortitionSize == 0 {
-				go n.flushTicket()
-			}
 			round = 0
-			n.sortition(b, round)
-			if b.Height < 5 {
-				n.vote(b.Height+1, round)
-			}
-			n.vote(b.Height+5, round)
+			n.handleNewBlock(b)
 			etm = time.NewTimer(time.Millisecond * 10)
-			n.clear(b.Height - 1)
 		default:
 			time.Sleep(time.Millisecond * 10)
 		}
+	}
+}
+
+func (n *node) handleNewBlock(b *types.Block) {
+	plog.Info("handleNewBlock", "height", b.Height)
+	// if b.Height%pt.Pos33SortitionSize == 0 {
+	// 	go n.flushTicket()
+	// }
+	round := 0
+	n.sortition(b, round)
+	if b.Height < pt.Pos33SortitionSize/2 {
+		n.vote(b.Height+1, round)
+	}
+	n.vote(b.Height+pt.Pos33SortitionSize/2, round)
+	n.clear(b.Height)
+}
+
+func (n *node) makeNewBlock(height int64, round int) {
+	n.checkSorts(height, round)
+	n.makeNextBlock(height, round)
+	if round > 0 {
+		n.vote(height, round)
 	}
 }
 

@@ -195,6 +195,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+		plog.Info("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw)
 		return errDiff
 	}
 
