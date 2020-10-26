@@ -141,18 +141,6 @@ func (n *node) queryTid(tid string, height int64) (*pt.Pos33Ticket, error) {
 	return nil, fmt.Errorf("ticketID error, %s NOT open", tid)
 }
 
-/*
-func checkTicketHeight(t *pt.Pos33Ticket, height int64) bool {
-	actHeight := height
-	if t.Status == pt.Pos33TicketOpened {
-		actHeight = t.OpenHeight
-	} else if t.Status == pt.Pos33TicketClosed {
-		actHeight = t.CloseHeight
-	}
-	return actHeight+pt.Pos33SortitionSize-actHeight%pt.Pos33SortitionSize < height
-}
-*/
-
 func calcDiff(step, round, allw int) float64 {
 	// 本轮难度：委员会票数 / (总票数 * 在线率)
 	size := pt.Pos33VoterSize
@@ -207,9 +195,15 @@ func hash2(data []byte) []byte {
 }
 
 func (n *node) bp(height int64, round int) string {
+	sortHeight := height - pt.Pos33SortitionSize
+	seed, err := n.getSortSeed(sortHeight)
+	if err != nil {
+		return ""
+	}
+	allw := n.allTicketCount(sortHeight)
 	pss := make(map[string]*pt.Pos33SortMsg)
 	for _, s := range n.cps[height][round] {
-		err := n.checkSort(s)
+		err := n.checkSort(s, seed, allw)
 		if err != nil {
 			plog.Error("checkSort error", "err", err)
 			continue
