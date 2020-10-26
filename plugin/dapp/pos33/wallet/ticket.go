@@ -325,7 +325,7 @@ func (policy *ticketPolicy) forceClosePos33TicketByReturnAddr(minerAddr string, 
 		if len(tListMap[returnAddr]) == 0 {
 			continue
 		}
-		hash, err := policy.forceClosePos33TicketList(key, tListMap[returnAddr], count)
+		hash, err := policy.forceClosePos33TicketList(key, tListMap[returnAddr])
 		if err != nil {
 			bizlog.Error("forceClosePos33TicketByAddr", "error", err, "returnAddr", returnAddr, "minerAddr", minerAddr)
 			continue
@@ -349,8 +349,27 @@ func (policy *ticketPolicy) forceClosePos33Tickets(addr string, count int) (*typ
 		bizlog.Error("forceClosePos33Tickets getPos33Tickets", "error", err, "addr", minerAddr)
 		return nil, err
 	}
+	max := 2000
+	if count == 0 || count > 2000 {
+		count = max
+	}
+	if len(tlist) > count {
+		tlist = tlist[:count]
+	}
 
-	hash, err := policy.forceClosePos33TicketList(priv, tlist, count)
+	/*
+		var tll [][]*ty.Pos33Ticket
+		n := len(tlist) / max
+		for i := 0; i < n; i++ {
+			tll = append(tll, tlist[:max])
+			tlist = tlist[max:]
+		}
+		tll = append(tll, tlist)
+	*/
+
+	var hashs types.ReplyHashes
+	// for _, tl := range tll {
+	hash, err := policy.forceClosePos33TicketList(priv, tlist)
 	if err != nil {
 		bizlog.Error("forceClosePos33Tickets", "error", err, "addr", minerAddr)
 		return nil, err
@@ -358,8 +377,10 @@ func (policy *ticketPolicy) forceClosePos33Tickets(addr string, count int) (*typ
 	if hash == nil {
 		return nil, err
 	}
+	hashs.Hashes = append(hashs.Hashes, hash)
+	// }
 
-	return &types.ReplyHashes{Hashes: [][]byte{hash}}, nil
+	return &hashs, nil
 }
 
 func (policy *ticketPolicy) getPos33Tickets(addr string, status int32, height int64) ([]*ty.Pos33Ticket, error) {
@@ -386,22 +407,19 @@ func (policy *ticketPolicy) getForceClosePos33Tickets(addr string) ([]*ty.Pos33T
 	return tlist, nil
 }
 
-func (policy *ticketPolicy) forceClosePos33TicketList(priv crypto.PrivKey, tlist []*ty.Pos33Ticket, count int) ([]byte, error) {
+func (policy *ticketPolicy) forceClosePos33TicketList(priv crypto.PrivKey, tlist []*ty.Pos33Ticket) ([]byte, error) {
 	var ids []string
 	for i := 0; i < len(tlist); i++ {
 		ids = append(ids, tlist[i].TicketId)
 	}
 	if len(ids) > 0 {
-		return policy.closePos33Tickets(priv, ids, count)
+		return policy.closePos33Tickets(priv, ids)
 	}
 	return nil, nil
 }
 
 //通过rpc 精选close 操作
-func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, ids []string, count int) ([]byte, error) {
-	if len(ids) > count && count > 0 {
-		ids = ids[:count]
-	}
+func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, ids []string) ([]byte, error) {
 	bizlog.Info("closePos33Tickets", "real count", len(ids))
 	ta := &ty.Pos33TicketAction{}
 	tclose := &ty.Pos33TicketClose{TicketId: ids}
@@ -450,7 +468,7 @@ func (policy *ticketPolicy) closePos33TicketsByAddr(height int64, priv crypto.Pr
 		ids = append(ids, tl[i].TicketId)
 	}
 	if len(ids) > 0 {
-		return policy.closePos33Tickets(priv, ids, 200)
+		return policy.closePos33Tickets(priv, ids)
 	}
 	return nil, nil
 }
@@ -497,7 +515,7 @@ func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 	}
 	toaddr := address.ExecAddress(ty.Pos33TicketX)
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
-	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
+	if (acc1.Balance < (types.Coin)) && (acc2.Balance > types.Coin) {
 		_, err := operater.SendToAddress(priv, toaddr, -types.Coin, "pos33->coins", false, "")
 		if err != nil {
 			return err
@@ -825,9 +843,7 @@ func (policy *ticketPolicy) autoMining() {
 				break
 			}
 			lastHeight = height
-			bizlog.Info("BEG miningPos33Ticket")
 			if policy.isAutoMining() {
-				bizlog.Info("buy tickets and mining!!!")
 				err := policy.processFees()
 				if err != nil {
 					bizlog.Error("processFees", "err", err)
@@ -848,7 +864,6 @@ func (policy *ticketPolicy) autoMining() {
 					FlushPos33Ticket(policy.getAPI())
 				}
 			} else {
-				bizlog.Info("withdraw form ticket !!!")
 				err := policy.processFees()
 				if err != nil {
 					bizlog.Error("processFees", "err", err)

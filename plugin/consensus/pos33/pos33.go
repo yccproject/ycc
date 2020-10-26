@@ -121,37 +121,13 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 	return client.n.checkBlock(current.Block, parent)
 }
 
-func (client *Client) allWeight(height int64) int {
-	/*
-		preH := height - height%pt.Pos33SortitionSize
-		if preH == height {
-			preH -= pt.Pos33SortitionSize
-		}
-	*/
-
+func (client *Client) allTicketCount(height int64) int {
 	client.tmLock.Lock()
 	defer client.tmLock.Unlock()
-
-	tc, ok := client.tcMap[height]
-	if ok {
-		return tc
+	if height < 0 {
+		height = 0
 	}
-	return 0
-
-	/*
-		if height%pt.Pos33SortitionSize == 0 {
-			client.tcMap = make(map[int64]int)
-		}
-
-		msg, err := client.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: height})
-		if err != nil {
-			plog.Info("query Pos33AllPos33TicketCount error", "error", err)
-			return 0
-		}
-		tc = int(msg.(*pt.ReplyPos33AllPos33TicketCount).Count)
-		client.tcMap[preH] = tc
-		return tc
-	*/
+	return client.tcMap[height]
 }
 
 func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
@@ -193,25 +169,13 @@ func (client *Client) getTicketsMap(height int64) map[string]string {
 		}
 		mp[tid] = t.MinerAddress
 	}
-	if height%10 == 0 {
-		plog.Info("client.ticketsMap", "len", len(client.ticketsMap), "slen", len(mp))
-	}
 	return mp
 }
 
 func (client *Client) getTicket(tid string) *pt.Pos33Ticket {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	t, ok := client.ticketsMap[tid]
-	if !ok {
-		return nil
-	}
-	// if t.Status == pt.Pos33TicketOpened {
-	// 	return t
-	// } else if t.CloseHeight >= height-pt.Pos33SortitionSize {
-	// 	return t
-	// }
-	return t
+	return client.ticketsMap[tid]
 }
 
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
@@ -280,6 +244,7 @@ func (client *Client) getTickets() ([]*pt.Pos33Ticket, []crypto.PrivKey, error) 
 // AddBlock notice driver a new block incoming
 func (c *Client) AddBlock(b *types.Block) error {
 	c.updateAllCount(b.Height)
+	c.flushTicket()
 	c.n.addBlock(b)
 	return nil
 }
@@ -499,10 +464,12 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 	if err != nil {
 		return false
 	}
+	r1 := m1.Sort.Proof.Input.Round
 	m2, err := getMiner(cmpBlock)
 	if err != nil {
 		return true
 	}
+	r2 := m2.Sort.Proof.Input.Round
 
-	return len(m1.Votes) > len(m2.Votes)
+	return r1 > r2 || len(m1.Votes) > len(m2.Votes)
 }
