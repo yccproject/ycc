@@ -659,7 +659,7 @@ func (n *node) checkSort(s *pt.Pos33SortMsg, seed []byte, allw int) error {
 	height := s.Proof.Input.Height
 	err := n.verifySort(height, int(s.Proof.Input.Step), allw, seed, s)
 	if err != nil {
-		plog.Error("verifySort error", "err", err, "height", height)
+		plog.Error("verifySort error", "err", err, "height", height, "tid", s.SortHash.Tid)
 		return err
 	}
 	return nil

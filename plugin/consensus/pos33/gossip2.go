@@ -169,12 +169,13 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port, stag string) host.H
 		// enable active relays and more.
 		libp2p.EnableRelay(),
 	)
+	h.SetStreamHandler("/pos33/con/1.0/", )
 	if err != nil {
 		panic(err)
 	}
 
 	paddr := peerAddr(h)
-	err = ioutil.WriteFile("yccpeeraddr.txt", []byte(paddr.String()), 0644)
+	err = ioutil.WriteFile("yccpeeraddr.txt", []byte(paddr.String()+"\n"), 0644)
 	if err != nil {
 		panic(err)
 	}
