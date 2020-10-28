@@ -161,5 +161,23 @@ func (c *Jrpc) GetPos33TicketList(in *types.ReqNil, result *interface{}) error {
 	}
 	*result = resp
 	return nil
+}
 
+// GetPos33TicketList get ticket list info
+func (g *channelClient) GetPos33TicketReward(ctx context.Context, in *ty.Pos33TicketReward) (*ty.ReplyPos33TicketReward, error) {
+	data, err := g.QueryConsensusFunc(ty.Pos33TicketX, "GetPos33Reward", in)
+	if err != nil {
+		return nil, err
+	}
+	return data.(*ty.ReplyPos33TicketReward), nil
+}
+
+// GetPos33TicketList get ticket list info
+func (c *Jrpc) GetPos33TicketReward(in *ty.Pos33TicketReward, result *interface{}) error {
+	resp, err := c.cli.GetPos33TicketReward(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	*result = resp
+	return nil
 }

@@ -373,22 +373,6 @@ func (client *Client) getTicketRealCount() int64 {
 	return c
 }
 
-// Query_GetTicketCount ticket query ticket count function
-func (client *Client) Query_GetPos33TicketCount(req *types.ReqNil) (types.Message, error) {
-	var ret types.Int64
-	ret.Data = client.getTicketCount()
-	return &ret, nil
-}
-
-// Query_FlushTicket ticket query flush ticket function
-func (client *Client) Query_FlushPos33Ticket(req *types.ReqNil) (types.Message, error) {
-	err := client.flushTicket()
-	if err != nil {
-		return nil, err
-	}
-	return &types.Reply{IsOk: true, Msg: []byte("OK")}, nil
-}
-
 // CreateGenesisTx ticket create genesis tx
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	// 预先发行maxcoin 到 genesis 账户
@@ -472,4 +456,55 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 	r2 := m2.Sort.Proof.Input.Round
 
 	return r1 > r2 || len(m1.Votes) > len(m2.Votes)
+}
+
+// Query_GetTicketCount ticket query ticket count function
+func (client *Client) Query_GetPos33TicketCount(req *types.ReqNil) (types.Message, error) {
+	var ret types.Int64
+	ret.Data = client.getTicketCount()
+	return &ret, nil
+}
+
+// Query_FlushTicket ticket query flush ticket function
+func (client *Client) Query_FlushPos33Ticket(req *types.ReqNil) (types.Message, error) {
+	err := client.flushTicket()
+	if err != nil {
+		return nil, err
+	}
+	return &types.Reply{IsOk: true, Msg: []byte("OK")}, nil
+}
+
+func (client *Client) Query_GetPos33Reward(req *pt.Pos33TicketReward) (types.Message, error) {
+	var b *types.Block
+	var err error
+	if req.Height <= 0 {
+		b, err = client.n.RequestLastBlock()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		b, err = client.RequestBlock(req.Height)
+		if err != nil {
+			return nil, err
+		}
+	}
+	m, err := getMiner(b)
+	if err != nil {
+		return nil, err
+	}
+	br := int64(0)
+	vr := int64(0)
+	addr := req.Addr
+	if addr == "" {
+		addr = saddr(b.Signature)
+	}
+	if saddr(b.Signature) == addr {
+		br = pt.Pos33BpReward * int64(len(m.Votes))
+	}
+	for _, v := range m.Votes {
+		if saddr(v.Sig) == addr {
+			vr += pt.Pos33VoteReward
+		}
+	}
+	return &pt.ReplyPos33TicketReward{VoterReward: vr, MinerReward: br}, nil
 }

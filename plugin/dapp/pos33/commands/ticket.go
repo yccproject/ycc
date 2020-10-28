@@ -31,6 +31,7 @@ func Pos33TicketCmd() *cobra.Command {
 		ClosePos33TicketCmd(),
 		GetColdAddrByMinerCmd(),
 		listTicketCmd(),
+		GetPos33RewardCmd(),
 	)
 
 	return cmd
@@ -128,10 +129,35 @@ func CountPos33TicketCmd() *cobra.Command {
 	return cmd
 }
 
+// CountPos33TicketCmd get ticket count
+func GetPos33RewardCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reward",
+		Short: "get reward",
+		Run:   getPos33Reward,
+	}
+	addPos33RewardFlags(cmd)
+	return cmd
+}
+
+func addPos33RewardFlags(cmd *cobra.Command) {
+	cmd.Flags().Int64P("height", "b", 0, `block height`)
+	cmd.Flags().StringP("addr", "a", "", `who reward`)
+}
+
 func countPos33Ticket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33TicketCount", nil, &res)
+	ctx.Run()
+}
+
+func getPos33Reward(cmd *cobra.Command, args []string) {
+	height, _ := cmd.Flags().GetInt64("height")
+	addr, _ := cmd.Flags().GetString("addr")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res ty.ReplyPos33TicketReward
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33TicketReward", &ty.Pos33TicketReward{Height: height, Addr: addr}, &res)
 	ctx.Run()
 }
 
