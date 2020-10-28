@@ -125,18 +125,6 @@ func (n *node) mySort(height int64, round int) *pt.Pos33SortMsg {
 	return sort
 }
 
-func (n *node) getPrivByTid(tid string, height int64) (crypto.PrivKey, error) {
-	t := n.getTicket(tid)
-	if t == nil {
-		return nil, fmt.Errorf("getTicket error: %s", tid)
-	}
-	priv := n.getPriv(t.MinerAddress)
-	if priv == nil {
-		return nil, fmt.Errorf("getPriv error: %s", t.MinerAddress)
-	}
-	return priv, nil
-}
-
 func (n *node) makeBlock(height int64, round int, tid string, vs []*pt.Pos33VoteMsg) error {
 	lb := n.lastBlock()
 	if height != lb.Height+1 {
@@ -155,9 +143,9 @@ func (n *node) makeBlock(height int64, round int, tid string, vs []*pt.Pos33Vote
 		return err
 	}
 
-	priv, err := n.getPrivByTid(sort.SortHash.Tid, height)
-	if err != nil {
-		return err
+	priv := n.getPriv("")
+	if priv == nil {
+		panic("can't go here")
 	}
 
 	tx, err := n.minerTx(height, sort, vs, priv)
@@ -188,7 +176,7 @@ func (n *node) makeBlock(height int64, round int, tid string, vs []*pt.Pos33Vote
 }
 
 func (n *node) addBlock(b *types.Block) {
-	if !n.miningOK() {
+	if !n.IsCaughtUp() {
 		return
 	}
 
@@ -249,7 +237,7 @@ func (n *node) checkBlock(b, pb *types.Block) error {
 	if b.Height <= pb.Height {
 		return fmt.Errorf("check block height error")
 	}
-	if !n.miningOK() {
+	if !n.IsCaughtUp() {
 		return nil
 	}
 	if len(b.Txs) == 0 {
@@ -832,7 +820,7 @@ func (n *node) runLoop() {
 			n.handlePos33Msg(msg)
 			plog.Info("handlePos33Msg cost", "cost", time.Now().Sub(t))
 		case <-syncTick.C:
-			isSync = n.miningOK()
+			isSync = n.IsCaughtUp()
 		}
 		if !isSync {
 			time.Sleep(time.Millisecond * 300)
@@ -918,21 +906,9 @@ func (n *node) vote(height int64, round int) {
 	var vs []*pt.Pos33VoteMsg
 	for _, s := range ss {
 		v := &pt.Pos33VoteMsg{Sort: s, Tid: tid, SortsCount: uint32(len(n.css[height][round]))}
-		t := n.getTicket(s.SortHash.Tid)
-		if t == nil {
-			plog.Info("vote error: my ticket is gone", "ticketID", s.SortHash.Tid)
-			continue
-		}
-		if t.Status == pt.Pos33TicketClosed {
-			if t.CloseHeight < height-pt.Pos33SortitionSize {
-				plog.Info("vote error: my ticket is closed", "ticketID", s.SortHash.Tid, "ticketCloseHeight", t.CloseHeight, "height", height)
-				continue
-			}
-		}
-		priv := n.getPriv(t.MinerAddress)
+		priv := n.getPriv("")
 		if priv == nil {
-			plog.Info("vote error: my miner address is gone", "mineaddr", t.MinerAddress)
-			continue
+			panic("can't go here")
 		}
 		v.Sign(priv)
 		vs = append(vs, v)

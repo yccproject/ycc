@@ -138,7 +138,6 @@ message Pos33TicketReward {
 
 message Pos33TicketList {
   string addr = 1;
-  int64 height = 2;
   int32 status = 3;
 }
 

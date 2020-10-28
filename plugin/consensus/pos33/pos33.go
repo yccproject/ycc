@@ -267,21 +267,6 @@ func (c *Client) getAllCount() int {
 	return tc
 }
 
-func (client *Client) miningOK() bool {
-	if !client.IsCaughtUp() {
-		plog.Info("caughtUp false")
-		return false
-	}
-	ok := false
-
-	if client.getTicketRealCount() == 0 {
-		plog.Info("wallet error: must unlock and buy some tickets to mining")
-	} else {
-		ok = true
-	}
-	return ok
-}
-
 // CreateBlock will start run
 func (client *Client) CreateBlock() {
 	for {
@@ -346,31 +331,10 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count 
 	return ret
 }
 
-func (client *Client) getTicketCount() int64 {
+func (client *Client) getTicketCount() int {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	c := int64(0)
-	for _, t := range client.ticketsMap {
-		if t.Status == pt.Pos33TicketOpened {
-			c++
-		}
-	}
-	return c
-}
-
-func (client *Client) getTicketRealCount() int64 {
-	client.tickLock.Lock()
-	defer client.tickLock.Unlock()
-	c := int64(0)
-	for _, t := range client.ticketsMap {
-		if t.Status != pt.Pos33TicketOpened {
-			if t.CloseHeight <= client.GetCurrentHeight()-pt.Pos33SortitionSize {
-				continue
-			}
-		}
-		c++
-	}
-	return c
+	return len(client.ticketsMap)
 }
 
 // CreateGenesisTx ticket create genesis tx
@@ -461,7 +425,7 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 // Query_GetTicketCount ticket query ticket count function
 func (client *Client) Query_GetPos33TicketCount(req *types.ReqNil) (types.Message, error) {
 	var ret types.Int64
-	ret.Data = client.getTicketCount()
+	ret.Data = int64(client.getTicketCount())
 	return &ret, nil
 }
 
