@@ -451,11 +451,11 @@ func List(db dbm.Lister, db2 dbm.KV, tlist *ty.Pos33TicketList) (types.Message, 
 		ids.TicketIds = append(ids.TicketIds, string(values[i]))
 	}
 	tlog.Info("GetTicketList", "len", len(values))
-	return Infos(db2, &ids, tlist.Height)
+	return Infos(db2, &ids)
 }
 
 // Infos info
-func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos, height int64) (types.Message, error) {
+func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos) (types.Message, error) {
 	var tickets []*ty.Pos33Ticket
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]

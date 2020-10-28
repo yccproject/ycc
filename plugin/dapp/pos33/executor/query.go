@@ -11,7 +11,7 @@ import (
 
 // Query_Pos33TicketInfos query tick info
 func (ticket *Pos33Ticket) Query_Pos33TicketInfos(param *pty.Pos33TicketInfos) (types.Message, error) {
-	return Infos(ticket.GetStateDB(), param, 0)
+	return Infos(ticket.GetStateDB(), param)
 }
 
 // Query_Pos33TicketList query tick list

@@ -18,7 +18,6 @@ EventTransfer -> 转移资产
 
 import (
 	"fmt"
-	"strconv"
 
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -110,35 +109,6 @@ func (t *Pos33Ticket) delPos33TicketBind(b *ty.ReceiptPos33TicketBind) (kvs []*t
 	return kvs
 }
 
-func (t *Pos33Ticket) getAllPos33TicketCount() (int, error) {
-	key := []byte("LODB-pos33-allCount")
-	value, err := t.GetLocalDB().Get(key)
-	if err != nil {
-		clog.Error("getAllPos33TicketCount error", "error", err, "key", string(key))
-		return 0, err
-	}
-
-	count, err := strconv.Atoi(string(value))
-	if err != nil {
-		clog.Error("getAllPos33TicketCount error", "error", err, "key", string(key))
-		return 0, err
-	}
-	clog.Info("getAllPos33TicketCount", "key", string(key), "count", count)
-	return count, nil
-}
-
-func (t *Pos33Ticket) setAllPos33TicketCount(n int) (kvs []*types.KeyValue) {
-	if n == 0 {
-		return nil
-	}
-	count, _ := t.getAllPos33TicketCount()
-	count += n
-	key := []byte("LODB-pos33-allCount")
-	value := []byte(fmt.Sprintf("%d", count))
-	clog.Info("setAllPos33TicketCount", "count", count)
-	return []*types.KeyValue{{Key: key, Value: value}}
-}
-
 func (t *Pos33Ticket) savePos33Ticket(ticketlog *ty.ReceiptPos33Ticket) (kvs []*types.KeyValue) {
 	if ticketlog.PrevStatus > 0 {
 		kv := delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
@@ -162,11 +132,6 @@ func calcPos33TicketKey(addr string, ticketID string, status int32) []byte {
 	return []byte(key)
 }
 
-func calcPos33TicketKey2(addr string, height int64) []byte {
-	key := fmt.Sprintf("LODB-pos33-tl:%s:%d", addr, height)
-	return []byte(key)
-}
-
 func calcBindReturnKey(returnAddress string) []byte {
 	key := fmt.Sprintf("LODB-pos33-bind:%s", returnAddress)
 	return []byte(key)
@@ -187,11 +152,6 @@ func calcPos33TicketPrefix(addr string, status int32) []byte {
 	return []byte(key)
 }
 
-func calcPos33TicketPrefix2(addr string) []byte {
-	key := fmt.Sprintf("LODB-pos33-tl:%s", addr)
-	return []byte(key)
-}
-
 func addticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcPos33TicketKey(addr, ticketID, status)
@@ -202,20 +162,6 @@ func addticket(addr string, ticketID string, status int32) *types.KeyValue {
 func delticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcPos33TicketKey(addr, ticketID, status)
-	kv.Value = nil
-	return kv
-}
-
-func addticket2(addr string, height int64, tid string, status int32) *types.KeyValue {
-	kv := &types.KeyValue{}
-	kv.Key = calcPos33TicketKey2(addr, height)
-	kv.Value = []byte(fmt.Sprintf("%s:%d", tid, status))
-	return kv
-}
-
-func delticket2(addr string, height int64) *types.KeyValue {
-	kv := &types.KeyValue{}
-	kv.Key = calcPos33TicketKey2(addr, height)
 	kv.Value = nil
 	return kv
 }
