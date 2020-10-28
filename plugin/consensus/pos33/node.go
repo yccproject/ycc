@@ -51,7 +51,7 @@ func newNode(conf *subConfig) *node {
 		bch: make(chan *types.Block, 16),
 	}
 
-	plog.Info("@@@@@@@ node start:", "addr", addr, "conf", conf)
+	plog.Info("@@@@@@@ node start:", "conf", conf)
 	return n
 }
 
@@ -237,7 +237,7 @@ func (n *node) clear(height int64) {
 	}
 }
 
-func addr(sig *types.Signature) string {
+func saddr(sig *types.Signature) string {
 	if sig == nil {
 		return ""
 	}
@@ -543,7 +543,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 		n.addVote(vm, height, round, tid)
 	}
 	vs := n.cvs[height][round][tid]
-	plog.Info("handleVotesMsg", "height", height, "round", round, "tid", tid, "voter", addr(vm.GetSig()), "votes", len(vs))
+	plog.Info("handleVotesMsg", "height", height, "round", round, "tid", tid, "voter", saddr(vm.GetSig()), "votes", len(vs))
 }
 
 func (n *node) makeNextBlock(height int64, round int) {
