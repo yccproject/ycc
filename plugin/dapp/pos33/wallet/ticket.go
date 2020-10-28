@@ -349,8 +349,8 @@ func (policy *ticketPolicy) forceClosePos33Tickets(addr string, count int) (*typ
 		bizlog.Error("forceClosePos33Tickets getPos33Tickets", "error", err, "addr", minerAddr)
 		return nil, err
 	}
-	max := 2000
-	if count == 0 || count > 2000 {
+	max := 100
+	if count == 0 || count > max {
 		count = max
 	}
 	if len(tlist) > count {

@@ -15,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	mplex "github.com/libp2p/go-libp2p-mplex"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	routing "github.com/libp2p/go-libp2p-routing"
@@ -151,7 +150,7 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port, stag string) host.H
 			"/ip4/0.0.0.0/tcp/"+port, // regular tcp connections
 		),
 		// libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
+		// libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
 		// support secio connections
 		libp2p.Security(secio.ID, secio.New),
 		// support any other default transports (TCP)
