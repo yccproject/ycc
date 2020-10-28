@@ -60,7 +60,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 	var minHash []byte
 	index := 0
 	tmp := n.getTicketsMap(height)
-	plog.Debug("sortition", "height", height, "round", round, "step", step, "seed", hexs(seed), "allw", allw, "ntid", len(tmp))
+	plog.Info("sortition", "height", height, "round", round, "step", step, "allw", allw, "ntid", len(tmp))
 	for tid := range tmp {
 		data := fmt.Sprintf("%x+%s", vrfHash, tid)
 		hash := hash2([]byte(data))
