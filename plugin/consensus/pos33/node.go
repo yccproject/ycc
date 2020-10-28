@@ -697,6 +697,11 @@ func (n *node) handleSortsMsg(m *pt.Pos33Sorts, myself bool) {
 	if len(m.Sorts) == 0 && m.S == nil {
 		return
 	}
+	lb, err := n.RequestLastBlock()
+	if err != nil {
+		plog.Info("handleSortsMsg err", "err", err)
+		return
+	}
 	if m.S != nil {
 		n.handleSortitionMsg(m.S)
 	}
@@ -715,6 +720,10 @@ func (n *node) handleSortsMsg(m *pt.Pos33Sorts, myself bool) {
 			}
 		}
 		height := s.Proof.Input.Height
+		if height > lb.Height+pt.Pos33SortitionSize {
+			// too
+			return
+		}
 		if n.lastBlock().Height >= height {
 			err := fmt.Errorf("sort msg too late, lbHeight=%d, sortHeight=%d", n.lastBlock().Height, height)
 			plog.Info("handleSort error", "err", err)
@@ -819,14 +828,15 @@ func (n *node) runLoop() {
 			plog.Info("pos33 consensus run loop stoped")
 			return
 		case msg := <-msgch:
+			t := time.Now()
 			n.handlePos33Msg(msg)
+			plog.Info("handlePos33Msg cost", "cost", time.Now().Sub(t))
 		case <-syncTick.C:
 			isSync = n.miningOK()
-		default:
-			if !isSync {
-				time.Sleep(time.Millisecond * 300)
-				continue
-			}
+		}
+		if !isSync {
+			time.Sleep(time.Millisecond * 300)
+			continue
 		}
 
 		select {

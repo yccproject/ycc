@@ -439,13 +439,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 
 // List list db
 func List(db dbm.Lister, db2 dbm.KV, tlist *ty.Pos33TicketList) (types.Message, error) {
-	var err error
-	var values [][]byte
-	if tlist.Status > 0 {
-		values, err = db.List(calcPos33TicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
-	} else {
-		values, err = db.List(calcPos33TicketPrefix2(tlist.Addr), nil, 0, 0)
-	}
+	values, err := db.List(calcPos33TicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
