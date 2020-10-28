@@ -113,6 +113,7 @@ func (ticket *Pos33TicketType) GetLogMap() map[int64]*types.LogInfo {
 		TyLogNewPos33Ticket:   {Ty: reflect.TypeOf(ReceiptPos33Ticket{}), Name: "LogNewPos33Ticket"},
 		TyLogClosePos33Ticket: {Ty: reflect.TypeOf(ReceiptPos33Ticket{}), Name: "LogClosePos33Ticket"},
 		TyLogMinerPos33Ticket: {Ty: reflect.TypeOf(ReceiptPos33Ticket{}), Name: "LogMinerPos33Ticket"},
+		TyLogVoterPos33Ticket: {Ty: reflect.TypeOf(ReceiptPos33Ticket{}), Name: "LogVoterPos33Ticket"},
 		TyLogPos33TicketBind:  {Ty: reflect.TypeOf(ReceiptPos33TicketBind{}), Name: "LogPos33TicketBind"},
 	}
 }
