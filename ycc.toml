@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc"
+Title = "ycc-1027"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -32,7 +32,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = true
+singleMode = false
 
 [p2p]
 dbCache = 4
@@ -53,10 +53,9 @@ useGithub = true
 [p2p.sub.dht]
 #可以自定义设置连接节点
 port = 12801
+channel = 7
 seeds = [
-         "/ip4/139.155.92.3/tcp/12801/p2p/16Uiu2HAmC16P4Mx555aZqu7zPFfAY92FihPd98Ux6vj1BwEYMt9a", 
-	 "/ip4/139.155.42.205/tcp/12801/p2p/16Uiu2HAm6GfEeLfeCm7KeLD5cjoEDCuoi6TptcXJ7K1SvZmcebxx", 
-	 "/ip4/139.155.72.161/tcp/12801/p2p/16Uiu2HAm4AbrYzDpUgMhnin5T9TqFm8UJGUV3ri9KZ4Y16s76pBp" 
+	 "/ip4/139.155.53.12/tcp/12801/p2p/16Uiu2HAmMZnJd9cLaw7rBgG6sfn8AqJoqWyETbhE4atQx7bCSPe5" 
 	]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
@@ -75,11 +74,9 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 listenPort = "10801"
-onlyVoter = false
+onlyVoter = true
 bootPeers = [
-	     "/ip4/139.155.92.3/tcp/10801/p2p/16Uiu2HAmVsdmAeVtRYm9SM85qSCt4Yqqz6kBYgU4FMJCa2dizwTA",
-	     "/ip4/139.155.42.205/tcp/10801/p2p/16Uiu2HAm6W5T4r1MXm1oBZYQ5uzata4ah52P9Lk1cETQunv9cpBj",
-	     "/ip4/139.155.72.161/tcp/10801/p2p/16Uiu2HAmBFyiV3vn8zyd9fefuiyY4ir2Mox5AJCbSgdgZPj72cnb"
+	     "/ip4/139.155.53.12/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"
 	    ]
 
 [mempool]
