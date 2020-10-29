@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -29,9 +28,9 @@ type Client struct {
 	conf *subConfig
 	n    *node
 
-	tickLock   sync.Mutex
-	ticketsMap map[string]*pt.Pos33Ticket
-	privmap    map[string]crypto.PrivKey
+	tickLock sync.Mutex
+	priv     crypto.PrivKey
+	tids     []string
 
 	tcMap  map[int64]int
 	tmLock sync.Mutex
@@ -141,12 +140,11 @@ func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
 func (client *Client) getPriv(mineAddr string) crypto.PrivKey {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	for _, p := range client.privmap {
-		// ONLY one privKey for minning !!!
-		return p
+	if client.priv == nil {
+		plog.Error("Wallet LOCKED or not Set mining account")
+		return nil
 	}
-	plog.Info("wallet is LOCKED or NO mining account")
-	return nil
+	return client.priv
 }
 
 func getTicketHeight(tid string) int64 {
@@ -159,86 +157,43 @@ func getTicketHeight(tid string) int64 {
 	return h - h%pt.Pos33SortitionSize + pt.Pos33SortitionSize
 }
 
-func (client *Client) getTicketsMap(height int64) map[string]string {
+func (client *Client) getTicketIds() []string {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	mp := make(map[string]string)
-	for tid, t := range client.ticketsMap {
-		if t.Status != pt.Pos33TicketOpened {
-			continue
-		}
-		mp[tid] = t.MinerAddress
-	}
-	return mp
+	return client.tids
 }
 
-func (client *Client) getTicket(tid string) *pt.Pos33Ticket {
+func (client *Client) setTicket(ids []string, priv crypto.PrivKey) {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	return client.ticketsMap[tid]
-}
-
-func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
-	list := make(map[string]crypto.PrivKey)
-	for _, priv := range privs {
-		addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
-		list[addr] = priv
-	}
-	return list
-}
-
-func (client *Client) setTicket(tlist *pt.ReplyPos33TicketList, privmap map[string]crypto.PrivKey) {
-	client.tickLock.Lock()
-	defer client.tickLock.Unlock()
-	if tlist == nil || privmap == nil {
-		client.ticketsMap = nil
-		client.privmap = nil
-		return
-	}
-	client.ticketsMap = make(map[string]*pt.Pos33Ticket)
-	for _, t := range tlist.Tickets {
-		if t.Status != pt.Pos33TicketOpened {
-			if t.CloseHeight < client.GetCurrentHeight()-pt.Pos33SortitionSize {
-				continue
-			}
-		}
-		client.ticketsMap[t.GetTicketId()] = t
-		_, ok := privmap[t.MinerAddress]
-		if !ok {
-			delete(privmap, t.MinerAddress)
-		}
-	}
-
-	client.privmap = privmap
+	client.tids = ids
+	client.priv = priv
 }
 
 func (client *Client) flushTicket() error {
 	//list accounts
-	tickets, privs, err := client.getTickets()
+	tickets, priv, err := client.getTickets()
 	if err != nil {
 		client.setTicket(nil, nil)
 		return err
 	}
-	privMap := getPrivMap(privs)
-	client.setTicket(&pt.ReplyPos33TicketList{Tickets: tickets}, privMap)
+	client.setTicket(tickets, priv)
 	return nil
 }
 
-func (client *Client) getTickets() ([]*pt.Pos33Ticket, []crypto.PrivKey, error) {
+func (client *Client) getTickets() ([]string, crypto.PrivKey, error) {
+	t := time.Now()
 	resp, err := client.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Tickets", &types.ReqNil{})
 	if err != nil {
 		return nil, nil, err
 	}
+	plog.Info("getTickets cost", "cost", time.Now().Sub(t))
 	reply := resp.(*pt.ReplyWalletPos33Tickets)
-	var keys []crypto.PrivKey
-	for i := 0; i < len(reply.Privkeys); i++ {
-		priv, err := client.privFromBytes(reply.Privkeys[i])
-		if err != nil {
-			return nil, nil, err
-		}
-		keys = append(keys, priv)
+	priv, err := client.privFromBytes(reply.Privkey)
+	if err != nil {
+		return nil, nil, err
 	}
-	return reply.Tickets, keys, nil
+	return reply.Tickets, priv, nil
 }
 
 // AddBlock notice driver a new block incoming
@@ -258,12 +213,14 @@ func (c *Client) updateAllCount(height int64) {
 }
 
 func (c *Client) getAllCount() int {
+	t := time.Now()
 	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: 0})
 	if err != nil {
 		plog.Info("query Pos33AllPos33TicketCount error", "error", err)
 		return 0
 	}
 	tc := int(msg.(*pt.ReplyPos33AllPos33TicketCount).Count)
+	plog.Info("getAllCount cost", "cost", time.Now().Sub(t))
 	return tc
 }
 
@@ -291,10 +248,6 @@ func (client *Client) CreateBlock() {
 			time.Sleep(time.Second)
 			continue
 		}
-		// if !client.miningOK() {
-		// 	time.Sleep(time.Second)
-		// 	continue
-		// }
 		break
 	}
 	client.n.runLoop()
@@ -334,7 +287,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count 
 func (client *Client) getTicketCount() int {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
-	return len(client.ticketsMap)
+	return len(client.tids)
 }
 
 // CreateGenesisTx ticket create genesis tx

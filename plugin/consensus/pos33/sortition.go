@@ -59,9 +59,9 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 	var msgs []*pt.Pos33SortMsg
 	var minHash []byte
 	index := 0
-	tmp := n.getTicketsMap(height)
-	plog.Info("sortition", "height", height, "round", round, "step", step, "allw", allw, "ntid", len(tmp))
-	for tid := range tmp {
+	tids := n.getTicketIds()
+	plog.Info("sortition", "height", height, "round", round, "step", step, "allw", allw, "ntid", len(tids))
+	for _, tid := range tids {
 		data := fmt.Sprintf("%x+%s", vrfHash, tid)
 		hash := hash2([]byte(data))
 

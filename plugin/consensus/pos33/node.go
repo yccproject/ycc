@@ -260,9 +260,6 @@ func (n *node) blockCheck(b *types.Block) error {
 		return fmt.Errorf("miner tx error")
 	}
 	round := int(act.Sort.Proof.Input.Round)
-	if string(act.Sort.Proof.Pubkey) == string(n.getPriv("").PubKey().Bytes()) {
-		return nil
-	}
 
 	sortHeight := b.Height - pt.Pos33SortitionSize
 	allw := n.allTicketCount(sortHeight)
@@ -792,7 +789,11 @@ func (n *node) runLoop() {
 	}
 
 	svcTag := n.GetAPI().GetConfig().GetTitle()
-	n.gss = newGossip2(n.getPriv(""), n.conf.ListenPort, svcTag, pos33Topic)
+	priv := n.getPriv("")
+	if priv == nil {
+		panic("can't go here")
+	}
+	n.gss = newGossip2(priv, n.conf.ListenPort, svcTag, pos33Topic)
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
 		n.gss.bootstrap(n.conf.BootPeers...)
@@ -816,9 +817,7 @@ func (n *node) runLoop() {
 			plog.Info("pos33 consensus run loop stoped")
 			return
 		case msg := <-msgch:
-			t := time.Now()
 			n.handlePos33Msg(msg)
-			plog.Info("handlePos33Msg cost", "cost", time.Now().Sub(t))
 		case <-syncTick.C:
 			isSync = n.IsCaughtUp()
 		default:

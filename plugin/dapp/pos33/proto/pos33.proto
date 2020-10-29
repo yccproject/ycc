@@ -155,8 +155,8 @@ message Pos33TicketInfos { repeated string ticketIds = 1; }
 message ReplyPos33TicketList { repeated Pos33Ticket tickets = 1; }
 
 message ReplyWalletPos33Tickets {
-  repeated Pos33Ticket tickets = 1;
-  repeated bytes privkeys = 2;
+  repeated string tickets = 1;
+  bytes privkey = 2;
 }
 
 message ReceiptPos33Ticket {

@@ -28,8 +28,8 @@ func (policy *ticketPolicy) On_ClosePos33Tickets(req *ty.Pos33TicketClose) (type
 
 // On_WalletGetPos33Tickets get ticket
 func (policy *ticketPolicy) On_WalletGetPos33Tickets(req *types.ReqNil) (types.Message, error) {
-	tickets, privs, err := policy.getPos33TicketsByStatus(ty.Pos33TicketOpened)
-	tks := &ty.ReplyWalletPos33Tickets{Tickets: tickets, Privkeys: privs}
+	tickets, priv, err := policy.getPos33TicketsByStatus(ty.Pos33TicketOpened)
+	tks := &ty.ReplyWalletPos33Tickets{Tickets: tickets, Privkey: priv}
 	return tks, err
 }
 
