@@ -40,7 +40,7 @@ const (
 	// TyLogVoterPos33Ticket miner ticket log type
 	TyLogVoterPos33Ticket = 335
 	// TyLogPos33TicketBind bind ticket log type
-	TyLogPos33TicketBind = 334
+	// TyLogPos33TicketBind = 334
 )
 
 //ticket
@@ -58,7 +58,7 @@ const (
 	// Pos33TicketActionMiner action miner
 	Pos33TicketActionMiner = 16
 	// Pos33TicketActionBind action bind
-	Pos33TicketActionBind = 17
+	// Pos33TicketActionBind = 17
 )
 
 // Pos33TicketOldParts old tick type
@@ -114,7 +114,7 @@ func (ticket *Pos33TicketType) GetLogMap() map[int64]*types.LogInfo {
 		TyLogClosePos33Ticket: {Ty: reflect.TypeOf(ReceiptPos33Ticket{}), Name: "LogClosePos33Ticket"},
 		TyLogMinerPos33Ticket: {Ty: reflect.TypeOf(ReceiptPos33Ticket{}), Name: "LogMinerPos33Ticket"},
 		TyLogVoterPos33Ticket: {Ty: reflect.TypeOf(ReceiptPos33Ticket{}), Name: "LogVoterPos33Ticket"},
-		TyLogPos33TicketBind:  {Ty: reflect.TypeOf(ReceiptPos33TicketBind{}), Name: "LogPos33TicketBind"},
+		// TyLogPos33TicketBind:  {Ty: reflect.TypeOf(ReceiptPos33TicketBind{}), Name: "LogPos33TicketBind"},
 	}
 }
 
@@ -148,9 +148,9 @@ func (ticket *Pos33TicketType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
 		"Genesis": Pos33TicketActionGenesis,
 		"Topen":   Pos33TicketActionOpen,
-		"Tbind":   Pos33TicketActionBind,
-		"Tclose":  Pos33TicketActionClose,
-		"Miner":   Pos33TicketActionMiner,
+		// "Tbind":   Pos33TicketActionBind,
+		"Tclose": Pos33TicketActionClose,
+		"Miner":  Pos33TicketActionMiner,
 	}
 }
 
@@ -222,8 +222,9 @@ func (v *Pos33VoteMsg) Verify() bool {
 func (v *Pos33VoteMsg) Equal(other *Pos33VoteMsg) bool {
 	return v.Sort.Proof.Input.Height == other.Sort.Proof.Input.Height &&
 		v.Sort.Proof.Input.Round == other.Sort.Proof.Input.Round &&
-		v.Sort.SortHash.Tid == other.Sort.SortHash.Tid &&
-		v.Tid == other.Tid
+		v.Sort.SortHash.Index == other.Sort.SortHash.Index &&
+		string(v.MinHash) == string(other.MinHash)
+	// v.Tid == other.Tid
 }
 
 // Sign is sign vote msg

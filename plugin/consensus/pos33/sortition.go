@@ -43,7 +43,7 @@ func changeDiff(size, round int) int {
 func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos33SortMsg {
 	diff := calcDiff(step, round, allw)
 
-	priv := n.getPriv("")
+	priv := n.getPriv()
 	if priv == nil {
 		return nil
 	}
@@ -59,10 +59,10 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 	var msgs []*pt.Pos33SortMsg
 	var minHash []byte
 	index := 0
-	tids := n.getTicketIds()
-	plog.Info("sortition", "height", height, "round", round, "step", step, "allw", allw, "ntid", len(tids))
-	for _, tid := range tids {
-		data := fmt.Sprintf("%x+%s", vrfHash, tid)
+	count := n.myCount()
+	plog.Info("sortition", "height", height, "round", round, "step", step, "allw", allw, "mycount", count)
+	for i := 0; i < count; i++ {
+		data := fmt.Sprintf("%x+%d", vrfHash, i)
 		hash := hash2([]byte(data))
 
 		// 转为big.Float计算，比较难度diff
@@ -81,7 +81,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		}
 		// 符合，表示抽中了
 		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Tid: tid},
+			SortHash: &pt.SortHash{Hash: hash, Index: int64(i)},
 			Proof:    proof,
 		}
 		msgs = append(msgs, m)
@@ -123,22 +123,13 @@ func vrfVerify(pub []byte, input []byte, proof []byte, hash []byte) error {
 
 var errDiff = errors.New("diff error")
 
-func (n *node) queryTid(tid string, height int64) (*pt.Pos33Ticket, error) {
-	resp, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33TicketInfos", &pt.Pos33TicketInfos{TicketIds: []string{tid}})
+func (n *node) queryDeposit(addr string) (*pt.Pos33DepositMsg, error) {
+	resp, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33Deposit", &types.ReqAddr{Addr: addr})
 	if err != nil {
 		return nil, err
 	}
-	reply := resp.(*pt.ReplyPos33TicketList)
-
-	for _, t := range reply.Tickets {
-		if t.TicketId == tid {
-			if t.Status == pt.Pos33TicketClosed && t.CloseHeight < height-pt.Pos33SortitionSize {
-				return nil, fmt.Errorf("ticketID error, %s is closed", tid)
-			}
-			return t, nil
-		}
-	}
-	return nil, fmt.Errorf("ticketID error, %s NOT open", tid)
+	reply := resp.(*pt.Pos33DepositMsg)
+	return reply, nil
 }
 
 func calcDiff(step, round, allw int) float64 {
@@ -160,12 +151,12 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	round := m.Proof.Input.Round
 	diff := calcDiff(step, int(round), allw)
 
-	t, err := n.queryTid(m.SortHash.Tid, height)
+	d, err := n.queryDeposit(address.PubKeyToAddr(m.Proof.Pubkey))
 	if err != nil {
 		return err
 	}
-	if t.MinerAddress != address.PubKeyToAddr(m.Proof.Pubkey) {
-		return fmt.Errorf("ticket %s mineraddress NOT match proof public", m.SortHash.Tid)
+	if d.Maddr != address.PubKeyToAddr(m.Proof.Pubkey) {
+		return fmt.Errorf("ticket %d mineraddress NOT match proof public", m.SortHash.Index)
 	}
 
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Step: int32(step)}
@@ -174,7 +165,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	if err != nil {
 		return err
 	}
-	data := fmt.Sprintf("%x+%s", m.Proof.VrfHash, m.SortHash.Tid)
+	data := fmt.Sprintf("%x+%d", m.Proof.VrfHash, m.SortHash.Index)
 	hash := hash2([]byte(data))
 	if string(hash) != string(m.SortHash.Hash) {
 		return fmt.Errorf("sort hash error")
@@ -229,5 +220,5 @@ func (n *node) bp(height int64, round int) string {
 		}
 	}
 
-	return ss.SortHash.Tid
+	return string(ss.SortHash.Hash)
 }

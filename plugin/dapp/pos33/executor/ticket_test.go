@@ -13,7 +13,6 @@ import (
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
-	"github.com/yccproject/ycc/plugin/dapp/pos33/executor"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 
 	_ "github.com/33cn/chain33/system"
@@ -29,16 +28,16 @@ func TestMain(m *testing.M) {
 	mock33.Close()
 }
 
-func TestPos33TicketPrice(t *testing.T) {
-	cfg := mock33.GetAPI().GetConfig()
-	//test price
-	ti := &executor.DB{}
-	assert.Equal(t, ti.GetRealPrice(cfg), 10000*types.Coin)
+// func TestPos33TicketPrice(t *testing.T) {
+// 	cfg := mock33.GetAPI().GetConfig()
+// 	//test price
+// 	ti := &executor.DB{}
+// 	assert.Equal(t, ti.GetRealPrice(cfg), 10000*types.Coin)
 
-	ti = &executor.DB{}
-	ti.Price = 10
-	assert.Equal(t, ti.GetRealPrice(cfg), int64(10))
-}
+// 	ti = &executor.DB{}
+// 	ti.Price = 10
+// 	assert.Equal(t, ti.GetRealPrice(cfg), int64(10))
+// }
 
 func TestCheckFork(t *testing.T) {
 	cfg := mock33.GetAPI().GetConfig()

@@ -17,8 +17,6 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	"fmt"
-
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -62,109 +60,109 @@ func (t *Pos33Ticket) GetDriverName() string {
 	return driverName
 }
 
-func (t *Pos33Ticket) savePos33TicketBind(b *ty.ReceiptPos33TicketBind) (kvs []*types.KeyValue) {
-	//解除原来的绑定
-	if len(b.OldMinerAddress) > 0 {
-		kv := &types.KeyValue{
-			Key:   calcBindMinerKey(b.OldMinerAddress, b.ReturnAddress),
-			Value: nil,
-		}
-		//tlog.Warn("tb:del", "key", string(kv.Key))
-		kvs = append(kvs, kv)
-	}
+// func (t *Pos33Ticket) savePos33TicketBind(b *ty.ReceiptPos33TicketBind) (kvs []*types.KeyValue) {
+// 	//解除原来的绑定
+// 	if len(b.OldMinerAddress) > 0 {
+// 		kv := &types.KeyValue{
+// 			Key:   calcBindMinerKey(b.OldMinerAddress, b.ReturnAddress),
+// 			Value: nil,
+// 		}
+// 		//tlog.Warn("tb:del", "key", string(kv.Key))
+// 		kvs = append(kvs, kv)
+// 	}
 
-	kv := &types.KeyValue{Key: calcBindReturnKey(b.ReturnAddress), Value: []byte(b.NewMinerAddress)}
-	//tlog.Warn("tb:add", "key", string(kv.Key), "value", string(kv.Value))
-	kvs = append(kvs, kv)
-	kv = &types.KeyValue{
-		Key:   calcBindMinerKey(b.GetNewMinerAddress(), b.ReturnAddress),
-		Value: []byte(b.ReturnAddress),
-	}
-	//tlog.Warn("tb:add", "key", string(kv.Key), "value", string(kv.Value))
-	kvs = append(kvs, kv)
-	return kvs
-}
+// 	kv := &types.KeyValue{Key: calcBindReturnKey(b.ReturnAddress), Value: []byte(b.NewMinerAddress)}
+// 	//tlog.Warn("tb:add", "key", string(kv.Key), "value", string(kv.Value))
+// 	kvs = append(kvs, kv)
+// 	kv = &types.KeyValue{
+// 		Key:   calcBindMinerKey(b.GetNewMinerAddress(), b.ReturnAddress),
+// 		Value: []byte(b.ReturnAddress),
+// 	}
+// 	//tlog.Warn("tb:add", "key", string(kv.Key), "value", string(kv.Value))
+// 	kvs = append(kvs, kv)
+// 	return kvs
+// }
 
-func (t *Pos33Ticket) delPos33TicketBind(b *ty.ReceiptPos33TicketBind) (kvs []*types.KeyValue) {
-	//被取消了，刚好操作反
-	kv := &types.KeyValue{
-		Key:   calcBindMinerKey(b.NewMinerAddress, b.ReturnAddress),
-		Value: nil,
-	}
-	kvs = append(kvs, kv)
-	if len(b.OldMinerAddress) > 0 {
-		//恢复旧的绑定
-		kv := &types.KeyValue{Key: calcBindReturnKey(b.ReturnAddress), Value: []byte(b.OldMinerAddress)}
-		kvs = append(kvs, kv)
-		kv = &types.KeyValue{
-			Key:   calcBindMinerKey(b.OldMinerAddress, b.ReturnAddress),
-			Value: []byte(b.ReturnAddress),
-		}
-		kvs = append(kvs, kv)
-	} else {
-		//删除旧的数据
-		kv := &types.KeyValue{Key: calcBindReturnKey(b.ReturnAddress), Value: nil}
-		kvs = append(kvs, kv)
-	}
-	return kvs
-}
+// func (t *Pos33Ticket) delPos33TicketBind(b *ty.ReceiptPos33TicketBind) (kvs []*types.KeyValue) {
+// 	//被取消了，刚好操作反
+// 	kv := &types.KeyValue{
+// 		Key:   calcBindMinerKey(b.NewMinerAddress, b.ReturnAddress),
+// 		Value: nil,
+// 	}
+// 	kvs = append(kvs, kv)
+// 	if len(b.OldMinerAddress) > 0 {
+// 		//恢复旧的绑定
+// 		kv := &types.KeyValue{Key: calcBindReturnKey(b.ReturnAddress), Value: []byte(b.OldMinerAddress)}
+// 		kvs = append(kvs, kv)
+// 		kv = &types.KeyValue{
+// 			Key:   calcBindMinerKey(b.OldMinerAddress, b.ReturnAddress),
+// 			Value: []byte(b.ReturnAddress),
+// 		}
+// 		kvs = append(kvs, kv)
+// 	} else {
+// 		//删除旧的数据
+// 		kv := &types.KeyValue{Key: calcBindReturnKey(b.ReturnAddress), Value: nil}
+// 		kvs = append(kvs, kv)
+// 	}
+// 	return kvs
+// }
 
-func (t *Pos33Ticket) savePos33Ticket(ticketlog *ty.ReceiptPos33Ticket) (kvs []*types.KeyValue) {
-	if ticketlog.PrevStatus > 0 {
-		kv := delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
-		kvs = append(kvs, kv)
-	}
-	kvs = append(kvs, addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.Status))
-	return kvs
-}
+// func (t *Pos33Ticket) savePos33Ticket(ticketlog *ty.ReceiptPos33Ticket) (kvs []*types.KeyValue) {
+// 	if ticketlog.PrevStatus > 0 {
+// 		kv := delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
+// 		kvs = append(kvs, kv)
+// 	}
+// 	kvs = append(kvs, addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.Status))
+// 	return kvs
+// }
 
-func (t *Pos33Ticket) delPos33Ticket(ticketlog *ty.ReceiptPos33Ticket) (kvs []*types.KeyValue) {
-	if ticketlog.PrevStatus > 0 {
-		kv := addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
-		kvs = append(kvs, kv)
-	}
-	kvs = append(kvs, delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.Status))
-	return kvs
-}
+// func (t *Pos33Ticket) delPos33Ticket(ticketlog *ty.ReceiptPos33Ticket) (kvs []*types.KeyValue) {
+// 	if ticketlog.PrevStatus > 0 {
+// 		kv := addticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.PrevStatus)
+// 		kvs = append(kvs, kv)
+// 	}
+// 	kvs = append(kvs, delticket(ticketlog.Addr, ticketlog.TicketId, ticketlog.Status))
+// 	return kvs
+// }
 
-func calcPos33TicketKey(addr string, ticketID string, status int32) []byte {
-	key := fmt.Sprintf("LODB-pos33-tl:%s:%d:%s", addr, status, ticketID)
-	return []byte(key)
-}
+// func calcPos33TicketKey(addr string, ticketID string, status int32) []byte {
+// 	key := fmt.Sprintf("LODB-pos33-tl:%s:%d:%s", addr, status, ticketID)
+// 	return []byte(key)
+// }
 
-func calcBindReturnKey(returnAddress string) []byte {
-	key := fmt.Sprintf("LODB-pos33-bind:%s", returnAddress)
-	return []byte(key)
-}
+// func calcBindReturnKey(returnAddress string) []byte {
+// 	key := fmt.Sprintf("LODB-pos33-bind:%s", returnAddress)
+// 	return []byte(key)
+// }
 
-func calcBindMinerKey(minerAddress string, returnAddress string) []byte {
-	key := fmt.Sprintf("LODB-pos33-miner:%s:%s", minerAddress, returnAddress)
-	return []byte(key)
-}
+// func calcBindMinerKey(minerAddress string, returnAddress string) []byte {
+// 	key := fmt.Sprintf("LODB-pos33-miner:%s:%s", minerAddress, returnAddress)
+// 	return []byte(key)
+// }
 
-func calcBindMinerKeyPrefix(minerAddress string) []byte {
-	key := fmt.Sprintf("LODB-pos33-miner:%s", minerAddress)
-	return []byte(key)
-}
+// func calcBindMinerKeyPrefix(minerAddress string) []byte {
+// 	key := fmt.Sprintf("LODB-pos33-miner:%s", minerAddress)
+// 	return []byte(key)
+// }
 
-func calcPos33TicketPrefix(addr string, status int32) []byte {
-	key := fmt.Sprintf("LODB-pos33-tl:%s:%d", addr, status)
-	return []byte(key)
-}
+// func calcPos33TicketPrefix(addr string, status int32) []byte {
+// 	key := fmt.Sprintf("LODB-pos33-tl:%s:%d", addr, status)
+// 	return []byte(key)
+// }
 
-func addticket(addr string, ticketID string, status int32) *types.KeyValue {
-	kv := &types.KeyValue{}
-	kv.Key = calcPos33TicketKey(addr, ticketID, status)
-	kv.Value = []byte(ticketID)
-	return kv
-}
+// func addticket(addr string, ticketID string, status int32) *types.KeyValue {
+// 	kv := &types.KeyValue{}
+// 	kv.Key = calcPos33TicketKey(addr, ticketID, status)
+// 	kv.Value = []byte(ticketID)
+// 	return kv
+// }
 
-func delticket(addr string, ticketID string, status int32) *types.KeyValue {
-	kv := &types.KeyValue{}
-	kv.Key = calcPos33TicketKey(addr, ticketID, status)
-	kv.Value = nil
-	return kv
-}
+// func delticket(addr string, ticketID string, status int32) *types.KeyValue {
+// 	kv := &types.KeyValue{}
+// 	kv.Key = calcPos33TicketKey(addr, ticketID, status)
+// 	kv.Value = nil
+// 	return kv
+// }
 
 // IsFriend check is fri
 func (t *Pos33Ticket) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {

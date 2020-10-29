@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
@@ -114,7 +113,7 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
 		types.MustDecode(sub, &subcfg)
 	}
 	policy.cfg = &subcfg
-	policy.initMinerWhiteList(walletBiz.GetConfig())
+	// policy.initMinerWhiteList(walletBiz.GetConfig())
 	wait := 10 * time.Second
 	if subcfg.MinerWaitTime != "" {
 		d, err := time.ParseDuration(subcfg.MinerWaitTime)
@@ -267,7 +266,6 @@ func (policy *ticketPolicy) OnImportPrivateKey(acc *types.Account) {
 func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {
 	if policy.needFlush {
 		// 新增区块，由于ticket具有锁定期，所以这里不需要刷新
-		//policy.flushPos33Ticket()
 	}
 	policy.needFlush = false
 }
@@ -303,92 +301,96 @@ func (policy *ticketPolicy) checkNeedFlushPos33Ticket(tx *types.Transaction, rec
 	return policy.needFlushPos33Ticket(tx, receipt)
 }
 
-func (policy *ticketPolicy) forceClosePos33Tickets(addr string, count int) (*types.ReplyHashes, error) {
-	priv, minerAddr, err := policy.getMiner()
-	if err != nil {
-		return nil, err
-	}
+// func (policy *ticketPolicy) forceClosePos33Tickets(addr string, count int) (, error) {
+// 	priv, minerAddr, err := policy.getMiner()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	tlist, err := policy.getForceClosePos33Tickets(minerAddr)
-	if err != nil {
-		bizlog.Error("forceClosePos33Tickets getPos33Tickets", "error", err, "addr", minerAddr)
-		return nil, err
-	}
-	max := 1000
-	if count == 0 || count > max {
-		count = max
-	}
-	if len(tlist) > count {
-		tlist = tlist[:count]
-	}
+// 	tlist, err := policy.getForceClosePos33Tickets(minerAddr)
+// 	if err != nil {
+// 		bizlog.Error("forceClosePos33Tickets getPos33Tickets", "error", err, "addr", minerAddr)
+// 		return nil, err
+// 	}
+// 	max := 1000
+// 	if count == 0 || count > max {
+// 		count = max
+// 	}
+// 	if len(tlist) > count {
+// 		tlist = tlist[:count]
+// 	}
 
-	var hashs types.ReplyHashes
-	hash, err := policy.forceClosePos33TicketList(priv, tlist)
-	if err != nil {
-		bizlog.Error("forceClosePos33Tickets", "error", err, "addr", minerAddr)
-		return nil, err
-	}
-	if hash == nil {
-		return nil, err
-	}
-	hashs.Hashes = append(hashs.Hashes, hash)
+// 	var hashs types.ReplyHashes
+// 	hash, err := policy.forceClosePos33TicketList(priv, tlist)
+// 	if err != nil {
+// 		bizlog.Error("forceClosePos33Tickets", "error", err, "addr", minerAddr)
+// 		return nil, err
+// 	}
+// 	if hash == nil {
+// 		return nil, err
+// 	}
+// 	hashs.Hashes = append(hashs.Hashes, hash)
 
-	return &hashs, nil
-}
+// 	return &hashs, nil
+// }
 
-func (policy *ticketPolicy) getPos33Tickets(addr string, status int32) ([]string, error) {
-	reqaddr := &ty.Pos33TicketList{Addr: addr, Status: status}
-	api := policy.getAPI()
-	msg, err := api.Query(ty.Pos33TicketX, "Pos33TicketList", reqaddr)
-	if err != nil {
-		bizlog.Error("getPos33Tickets", "addr", addr, "status", status, "Query error", err)
-		return nil, err
-	}
-	reply := msg.(*ty.Pos33TicketInfos)
-	return reply.TicketIds, nil
-}
+// func (policy *ticketPolicy) getPos33Tickets(addr string, status int32) ([]string, error) {
+// 	reqaddr := &ty.Pos33TicketList{Addr: addr, Status: status}
+// 	api := policy.getAPI()
+// 	msg, err := api.Query(ty.Pos33TicketX, "Pos33TicketList", reqaddr)
+// 	if err != nil {
+// 		bizlog.Error("getPos33Tickets", "addr", addr, "status", status, "Query error", err)
+// 		return nil, err
+// 	}
+// 	reply := msg.(*ty.Pos33TicketInfos)
+// 	return reply.TicketIds, nil
+// }
 
-func (policy *ticketPolicy) getForceClosePos33Tickets(addr string) ([]string, error) {
-	if addr == "" {
-		return nil, nil
-	}
-	tlist, err := policy.getPos33Tickets(addr, ty.Pos33TicketOpened)
-	if err != nil {
-		return nil, err
-	}
+// func (policy *ticketPolicy) getForceClosePos33Tickets(addr string) ([]string, error) {
+// 	if addr == "" {
+// 		return nil, nil
+// 	}
+// 	tlist, err := policy.getPos33Tickets(addr, ty.Pos33TicketOpened)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return tlist, nil
-}
+// 	return tlist, nil
+// }
 
-func (policy *ticketPolicy) forceClosePos33TicketList(priv crypto.PrivKey, ids []string) ([]byte, error) {
-	if len(ids) > 0 {
-		return policy.closePos33Tickets(priv, ids)
-	}
-	return nil, nil
-}
+// func (policy *ticketPolicy) forceClosePos33TicketList(priv crypto.PrivKey, ids []string) ([]byte, error) {
+// 	if len(ids) > 0 {
+// 		return policy.closePos33Tickets(priv, ids)
+// 	}
+// 	return nil, nil
+// }
 
 //通过rpc 精选close 操作
-func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, ids []string) ([]byte, error) {
-	bizlog.Info("closePos33Tickets", "real count", len(ids))
+func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, count int) (*types.ReplyHashes, error) {
+	bizlog.Info("closePos33Tickets", "real count", count)
 	ta := &ty.Pos33TicketAction{}
-	tclose := &ty.Pos33TicketClose{TicketId: ids}
+	tclose := &ty.Pos33TicketClose{Count: int32(count)}
 	ta.Value = &ty.Pos33TicketAction_Tclose{Tclose: tclose}
 	ta.Ty = ty.Pos33TicketActionClose
-	return policy.getWalletOperate().SendTransaction(ta, []byte(ty.Pos33TicketX), priv, "")
+	hash, err := policy.getWalletOperate().SendTransaction(ta, []byte(ty.Pos33TicketX), priv, "")
+	if err != nil {
+		return nil, err
+	}
+	return &types.ReplyHashes{Hashes: [][]byte{hash}}, nil
 }
 
-func (policy *ticketPolicy) getPos33TicketsByStatus(status int32) ([]string, []byte, error) {
-	priv, minerAddr, err := policy.getMiner()
-	if err != nil {
-		return nil, nil, err
-	}
-	tickets, err := policy.getPos33Tickets(minerAddr, status)
-	if err == types.ErrNotFound {
-		return nil, nil, err
-	}
-	bizlog.Info("getPos33TicketsByStatus", "count", len(tickets))
-	return tickets, priv.Bytes(), nil
-}
+// func (policy *ticketPolicy) getPos33TicketsByStatus(status int32) ([]string, []byte, error) {
+// 	priv, minerAddr, err := policy.getMiner()
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+// 	tickets, err := policy.getPos33Tickets(minerAddr, status)
+// 	if err == types.ErrNotFound {
+// 		return nil, nil, err
+// 	}
+// 	bizlog.Info("getPos33TicketsByStatus", "count", len(tickets))
+// 	return tickets, priv.Bytes(), nil
+// }
 
 func (policy *ticketPolicy) setAutoMining(flag int32) {
 	atomic.StoreInt32(&policy.autoMinerFlag, flag)
@@ -398,46 +400,46 @@ func (policy *ticketPolicy) isAutoMining() bool {
 	return atomic.LoadInt32(&policy.autoMinerFlag) == 1
 }
 
-func (policy *ticketPolicy) closePos33TicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	ids, err := policy.getPos33Tickets(addr, ty.Pos33TicketOpened)
-	if err != nil && err != types.ErrNotFound {
-		return nil, err
-	}
-	if len(ids) > 0 {
-		return policy.closePos33Tickets(priv, ids)
-	}
-	return nil, nil
-}
+// func (policy *ticketPolicy) closePos33TicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
+// 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
+// 	ids, err := policy.getPos33Tickets(addr, ty.Pos33TicketOpened)
+// 	if err != nil && err != types.ErrNotFound {
+// 		return nil, err
+// 	}
+// 	if len(ids) > 0 {
+// 		return policy.closePos33Tickets(priv, ids)
+// 	}
+// 	return nil, nil
+// }
 
-func (policy *ticketPolicy) closeAllPos33Tickets(height int64) (int, error) {
-	operater := policy.getWalletOperate()
-	keys, err := operater.GetAllPrivKeys()
-	if err != nil {
-		return 0, err
-	}
-	var hashes [][]byte
-	for _, key := range keys {
-		hash, err := policy.closePos33TicketsByAddr(height, key)
-		if err != nil {
-			bizlog.Error("close Pos33Tickets By Addr", "err", err)
-			continue
-		}
-		if hash == nil {
-			continue
-		}
-		hashes = append(hashes, hash)
-	}
-	if len(hashes) > 0 {
-		operater.WaitTxs(hashes)
-		return len(hashes), nil
-	}
-	return 0, nil
-}
+// func (policy *ticketPolicy) closeAllPos33Tickets(height int64) (int, error) {
+// 	operater := policy.getWalletOperate()
+// 	keys, err := operater.GetAllPrivKeys()
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	var hashes [][]byte
+// 	for _, key := range keys {
+// 		hash, err := policy.closePos33TicketsByAddr(height, key)
+// 		if err != nil {
+// 			bizlog.Error("close Pos33Tickets By Addr", "err", err)
+// 			continue
+// 		}
+// 		if hash == nil {
+// 			continue
+// 		}
+// 		hashes = append(hashes, hash)
+// 	}
+// 	if len(hashes) > 0 {
+// 		operater.WaitTxs(hashes)
+// 		return len(hashes), nil
+// 	}
+// 	return 0, nil
+// }
 
-func (policy *ticketPolicy) closePos33Ticket(height int64) (int, error) {
-	return policy.closeAllPos33Tickets(height)
-}
+// func (policy *ticketPolicy) closePos33Ticket(height int64) (int, error) {
+// 	return policy.closeAllPos33Tickets(height)
+// }
 
 func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
@@ -502,14 +504,14 @@ func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto
 	}
 
 	ta := &ty.Pos33TicketAction{}
-	topen := &ty.Pos33TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count, RandSeed: types.Now().UnixNano()}
-	hashList := make([][]byte, int(count))
-	for i := 0; i < int(count); i++ {
-		privHash := common.Sha256([]byte(fmt.Sprintf("%x:%d:%d", priv.Bytes(), i, topen.RandSeed)))
-		pubHash := common.Sha256(privHash)
-		hashList[i] = pubHash
-	}
-	topen.PubHashes = hashList
+	topen := &ty.Pos33TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
+	// hashList := make([][]byte, int(count))
+	// for i := 0; i < int(count); i++ {
+	// 	privHash := common.Sha256([]byte(fmt.Sprintf("%x:%d:%d", priv.Bytes(), i, topen.RandSeed)))
+	// 	pubHash := common.Sha256(privHash)
+	// 	hashList[i] = pubHash
+	// }
+	// topen.PubHashes = hashList
 	ta.Value = &ty.Pos33TicketAction_Topen{Topen: topen}
 	ta.Ty = ty.Pos33TicketActionOpen
 	return policy.walletOperate.SendTransaction(ta, []byte(ty.Pos33TicketX), priv, "")
@@ -584,79 +586,79 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 	return hashes, count, nil
 }
 
-func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
-	reqaddr := &types.ReqString{Data: addr}
-	api := policy.walletOperate.GetAPI()
-	msg, err := api.Query(ty.Pos33TicketX, "MinerSourceList", reqaddr)
-	if err != nil {
-		bizlog.Error("getMinerColdAddr", "Query error", err)
-		return nil, err
-	}
-	reply := msg.(*types.ReplyStrings)
-	return reply.Datas, nil
-}
+// func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
+// 	reqaddr := &types.ReqString{Data: addr}
+// 	api := policy.walletOperate.GetAPI()
+// 	msg, err := api.Query(ty.Pos33TicketX, "MinerSourceList", reqaddr)
+// 	if err != nil {
+// 		bizlog.Error("getMinerColdAddr", "Query error", err)
+// 		return nil, err
+// 	}
+// 	reply := msg.(*types.ReplyStrings)
+// 	return reply.Datas, nil
+// }
 
-func (policy *ticketPolicy) initMinerWhiteList(cfg *types.Wallet) {
-	if len(policy.cfg.Minerwhitelist) == 0 {
-		minerAddrWhiteList["*"] = true
-		return
-	}
-	if len(policy.cfg.Minerwhitelist) == 1 && policy.cfg.Minerwhitelist[0] == "*" {
-		minerAddrWhiteList["*"] = true
-		return
-	}
-	for _, addr := range policy.cfg.Minerwhitelist {
-		minerAddrWhiteList[addr] = true
-	}
-}
+// func (policy *ticketPolicy) initMinerWhiteList(cfg *types.Wallet) {
+// 	if len(policy.cfg.Minerwhitelist) == 0 {
+// 		minerAddrWhiteList["*"] = true
+// 		return
+// 	}
+// 	if len(policy.cfg.Minerwhitelist) == 1 && policy.cfg.Minerwhitelist[0] == "*" {
+// 		minerAddrWhiteList["*"] = true
+// 		return
+// 	}
+// 	for _, addr := range policy.cfg.Minerwhitelist {
+// 		minerAddrWhiteList[addr] = true
+// 	}
+// }
 
-func checkMinerWhiteList(addr string) bool {
-	if _, ok := minerAddrWhiteList["*"]; ok {
-		return true
-	}
+// func checkMinerWhiteList(addr string) bool {
+// 	if _, ok := minerAddrWhiteList["*"]; ok {
+// 		return true
+// 	}
 
-	if _, ok := minerAddrWhiteList[addr]; ok {
-		return true
-	}
-	return false
-}
+// 	if _, ok := minerAddrWhiteList[addr]; ok {
+// 		return true
+// 	}
+// 	return false
+// }
 
-func (policy *ticketPolicy) buyMinerAddrPos33TicketOne(height int64, priv crypto.PrivKey) ([][]byte, int, error) {
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
-	//判断是否绑定了coldaddr
-	addrs, err := policy.getMinerColdAddr(addr)
-	if err != nil {
-		return nil, 0, err
-	}
-	total := 0
-	var hashes [][]byte
-	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
-	for i := 0; i < len(addrs); i++ {
-		bizlog.Info("sourceaddr", "addr", addrs[i])
-		ok := checkMinerWhiteList(addrs[i])
-		if !ok {
-			bizlog.Info("buyMinerAddrPos33TicketOne Cold Addr not in MinerWhiteList", "addr", addrs[i])
-			continue
-		}
-		acc, err := policy.getWalletOperate().GetBalance(addrs[i], ty.Pos33TicketX)
-		if err != nil {
-			return nil, 0, err
-		}
-		count := acc.Balance / cfg.Pos33TicketPrice
-		if count > 0 {
-			txhash, err := policy.openticket(addr, addrs[i], priv, int32(count))
-			if err != nil {
-				return nil, 0, err
-			}
-			total += int(count)
-			if txhash != nil {
-				hashes = append(hashes, txhash)
-			}
-		}
-	}
-	return hashes, total, nil
-}
+// func (policy *ticketPolicy) buyMinerAddrPos33TicketOne(height int64, priv crypto.PrivKey) ([][]byte, int, error) {
+// 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
+// 	//判断是否绑定了coldaddr
+// 	addrs, err := policy.getMinerColdAddr(addr)
+// 	if err != nil {
+// 		return nil, 0, err
+// 	}
+// 	total := 0
+// 	var hashes [][]byte
+// 	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
+// 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
+// 	for i := 0; i < len(addrs); i++ {
+// 		bizlog.Info("sourceaddr", "addr", addrs[i])
+// 		ok := checkMinerWhiteList(addrs[i])
+// 		if !ok {
+// 			bizlog.Info("buyMinerAddrPos33TicketOne Cold Addr not in MinerWhiteList", "addr", addrs[i])
+// 			continue
+// 		}
+// 		acc, err := policy.getWalletOperate().GetBalance(addrs[i], ty.Pos33TicketX)
+// 		if err != nil {
+// 			return nil, 0, err
+// 		}
+// 		count := acc.Balance / cfg.Pos33TicketPrice
+// 		if count > 0 {
+// 			txhash, err := policy.openticket(addr, addrs[i], priv, int32(count))
+// 			if err != nil {
+// 				return nil, 0, err
+// 			}
+// 			total += int(count)
+// 			if txhash != nil {
+// 				hashes = append(hashes, txhash)
+// 			}
+// 		}
+// 	}
+// 	return hashes, total, nil
+// }
 
 func (policy *ticketPolicy) getMiner() (crypto.PrivKey, string, error) {
 	accs, err := policy.getWalletOperate().GetWalletAccounts()
@@ -691,28 +693,29 @@ func (policy *ticketPolicy) getMiner() (crypto.PrivKey, string, error) {
 	}
 	return minerPriv, minerAddr, nil
 }
-func (policy *ticketPolicy) buyMinerAddrPos33Ticket(height int64) ([][]byte, int, error) {
-	minerPriv, minerAddr, err := policy.getMiner()
-	if err != nil {
-		return nil, 0, err
-	}
-	var hashes [][]byte
-	count := 0
-	hashlist, n, err := policy.buyMinerAddrPos33TicketOne(height, minerPriv)
-	if err != nil {
-		if err != types.ErrNotFound {
-			bizlog.Error("buyMinerAddrPos33TicketOne", "err", err)
-			return nil, 0, err
-		}
-	}
-	count += n
-	if hashlist != nil {
-		hashes = append(hashes, hashlist...)
-	}
-	bizlog.Info("ticketPolicy buyMinerAddrPos33Ticket", "Address", minerAddr, "n", n)
-	bizlog.Debug("ticketPolicy buyMinerAddrPos33Ticket end")
-	return hashes, count, nil
-}
+
+// func (policy *ticketPolicy) buyMinerAddrPos33Ticket(height int64) ([][]byte, int, error) {
+// 	minerPriv, minerAddr, err := policy.getMiner()
+// 	if err != nil {
+// 		return nil, 0, err
+// 	}
+// 	var hashes [][]byte
+// 	count := 0
+// 	hashlist, n, err := policy.buyMinerAddrPos33TicketOne(height, minerPriv)
+// 	if err != nil {
+// 		if err != types.ErrNotFound {
+// 			bizlog.Error("buyMinerAddrPos33TicketOne", "err", err)
+// 			return nil, 0, err
+// 		}
+// 	}
+// 	count += n
+// 	if hashlist != nil {
+// 		hashes = append(hashes, hashlist...)
+// 	}
+// 	bizlog.Info("ticketPolicy buyMinerAddrPos33Ticket", "Address", minerAddr, "n", n)
+// 	bizlog.Debug("ticketPolicy buyMinerAddrPos33Ticket end")
+// 	return hashes, count, nil
+// }
 
 func (policy *ticketPolicy) withdrawFromPos33Ticket() (hashes [][]byte, err error) {
 	privs, err := policy.getWalletOperate().GetAllPrivKeys()
@@ -785,19 +788,14 @@ func (policy *ticketPolicy) autoMining() {
 				if err != nil {
 					bizlog.Error("processFees", "err", err)
 				}
-				hash1, n1, err := policy.buyPos33Ticket(lastHeight + 1)
+				hashs, n, err := policy.buyPos33Ticket(lastHeight + 1)
 				if err != nil {
 					bizlog.Error("buyPos33Ticket", "err", err)
 				}
-				hash2, n2, err := policy.buyMinerAddrPos33Ticket(lastHeight + 1)
-				if err != nil {
-					bizlog.Error("buyPos33Ticket", "err", err)
+				if len(hashs) > 0 {
+					operater.WaitTxs(hashs)
 				}
-				hashes := append(hash1, hash2...)
-				if len(hashes) > 0 {
-					operater.WaitTxs(hashes)
-				}
-				if n1+n2 > 0 {
+				if n > 0 {
 					FlushPos33Ticket(policy.getAPI())
 				}
 			} else {

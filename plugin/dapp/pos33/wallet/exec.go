@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
@@ -12,7 +13,11 @@ import (
 // On_ClosePos33Tickets close ticket
 func (policy *ticketPolicy) On_ClosePos33Tickets(req *ty.Pos33TicketClose) (types.Message, error) {
 	operater := policy.getWalletOperate()
-	reply, err := policy.forceClosePos33Tickets(req.MinerAddress, int(req.Count))
+	priv, _, err := policy.getMiner()
+	if err != nil {
+		return nil, err
+	}
+	reply, err := policy.closePos33Tickets(priv, int(req.Count))
 	if err != nil || reply == nil {
 		bizlog.Error("onClosePos33Tickets", "forceClosePos33Ticket error", err.Error())
 	} else {
@@ -27,9 +32,19 @@ func (policy *ticketPolicy) On_ClosePos33Tickets(req *ty.Pos33TicketClose) (type
 }
 
 // On_WalletGetPos33Tickets get ticket
-func (policy *ticketPolicy) On_WalletGetPos33Tickets(req *types.ReqNil) (types.Message, error) {
-	tickets, priv, err := policy.getPos33TicketsByStatus(ty.Pos33TicketOpened)
-	tks := &ty.ReplyWalletPos33Tickets{Tickets: tickets, Privkey: priv}
+func (policy *ticketPolicy) On_WalletGetPos33Count(req *types.ReqNil) (types.Message, error) {
+	priv, _, err := policy.getMiner()
+	if err != nil {
+		return nil, err
+	}
+	addr := address.PubKeyToAddr(priv.PubKey().Bytes())
+	api := policy.getAPI()
+	msg, err := api.Query(ty.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
+	if err != nil {
+		bizlog.Error("getPos33Tickets", "addr", addr, "Query error", err)
+		return nil, err
+	}
+	tks := &ty.ReplyWalletPos33Count{Count: (msg.(*types.Int64).Data), Privkey: priv.Bytes()}
 	return tks, err
 }
 
