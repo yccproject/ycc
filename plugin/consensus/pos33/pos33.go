@@ -1,9 +1,8 @@
 package pos33
 
 import (
+	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -30,9 +29,11 @@ type Client struct {
 
 	tickLock sync.Mutex
 	priv     crypto.PrivKey
-	tids     []string
+	// tids     []string
 
-	tcMap  map[int64]int
+	acMap   map[int64]int
+	mycount int
+	// mcMap  map[int64]int
 	tmLock sync.Mutex
 	done   chan struct{}
 }
@@ -67,7 +68,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	plog.Info("subcfg", "cfg", string(sub))
 
 	n := newNode(&subcfg)
-	client := &Client{BaseClient: c, n: n, conf: &subcfg, tcMap: make(map[int64]int), done: make(chan struct{})}
+	client := &Client{BaseClient: c, n: n, conf: &subcfg, acMap: make(map[int64]int), done: make(chan struct{})}
 	client.n.Client = client
 	c.SetChild(client)
 	return client
@@ -120,24 +121,33 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 	return client.n.checkBlock(current.Block, parent)
 }
 
+func (client *Client) myCount() int {
+	client.tmLock.Lock()
+	defer client.tmLock.Unlock()
+	return client.mycount
+}
+
 func (client *Client) allTicketCount(height int64) int {
 	client.tmLock.Lock()
 	defer client.tmLock.Unlock()
 	if height < 0 {
 		height = 0
 	}
-	return client.tcMap[height]
+	return client.acMap[height]
 }
 
-func (client *Client) privFromBytes(privkey []byte) (crypto.PrivKey, error) {
+func privFromBytes(privkey []byte) (crypto.PrivKey, error) {
 	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
 	if err != nil {
 		return nil, err
 	}
+	if privkey == nil {
+		return nil, errors.New("null privKey")
+	}
 	return cr.PrivKeyFromBytes(privkey)
 }
 
-func (client *Client) getPriv(mineAddr string) crypto.PrivKey {
+func (client *Client) getPriv() crypto.PrivKey {
 	client.tickLock.Lock()
 	defer client.tickLock.Unlock()
 	if client.priv == nil {
@@ -147,81 +157,98 @@ func (client *Client) getPriv(mineAddr string) crypto.PrivKey {
 	return client.priv
 }
 
-func getTicketHeight(tid string) int64 {
-	ss := strings.Split(tid, "-")
-	height, _ := strconv.Atoi(ss[1])
-	h := int64(height)
-	if h == 0 {
-		return 0
-	}
-	return h - h%pt.Pos33SortitionSize + pt.Pos33SortitionSize
-}
+// func getTicketHeight(tid string) int64 {
+// 	ss := strings.Split(tid, "-")
+// 	height, _ := strconv.Atoi(ss[1])
+// 	h := int64(height)
+// 	if h == 0 {
+// 		return 0
+// 	}
+// 	return h - h%pt.Pos33SortitionSize + pt.Pos33SortitionSize
+// }
 
-func (client *Client) getTicketIds() []string {
-	client.tickLock.Lock()
-	defer client.tickLock.Unlock()
-	return client.tids
-}
+// func (client *Client) getTicketIds() []string {
+// 	client.tickLock.Lock()
+// 	defer client.tickLock.Unlock()
+// 	return client.tids
+// }
 
-func (client *Client) setTicket(ids []string, priv crypto.PrivKey) {
-	client.tickLock.Lock()
-	defer client.tickLock.Unlock()
-	client.tids = ids
-	client.priv = priv
-}
+// func (client *Client) setTicket(ids []string, priv crypto.PrivKey) {
+// 	client.tickLock.Lock()
+// 	defer client.tickLock.Unlock()
+// 	client.tids = ids
+// 	client.priv = priv
+// }
 
-func (client *Client) flushTicket() error {
-	//list accounts
-	tickets, priv, err := client.getTickets()
-	if err != nil {
-		client.setTicket(nil, nil)
-		return err
-	}
-	client.setTicket(tickets, priv)
-	return nil
-}
+// func (client *Client) flushTicket() error {
+// 	//list accounts
+// 	tickets, priv, err := client.getTickets()
+// 	if err != nil {
+// 		client.setTicket(nil, nil)
+// 		return err
+// 	}
+// 	client.setTicket(tickets, priv)
+// 	return nil
+// }
 
-func (client *Client) getTickets() ([]string, crypto.PrivKey, error) {
-	t := time.Now()
-	resp, err := client.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Tickets", &types.ReqNil{})
-	if err != nil {
-		return nil, nil, err
-	}
-	plog.Info("getTickets cost", "cost", time.Now().Sub(t))
-	reply := resp.(*pt.ReplyWalletPos33Tickets)
-	priv, err := client.privFromBytes(reply.Privkey)
-	if err != nil {
-		return nil, nil, err
-	}
-	return reply.Tickets, priv, nil
-}
+// func (client *Client) getTickets() ([]string, crypto.PrivKey, error) {
+// 	t := time.Now()
+// 	resp, err := client.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Tickets", &types.ReqNil{})
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+// 	plog.Info("getTickets cost", "cost", time.Now().Sub(t))
+// 	reply := resp.(*pt.ReplyWalletPos33Tickets)
+// 	priv, err := client.privFromBytes(reply.Privkey)
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+// 	return reply.Tickets, priv, nil
+// }
 
 // AddBlock notice driver a new block incoming
 func (c *Client) AddBlock(b *types.Block) error {
-	c.updateAllCount(b.Height)
-	c.flushTicket()
+	c.updateTicketCount(b.Height)
 	c.n.addBlock(b)
 	return nil
 }
-func (c *Client) updateAllCount(height int64) {
+
+func (c *Client) updateTicketCount(height int64) {
 	c.tmLock.Lock()
 	defer c.tmLock.Unlock()
 	ac := c.getAllCount()
-	c.tcMap[height] = ac
+	c.acMap[height] = ac
+	c.mycount = c.getMyCount()
 	plog.Info("allCount", "count", ac, "height", height)
-	delete(c.tcMap, height-pt.Pos33SortitionSize-1)
+	delete(c.acMap, height-pt.Pos33SortitionSize-1)
+}
+
+func (c *Client) getMyCount() int {
+	t := time.Now()
+	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Count", &types.ReqNil{})
+	if err != nil {
+		return 0
+	}
+	w := resp.(*pt.ReplyWalletPos33Count)
+	c.mycount = int(w.Count)
+	c.priv, err = privFromBytes(w.Privkey)
+	if err != nil {
+		return 0
+	}
+	plog.Info("getMyCount cost", "cost", time.Now().Sub(t))
+	return c.mycount
 }
 
 func (c *Client) getAllCount() int {
 	t := time.Now()
-	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33AllPos33TicketCount", &pt.Pos33AllPos33TicketCount{Height: 0})
+	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketCount", &types.ReqNil{})
 	if err != nil {
 		plog.Info("query Pos33AllPos33TicketCount error", "error", err)
 		return 0
 	}
-	tc := int(msg.(*pt.ReplyPos33AllPos33TicketCount).Count)
+	count := int(msg.(*types.Int64).Data)
 	plog.Info("getAllCount cost", "cost", time.Now().Sub(t))
-	return tc
+	return count
 }
 
 // CreateBlock will start run
@@ -233,7 +260,6 @@ func (client *Client) CreateBlock() {
 			return
 		default:
 		}
-		client.flushTicket()
 		if client.IsClosed() {
 			plog.Info("create block stop")
 			break
@@ -243,7 +269,7 @@ func (client *Client) CreateBlock() {
 			time.Sleep(time.Second)
 			continue
 		}
-		if client.getTicketCount() == 0 {
+		if client.myCount() == 0 {
 			plog.Info("createblock.getticketcount = 0")
 			time.Sleep(time.Second)
 			continue
@@ -284,11 +310,11 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count 
 	return ret
 }
 
-func (client *Client) getTicketCount() int {
-	client.tickLock.Lock()
-	defer client.tickLock.Unlock()
-	return len(client.tids)
-}
+// func (client *Client) getTicketCount() int {
+// 	client.tickLock.Lock()
+// 	defer client.tickLock.Unlock()
+// 	return
+// }
 
 // CreateGenesisTx ticket create genesis tx
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
@@ -378,16 +404,15 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 // Query_GetTicketCount ticket query ticket count function
 func (client *Client) Query_GetPos33TicketCount(req *types.ReqNil) (types.Message, error) {
 	var ret types.Int64
-	ret.Data = int64(client.getTicketCount())
+	ret.Data = int64(client.myCount())
 	return &ret, nil
 }
 
 // Query_FlushTicket ticket query flush ticket function
 func (client *Client) Query_FlushPos33Ticket(req *types.ReqNil) (types.Message, error) {
-	err := client.flushTicket()
-	if err != nil {
-		return nil, err
-	}
+	client.tickLock.Lock()
+	defer client.tickLock.Unlock()
+	client.getMyCount()
 	return &types.Reply{IsOk: true, Msg: []byte("OK")}, nil
 }
 

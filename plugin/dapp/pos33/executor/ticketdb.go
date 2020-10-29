@@ -28,35 +28,35 @@ var tlog = log.New("module", "pos33db")
 //var addrSeed = []byte("address seed bytes for public key")
 
 // DB db
-type DB struct {
-	ty.Pos33Ticket
-	prevstatus int32
-}
+// type DB struct {
+// 	ty.Pos33Ticket
+// 	prevstatus int32
+// }
 
-//GetRealPrice 获取真实的价格
-func (t *DB) GetRealPrice(cfg *types.Chain33Config) int64 {
-	if t.GetPrice() == 0 {
-		cfg := ty.GetPos33TicketMinerParam(cfg, cfg.GetFork("ForkChainParamV1"))
-		return cfg.Pos33TicketPrice
-	}
-	return t.GetPrice()
-}
+// //GetRealPrice 获取真实的价格
+// func (t *DB) GetRealPrice(cfg *types.Chain33Config) int64 {
+// 	if t.GetPrice() == 0 {
+// 		cfg := ty.GetPos33TicketMinerParam(cfg, cfg.GetFork("ForkChainParamV1"))
+// 		return cfg.Pos33TicketPrice
+// 	}
+// 	return t.GetPrice()
+// }
 
-// NewDB new instance
-func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, blocktime, height, price int64, isGenesis bool) *DB {
-	t := &DB{}
-	t.TicketId = id
-	t.MinerAddress = minerAddress
-	t.ReturnAddress = returnWallet
-	t.Status = ty.Pos33TicketOpened
-	t.IsGenesis = isGenesis
-	t.prevstatus = ty.Pos33TicketInit
-	//height == 0 的情况下，不去改变 genesis block
-	if cfg.IsFork(height, "ForkChainParamV2") && height > 0 {
-		t.Price = price
-	}
-	return t
-}
+// // NewDB new instance
+// func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, blocktime, height, price int64, isGenesis bool) *DB {
+// 	t := &DB{}
+// 	t.TicketId = id
+// 	t.MinerAddress = minerAddress
+// 	t.ReturnAddress = returnWallet
+// 	t.Status = ty.Pos33TicketOpened
+// 	t.IsGenesis = isGenesis
+// 	t.prevstatus = ty.Pos33TicketInit
+// 	//height == 0 的情况下，不去改变 genesis block
+// 	if cfg.IsFork(height, "ForkChainParamV2") && height > 0 {
+// 		t.Price = price
+// 	}
+// 	return t
+// }
 
 //ticket 的状态变化：
 //1. status == 1 (NewPos33Ticket的情况)
@@ -67,32 +67,30 @@ func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, bloc
 //minerAddress:status:ticketId=ticketId
 
 // GetReceiptLog get receipt
-func (t *DB) GetReceiptLog(typ int32) *types.ReceiptLog {
+func pos33ReceiptLog(typ int32, count int, addr string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = typ
 	r := &ty.ReceiptPos33Ticket{}
-	r.TicketId = t.TicketId
-	r.Status = t.Status
-	r.PrevStatus = t.prevstatus
-	r.Addr = t.MinerAddress
+	r.Addr = addr
+	r.Count = int64(count)
 	log.Log = types.Encode(r)
 	return log
 }
 
-// GetKVSet get kv set
-func (t *DB) GetKVSet() (kvset []*types.KeyValue) {
-	value := types.Encode(&t.Pos33Ticket)
-	kvset = append(kvset, &types.KeyValue{Key: Key(t.TicketId), Value: value})
-	return kvset
-}
+// // GetKVSet get kv set
+// func (t *DB) GetKVSet() (kvset []*types.KeyValue) {
+// 	value := types.Encode(&t.Pos33Ticket)
+// 	kvset = append(kvset, &types.KeyValue{Key: Key(t.TicketId), Value: value})
+// 	return kvset
+// }
 
-// Save save
-func (t *DB) Save(db dbm.KV) {
-	set := t.GetKVSet()
-	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
-	}
-}
+// // Save save
+// func (t *DB) Save(db dbm.KV) {
+// 	set := t.GetKVSet()
+// 	for i := 0; i < len(set); i++ {
+// 		db.Set(set[i].GetKey(), set[i].Value)
+// 	}
+// }
 
 const allCountID = "allcountid"
 
@@ -130,6 +128,44 @@ func NewAction(t *Pos33Ticket, tx *types.Transaction) *Action {
 		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer)), t.GetAPI()}
 }
 
+func getDeposit(db dbm.KV, addr string) (*ty.Pos33DepositMsg, error) {
+	key := Key(addr)
+	value, err := db.Get(key)
+	if err != nil {
+		tlog.Error("getDeposit error", "err", err)
+		return nil, err
+	}
+	var dep ty.Pos33DepositMsg
+	err = types.Decode(value, &dep)
+	if err != nil {
+		tlog.Error("getDeposit error", "err", err)
+		return nil, err
+	}
+	return &dep, nil
+}
+func setDeposit(db dbm.KV, maddr, raddr string, newCount int64, newReward int64) *types.KeyValue {
+	d, err := getDeposit(db, maddr)
+	if err != nil {
+		d = &ty.Pos33DepositMsg{Maddr: maddr, Raddr: raddr, Count: newCount, Reward: newReward}
+	} else {
+		if raddr != "" {
+			d.Raddr = raddr
+		}
+		d.Count += newCount
+		d.Reward += newReward
+	}
+	tlog.Debug("setDeposit", "maddr", maddr, "count", d.Count)
+	return &types.KeyValue{Key: Key(maddr), Value: types.Encode(d)}
+}
+
+func getCount(db dbm.KV, addr string) int {
+	dep, err := getDeposit(db, addr)
+	if err != nil {
+		return 0
+	}
+	return int(dep.Count)
+}
+
 func getAllCount(db dbm.KV) int {
 	key := Key(allCountID)
 	value, err := db.Get(key)
@@ -143,159 +179,147 @@ func getAllCount(db dbm.KV) int {
 	return n
 }
 
-func setNewCount(db dbm.KV, n int) []*types.KeyValue {
-	key := Key(allCountID)
+func setNewCount(db dbm.KV, n int) *types.KeyValue {
 	value := []byte(fmt.Sprintf("%d", getAllCount(db)+n))
-	return []*types.KeyValue{{Key: key, Value: value}}
+	return &types.KeyValue{Key: Key(allCountID), Value: value}
 }
 
 // GenesisInit init genesis
 func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	prefix := fmt.Sprintf("%s-%d-", genesis.MinerAddress[:8], action.height)
-	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
-	for i := 0; i < int(genesis.Count); i++ {
-		id := prefix + fmt.Sprintf("%010d", i)
-		db := NewDB(chain33Cfg, id, genesis.MinerAddress, genesis.ReturnAddress, action.blocktime, action.height, cfg.Pos33TicketPrice, true)
-		//冻结子账户资金
-		receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice)
-		if err != nil {
-			tlog.Error("GenesisInit.Frozen", "addr", genesis.ReturnAddress, "execaddr", action.execaddr)
-			panic(err)
-		}
-		db.Save(action.db)
-		logs = append(logs, db.GetReceiptLog(ty.TyLogNewPos33Ticket))
-		kv = append(kv, db.GetKVSet()...)
-		logs = append(logs, receipt.Logs...)
-		kv = append(kv, receipt.KV...)
+
+	//冻结子账户资金
+	receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice*int64(genesis.Count))
+	if err != nil {
+		tlog.Error("GenesisInit.Frozen", "addr", genesis.ReturnAddress, "execaddr", action.execaddr)
+		panic(err)
 	}
+
 	receipt1, err := action.coinsAccount.ExecIssueCoins(action.execaddr, ty.Pos33BlockReward)
 	if err != nil {
 		tlog.Error("Pos33TicketMiner.ExecIssueCoins fund to autonomy fund", "addr", action.execaddr, "error", err)
 		panic(err)
 	}
-	tlog.Info("GenesisInit", "count", genesis.Count)
-	kv = append(kv, setNewCount(action.db, int(genesis.Count))...)
-	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
+
 	receipt.KV = append(receipt.KV, receipt1.KV...)
 	receipt.Logs = append(receipt.Logs, receipt1.Logs...)
+
+	tlog.Info("GenesisInit", "count", genesis.Count)
+	receipt.KV = append(receipt.KV, setNewCount(action.db, int(genesis.Count)))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, genesis.MinerAddress, genesis.ReturnAddress, int64(genesis.Count), 0))
+	receipt.Logs = append(receipt.Logs, pos33ReceiptLog(ty.TyLogNewPos33Ticket, int(genesis.Count), genesis.MinerAddress))
 	return receipt, nil
 }
 
-func saveBind(db dbm.KV, tbind *ty.Pos33TicketBind) {
-	set := getBindKV(tbind)
-	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
-	}
-}
+// func saveBind(db dbm.KV, tbind *ty.Pos33TicketBind) {
+// 	set := getBindKV(tbind)
+// 	for i := 0; i < len(set); i++ {
+// 		db.Set(set[i].GetKey(), set[i].Value)
+// 	}
+// }
 
-func getBindKV(tbind *ty.Pos33TicketBind) (kvset []*types.KeyValue) {
-	value := types.Encode(tbind)
-	kvset = append(kvset, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: value})
-	return kvset
-}
+// func getBindKV(tbind *ty.Pos33TicketBind) (kvset []*types.KeyValue) {
+// 	value := types.Encode(tbind)
+// 	kvset = append(kvset, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: value})
+// 	return kvset
+// }
 
-func getBindLog(tbind *ty.Pos33TicketBind, old string) *types.ReceiptLog {
-	log := &types.ReceiptLog{}
-	log.Ty = ty.TyLogPos33TicketBind
-	r := &ty.ReceiptPos33TicketBind{}
-	r.ReturnAddress = tbind.ReturnAddress
-	r.OldMinerAddress = old
-	r.NewMinerAddress = tbind.MinerAddress
-	log.Log = types.Encode(r)
-	return log
-}
+// func getBindLog(tbind *ty.Pos33TicketBind, old string) *types.ReceiptLog {
+// 	log := &types.ReceiptLog{}
+// 	log.Ty = ty.TyLogPos33TicketBind
+// 	r := &ty.ReceiptPos33TicketBind{}
+// 	r.ReturnAddress = tbind.ReturnAddress
+// 	r.OldMinerAddress = old
+// 	r.NewMinerAddress = tbind.MinerAddress
+// 	log.Log = types.Encode(r)
+// 	return log
+// }
 
-func (action *Action) getBind(addr string) string {
-	value, err := action.db.Get(BindKey(addr))
-	if err != nil || value == nil {
-		return ""
-	}
-	var bind ty.Pos33TicketBind
-	err = types.Decode(value, &bind)
-	if err != nil {
-		panic(err)
-	}
-	return bind.MinerAddress
-}
+// func (action *Action) getBind(addr string) string {
+// 	value, err := action.db.Get(BindKey(addr))
+// 	if err != nil || value == nil {
+// 		return ""
+// 	}
+// 	var bind ty.Pos33TicketBind
+// 	err = types.Decode(value, &bind)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return bind.MinerAddress
+// }
 
-//Pos33TicketBind 授权某个地址进行挖矿
-func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt, error) {
-	//todo: query address is a minered address
-	if action.fromaddr != tbind.ReturnAddress {
-		return nil, types.ErrFromAddr
-	}
-	//"" 表示设置为空
-	if len(tbind.MinerAddress) > 0 {
-		if err := address.CheckAddress(tbind.MinerAddress); err != nil {
-			return nil, err
-		}
-	}
-	var logs []*types.ReceiptLog
-	var kvs []*types.KeyValue
-	oldbind := action.getBind(tbind.ReturnAddress)
-	log := getBindLog(tbind, oldbind)
-	logs = append(logs, log)
-	saveBind(action.db, tbind)
-	kv := getBindKV(tbind)
-	kvs = append(kvs, kv...)
-	receipt := &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}
-	return receipt, nil
-}
+// //Pos33TicketBind 授权某个地址进行挖矿
+// func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt, error) {
+// 	//todo: query address is a minered address
+// 	if action.fromaddr != tbind.ReturnAddress {
+// 		return nil, types.ErrFromAddr
+// 	}
+// 	//"" 表示设置为空
+// 	if len(tbind.MinerAddress) > 0 {
+// 		if err := address.CheckAddress(tbind.MinerAddress); err != nil {
+// 			return nil, err
+// 		}
+// 	}
+// 	var logs []*types.ReceiptLog
+// 	var kvs []*types.KeyValue
+// 	oldbind := action.getBind(tbind.ReturnAddress)
+// 	log := getBindLog(tbind, oldbind)
+// 	logs = append(logs, log)
+// 	saveBind(action.db, tbind)
+// 	kv := getBindKV(tbind)
+// 	kvs = append(kvs, kv...)
+// 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}
+// 	return receipt, nil
+// }
 
 // Pos33TicketOpen ticket open
 func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt, error) {
+	// if action.fromaddr != topen.ReturnAddress {
+	// 	mineraddr := action.getBind(topen.ReturnAddress)
+	// 	if mineraddr != action.fromaddr {
+	// 		return nil, ty.ErrMinerNotPermit
+	// 	}
+	// 	if topen.MinerAddress != mineraddr {
+	// 		return nil, ty.ErrMinerAddr
+	// 	}
+	// }
+
 	chain33Cfg := action.api.GetConfig()
-	prefix := fmt.Sprintf("%s-%d-", topen.MinerAddress[:8], action.height)
-	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
-	//addr from
-	if action.fromaddr != topen.ReturnAddress {
-		mineraddr := action.getBind(topen.ReturnAddress)
-		if mineraddr != action.fromaddr {
-			return nil, ty.ErrMinerNotPermit
-		}
-		if topen.MinerAddress != mineraddr {
-			return nil, ty.ErrMinerAddr
-		}
-	}
-	//action.fromaddr == topen.ReturnAddress or mineraddr == action.fromaddr
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
-	for i := 0; i < int(topen.Count); i++ {
-		id := prefix + fmt.Sprintf("%010d", i)
-		t := NewDB(chain33Cfg, id, topen.MinerAddress, topen.ReturnAddress, action.blocktime, action.height, cfg.Pos33TicketPrice, false)
-		//冻结子账户资金
-		receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice)
-		if err != nil {
-			tlog.Error("Pos33TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr, "n", topen.Count)
-			return nil, err
-		}
-		t.Save(action.db)
-		logs = append(logs, t.GetReceiptLog(ty.TyLogNewPos33Ticket))
-		kv = append(kv, t.GetKVSet()...)
-		logs = append(logs, receipt.Logs...)
-		kv = append(kv, receipt.KV...)
+	//冻结子账户资金
+	receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice*int64(topen.Count))
+	if err != nil {
+		tlog.Error("Pos33TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr, "n", topen.Count)
+		return nil, err
 	}
+
 	tlog.Info("@@@@@@@ pos33.ticket open", "ntid", topen.Count, "height", action.height)
-	kv = append(kv, setNewCount(action.db, int(topen.Count))...)
-	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
+	receipt.KV = append(receipt.KV, setNewCount(action.db, int(topen.Count)))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, topen.MinerAddress, topen.ReturnAddress, int64(topen.Count), 0))
+	receipt.Logs = append(receipt.Logs, pos33ReceiptLog(ty.TyLogNewPos33Ticket, int(topen.Count), topen.MinerAddress))
 	return receipt, nil
 }
 
-func readPos33Ticket(db dbm.KV, id string) (*ty.Pos33Ticket, error) {
-	data, err := db.Get(Key(id))
-	if err != nil {
-		return nil, err
+// func readPos33Ticket(db dbm.KV, id string) (*ty.Pos33Ticket, error) {
+// 	data, err := db.Get(Key(id))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	var ticket ty.Pos33Ticket
+// 	//decode
+// 	err = types.Decode(data, &ticket)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &ticket, nil
+// }
+
+func saddr(sig *types.Signature) string {
+	if sig == nil {
+		return ""
 	}
-	var ticket ty.Pos33Ticket
-	//decode
-	err = types.Decode(data, &ticket)
-	if err != nil {
-		return nil, err
-	}
-	return &ticket, nil
+	return address.PubKeyToAddress(sig.Pubkey).String()
 }
 
 // Pos33TicketMiner ticket miner
@@ -326,61 +350,31 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 	// reward voters
 	for _, v := range miner.Votes {
-		r := v.Sort
-		tid := r.SortHash.Tid
-		t, err := readPos33Ticket(action.db, tid)
+		maddr := saddr(v.Sig)
+		receipt, err := action.coinsAccount.ExecDeposit(maddr, action.execaddr, ty.Pos33VoteReward)
 		if err != nil {
+			tlog.Error("Pos33TicketMiner.ExecDeposit error", "voter", maddr, "execaddr", action.execaddr)
 			return nil, err
 		}
 
-		// if closed, not reward
-		if t.Status == ty.Pos33TicketClosed {
-			continue
-		}
-
-		receipt, err := action.coinsAccount.ExecDeposit(t.MinerAddress, action.execaddr, ty.Pos33VoteReward)
-		if err != nil {
-			tlog.Error("Pos33TicketMiner.ExecDeposit error", "voter", t.MinerAddress, "execaddr", action.execaddr)
-			return nil, err
-		}
-
-		t.MinerValue += ty.Pos33VoteReward
-		prevStatus := t.Status
-		db := &DB{*t, prevStatus}
-		db.Save(action.db)
-		logs = append(logs, db.GetReceiptLog(ty.TyLogVoterPos33Ticket))
-		kvs = append(kvs, db.GetKVSet()...)
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
+		kvs = append(kvs, setDeposit(action.db, maddr, "", 0, ty.Pos33VoteReward))
 	}
 
 	// bp reward
 	bpReward := ty.Pos33BpReward * int64(sumw)
 	if bpReward > 0 {
-		tid := miner.Sort.SortHash.Tid
-		t, err := readPos33Ticket(action.db, tid)
+		receipt, err := action.coinsAccount.ExecDeposit(action.fromaddr, action.execaddr, bpReward)
 		if err != nil {
+			tlog.Error("Pos33TicketMiner.ExecDeposit error", "error", err, "bp", action.fromaddr, "value", bpReward)
 			return nil, err
 		}
 
-		// reward if only opened
-		if t.Status == ty.Pos33TicketOpened {
-			receipt, err := action.coinsAccount.ExecDeposit(t.MinerAddress, action.execaddr, bpReward)
-			if err != nil {
-				tlog.Error("Pos33TicketMiner.ExecDeposit error", "error", err, "bp", t.MinerAddress, "value", bpReward)
-				return nil, err
-			}
-
-			tlog.Info("bp rerward", "height", action.height, "tid", t.TicketId, "reward", bpReward)
-			t.MinerValue += bpReward
-			prevStatus := t.Status
-			db := &DB{*t, prevStatus}
-			db.Save(action.db)
-			logs = append(logs, db.GetReceiptLog(ty.TyLogMinerPos33Ticket))
-			kvs = append(kvs, db.GetKVSet()...)
-			logs = append(logs, receipt.Logs...)
-			kvs = append(kvs, receipt.KV...)
-		}
+		tlog.Info("bp rerward", "height", action.height, "reward", bpReward)
+		logs = append(logs, receipt.Logs...)
+		kvs = append(kvs, receipt.KV...)
+		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, ty.Pos33VoteReward))
 	}
 
 	// fund reward
@@ -393,50 +387,26 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 // Pos33TicketClose close tick
 func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	var dbs []*DB
-	for i := 0; i < len(tclose.TicketId); i++ {
-		ticket, err := readPos33Ticket(action.db, tclose.TicketId[i])
-		if err != nil {
-			return nil, err
-		}
-		if ticket.Status != ty.Pos33TicketOpened {
-			tlog.Debug("ticket is NOT opened", "id", ticket.GetTicketId(), "status", ticket.GetStatus())
-			//return nil, ty.ErrPos33TicketClosed
-			continue
-		}
-		//check from address
-		if action.fromaddr != ticket.MinerAddress && action.fromaddr != ticket.ReturnAddress {
-			return nil, types.ErrFromAddr
-		}
-		prevstatus := ticket.Status
-		ticket.Status = ty.Pos33TicketClosed
-		ticket.CloseHeight = action.height
-		db := &DB{*ticket, prevstatus}
-		dbs = append(dbs, db)
+	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
+	price := cfg.Pos33TicketPrice
+	d, err := getDeposit(action.db, action.fromaddr)
+	if err != nil {
+		return nil, err
 	}
-	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
-	for i := 0; i < len(dbs); i++ {
-		db := dbs[i]
-		retValue := db.GetRealPrice(chain33Cfg) //  + db.MinerValue
-		receipt1, err := action.coinsAccount.ExecActive(db.ReturnAddress, action.execaddr, retValue)
-		if err != nil {
-			tlog.Error("Pos33TicketClose.ExecActive user", "addr", db.ReturnAddress, "execaddr", action.execaddr, "value", retValue)
-			return nil, err
-		}
-		tlog.Info("close pos33.ticket", "tid", db.TicketId, "height", action.height, "activeValue", retValue)
-		logs = append(logs, db.GetReceiptLog(ty.TyLogClosePos33Ticket))
-		kv = append(kv, db.GetKVSet()...)
-		logs = append(logs, receipt1.Logs...)
-		kv = append(kv, receipt1.KV...)
-		db.Save(action.db)
+
+	count := int(tclose.Count)
+	receipt, err := action.coinsAccount.ExecActive(d.Raddr, action.execaddr, price*int64(count))
+	if err != nil {
+		tlog.Error("Pos33TicketClose.ExecActive user", "addr", d.Raddr, "execaddr", action.execaddr, "value", price)
+		return nil, err
 	}
-	tlog.Info("@@@@@@@ pos33.ticket close", "ntid", len(dbs), "height", action.height)
-	kv = append(kv, setNewCount(action.db, int(-len(dbs)))...)
-	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
+	tlog.Info("@@@@@@@ pos33.ticket close", "count", count, "height", action.height)
+	receipt.KV = append(receipt.KV, setNewCount(action.db, count))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, "", int64(-count), 0))
 	return receipt, nil
 }
 
+/*
 // List list db
 func List(db dbm.Lister, db2 dbm.KV, tlist *ty.Pos33TicketList) (types.Message, error) {
 	values, err := db.List(calcPos33TicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
@@ -467,3 +437,4 @@ func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos) (types.Message, error) {
 	}
 	return &ty.ReplyPos33TicketList{Tickets: tickets}, nil
 }
+*/

@@ -6,9 +6,9 @@ package executor
 
 import (
 	"github.com/33cn/chain33/types"
-	pty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
+/*
 // Query_Pos33TicketInfos query tick info
 func (ticket *Pos33Ticket) Query_Pos33TicketInfos(param *pty.Pos33TicketInfos) (types.Message, error) {
 	return Infos(ticket.GetStateDB(), param)
@@ -50,9 +50,24 @@ func (ticket *Pos33Ticket) Query_MinerSourceList(param *types.ReqString) (types.
 // 	return ticket.GetRandNum(param.Hash, param.BlockNum)
 // }
 
-// Query_Pos33AllPos33TicketCount query all ticket count
-func (ticket *Pos33Ticket) Query_Pos33AllPos33TicketCount(param *pty.Pos33AllPos33TicketCount) (types.Message, error) {
-	// count, _ := ticket.getAllPos33TicketCount()
+*/
+// Query_AllPos33TicketCount query all ticket count
+func (ticket *Pos33Ticket) Query_AllPos33TicketCount(*types.ReqNil) (types.Message, error) {
 	count := getAllCount(ticket.GetStateDB())
-	return &pty.ReplyPos33AllPos33TicketCount{Count: int64(count)}, nil
+	return &types.Int64{Data: int64(count)}, nil
+}
+
+// Query_Pos33TicketCount query tick info
+func (ticket *Pos33Ticket) Query_Pos33TicketCount(param *types.ReqAddr) (types.Message, error) {
+	count := getCount(ticket.GetStateDB(), param.Addr)
+	return &types.Int64{Data: int64(count)}, nil
+}
+
+// Query_Pos33Deposit query tick info
+func (ticket *Pos33Ticket) Query_Pos33Deposit(param *types.ReqAddr) (types.Message, error) {
+	d, err := getDeposit(ticket.GetStateDB(), param.Addr)
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
 }
