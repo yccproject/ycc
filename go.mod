@@ -52,4 +52,4 @@ require (
 	mvdan.cc/sh v2.6.4+incompatible // indirect
 )
 
-replace github.com/33cn/chain33 => github.com/libangzhu/chain33 v0.0.0-20201028111821-d239500d535f
+replace github.com/33cn/chain33 => github.com/libangzhu/chain33 v0.0.0-20201029085211-de87c12a7146
