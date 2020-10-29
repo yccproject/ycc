@@ -28,12 +28,6 @@ func (t *Pos33Ticket) Exec_Topen(payload *ty.Pos33TicketOpen, tx *types.Transact
 	return actiondb.Pos33TicketOpen(payload)
 }
 
-// Exec_Tbind exec bind
-// func (t *Pos33Ticket) Exec_Tbind(payload *ty.Pos33TicketBind, tx *types.Transaction, index int) (*types.Receipt, error) {
-// 	actiondb := NewAction(t, tx)
-// 	return actiondb.Pos33TicketBind(payload)
-// }
-
 // Exec_Tclose exec close
 func (t *Pos33Ticket) Exec_Tclose(payload *ty.Pos33TicketClose, tx *types.Transaction, index int) (*types.Receipt, error) {
 	actiondb := NewAction(t, tx)
