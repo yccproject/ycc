@@ -4,6 +4,7 @@
 
 package wallet
 
+/*
 import (
 	"encoding/hex"
 	"math/rand"
@@ -491,7 +492,7 @@ ForkEnableParaRegExec=0
 ForkCacheDriver=0
 ForkTicketFundAddrV1=-1 #fork6.3
 #主链和平行链都使用同一个fork高度
-ForkRootHash=0 
+ForkRootHash=0
 
 [fork.sub.pos33]
 Enable=0
@@ -630,3 +631,4 @@ password=""
 namespace=""
 
 `
+*/

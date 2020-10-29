@@ -24,48 +24,6 @@ import (
 
 var tlog = log.New("module", "pos33db")
 
-//var genesisKey = []byte("mavl-acc-genesis")
-//var addrSeed = []byte("address seed bytes for public key")
-
-// DB db
-// type DB struct {
-// 	ty.Pos33Ticket
-// 	prevstatus int32
-// }
-
-// //GetRealPrice 获取真实的价格
-// func (t *DB) GetRealPrice(cfg *types.Chain33Config) int64 {
-// 	if t.GetPrice() == 0 {
-// 		cfg := ty.GetPos33TicketMinerParam(cfg, cfg.GetFork("ForkChainParamV1"))
-// 		return cfg.Pos33TicketPrice
-// 	}
-// 	return t.GetPrice()
-// }
-
-// // NewDB new instance
-// func NewDB(cfg *types.Chain33Config, id, minerAddress, returnWallet string, blocktime, height, price int64, isGenesis bool) *DB {
-// 	t := &DB{}
-// 	t.TicketId = id
-// 	t.MinerAddress = minerAddress
-// 	t.ReturnAddress = returnWallet
-// 	t.Status = ty.Pos33TicketOpened
-// 	t.IsGenesis = isGenesis
-// 	t.prevstatus = ty.Pos33TicketInit
-// 	//height == 0 的情况下，不去改变 genesis block
-// 	if cfg.IsFork(height, "ForkChainParamV2") && height > 0 {
-// 		t.Price = price
-// 	}
-// 	return t
-// }
-
-//ticket 的状态变化：
-//1. status == 1 (NewPos33Ticket的情况)
-//3. status == 3 (Close的情况)
-
-//add prevStatus:  便于回退状态，以及删除原来状态
-//list 保存的方法:
-//minerAddress:status:ticketId=ticketId
-
 // GetReceiptLog get receipt
 func pos33ReceiptLog(typ int32, count int, addr string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
@@ -76,21 +34,6 @@ func pos33ReceiptLog(typ int32, count int, addr string) *types.ReceiptLog {
 	log.Log = types.Encode(r)
 	return log
 }
-
-// // GetKVSet get kv set
-// func (t *DB) GetKVSet() (kvset []*types.KeyValue) {
-// 	value := types.Encode(&t.Pos33Ticket)
-// 	kvset = append(kvset, &types.KeyValue{Key: Key(t.TicketId), Value: value})
-// 	return kvset
-// }
-
-// // Save save
-// func (t *DB) Save(db dbm.KV) {
-// 	set := t.GetKVSet()
-// 	for i := 0; i < len(set); i++ {
-// 		db.Set(set[i].GetKey(), set[i].Value)
-// 	}
-// }
 
 const allCountID = "allcountid"
 
@@ -212,79 +155,8 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 	return receipt, nil
 }
 
-// func saveBind(db dbm.KV, tbind *ty.Pos33TicketBind) {
-// 	set := getBindKV(tbind)
-// 	for i := 0; i < len(set); i++ {
-// 		db.Set(set[i].GetKey(), set[i].Value)
-// 	}
-// }
-
-// func getBindKV(tbind *ty.Pos33TicketBind) (kvset []*types.KeyValue) {
-// 	value := types.Encode(tbind)
-// 	kvset = append(kvset, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: value})
-// 	return kvset
-// }
-
-// func getBindLog(tbind *ty.Pos33TicketBind, old string) *types.ReceiptLog {
-// 	log := &types.ReceiptLog{}
-// 	log.Ty = ty.TyLogPos33TicketBind
-// 	r := &ty.ReceiptPos33TicketBind{}
-// 	r.ReturnAddress = tbind.ReturnAddress
-// 	r.OldMinerAddress = old
-// 	r.NewMinerAddress = tbind.MinerAddress
-// 	log.Log = types.Encode(r)
-// 	return log
-// }
-
-// func (action *Action) getBind(addr string) string {
-// 	value, err := action.db.Get(BindKey(addr))
-// 	if err != nil || value == nil {
-// 		return ""
-// 	}
-// 	var bind ty.Pos33TicketBind
-// 	err = types.Decode(value, &bind)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return bind.MinerAddress
-// }
-
-// //Pos33TicketBind 授权某个地址进行挖矿
-// func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt, error) {
-// 	//todo: query address is a minered address
-// 	if action.fromaddr != tbind.ReturnAddress {
-// 		return nil, types.ErrFromAddr
-// 	}
-// 	//"" 表示设置为空
-// 	if len(tbind.MinerAddress) > 0 {
-// 		if err := address.CheckAddress(tbind.MinerAddress); err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	var logs []*types.ReceiptLog
-// 	var kvs []*types.KeyValue
-// 	oldbind := action.getBind(tbind.ReturnAddress)
-// 	log := getBindLog(tbind, oldbind)
-// 	logs = append(logs, log)
-// 	saveBind(action.db, tbind)
-// 	kv := getBindKV(tbind)
-// 	kvs = append(kvs, kv...)
-// 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}
-// 	return receipt, nil
-// }
-
 // Pos33TicketOpen ticket open
 func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt, error) {
-	// if action.fromaddr != topen.ReturnAddress {
-	// 	mineraddr := action.getBind(topen.ReturnAddress)
-	// 	if mineraddr != action.fromaddr {
-	// 		return nil, ty.ErrMinerNotPermit
-	// 	}
-	// 	if topen.MinerAddress != mineraddr {
-	// 		return nil, ty.ErrMinerAddr
-	// 	}
-	// }
-
 	chain33Cfg := action.api.GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	//冻结子账户资金
@@ -300,20 +172,6 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 	receipt.Logs = append(receipt.Logs, pos33ReceiptLog(ty.TyLogNewPos33Ticket, int(topen.Count), topen.MinerAddress))
 	return receipt, nil
 }
-
-// func readPos33Ticket(db dbm.KV, id string) (*ty.Pos33Ticket, error) {
-// 	data, err := db.Get(Key(id))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var ticket ty.Pos33Ticket
-// 	//decode
-// 	err = types.Decode(data, &ticket)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &ticket, nil
-// }
 
 func saddr(sig *types.Signature) string {
 	if sig == nil {
@@ -405,36 +263,3 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, "", int64(-count), 0))
 	return receipt, nil
 }
-
-/*
-// List list db
-func List(db dbm.Lister, db2 dbm.KV, tlist *ty.Pos33TicketList) (types.Message, error) {
-	values, err := db.List(calcPos33TicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
-	if err != nil {
-		return nil, err
-	}
-	if len(values) == 0 {
-		return &ty.ReplyPos33TicketList{}, nil
-	}
-	var ids ty.Pos33TicketInfos
-	for i := 0; i < len(values); i++ {
-		ids.TicketIds = append(ids.TicketIds, string(values[i]))
-	}
-	return &ids, nil
-}
-
-// Infos info
-func Infos(db dbm.KV, tinfos *ty.Pos33TicketInfos) (types.Message, error) {
-	var tickets []*ty.Pos33Ticket
-	for i := 0; i < len(tinfos.TicketIds); i++ {
-		id := tinfos.TicketIds[i]
-		ticket, err := readPos33Ticket(db, id)
-		//数据库可能会不一致，读的过程中可能会有写
-		if err != nil {
-			continue
-		}
-		tickets = append(tickets, ticket)
-	}
-	return &ty.ReplyPos33TicketList{Tickets: tickets}, nil
-}
-*/
