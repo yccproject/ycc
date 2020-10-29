@@ -151,12 +151,13 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	round := m.Proof.Input.Round
 	diff := calcDiff(step, int(round), allw)
 
-	d, err := n.queryDeposit(address.PubKeyToAddr(m.Proof.Pubkey))
+	addr := address.PubKeyToAddr(m.Proof.Pubkey)
+	d, err := n.queryDeposit(addr)
 	if err != nil {
 		return err
 	}
-	if d.Maddr != address.PubKeyToAddr(m.Proof.Pubkey) {
-		return fmt.Errorf("ticket %d mineraddress NOT match proof public", m.SortHash.Index)
+	if d.Count < m.SortHash.Index {
+		return fmt.Errorf("sort index %d > %d your count", m.SortHash.Index, d.Count)
 	}
 
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Step: int32(step)}
