@@ -821,6 +821,7 @@ func (n *node) runLoop() {
 			plog.Info("handlePos33Msg cost", "cost", time.Now().Sub(t))
 		case <-syncTick.C:
 			isSync = n.IsCaughtUp()
+		default:
 		}
 		if !isSync {
 			time.Sleep(time.Millisecond * 300)
