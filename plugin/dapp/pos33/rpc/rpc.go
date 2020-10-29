@@ -143,7 +143,7 @@ func (c *Jrpc) SetAutoMining(in *ty.Pos33MinerFlag, result *rpctypes.Reply) erro
 }
 
 // GetPos33TicketList get ticket list info
-func (g *channelClient) GetPos33TicketList(ctx context.Context, in *types.ReqNil) ([]*ty.Pos33Ticket, error) {
+func (g *channelClient) GetPos33TicketList(ctx context.Context, in *types.ReqNil) ([]string, error) {
 	inn := *in
 	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "WalletGetPos33Tickets", &inn)
 	if err != nil {

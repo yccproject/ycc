@@ -450,8 +450,7 @@ func List(db dbm.Lister, db2 dbm.KV, tlist *ty.Pos33TicketList) (types.Message, 
 	for i := 0; i < len(values); i++ {
 		ids.TicketIds = append(ids.TicketIds, string(values[i]))
 	}
-	tlog.Info("GetTicketList", "len", len(values))
-	return Infos(db2, &ids)
+	return &ids, nil
 }
 
 // Infos info

@@ -65,7 +65,5 @@ func (t *Pos33Ticket) ExecLocal_Miner(payload *ty.Pos33TicketMiner, tx *types.Tr
 	if err != nil {
 		return nil, err
 	}
-	// kv := t.chechAndUpdateTicketCount()
-	// dbSet.KV = append(dbSet.KV, kv...)
 	return dbSet, nil
 }

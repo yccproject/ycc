@@ -14,6 +14,7 @@ require (
 	github.com/dchest/blake256 v1.0.0 // indirect
 	github.com/decred/base58 v1.0.2 // indirect
 	github.com/dgraph-io/badger v1.6.1 // indirect
+	github.com/ethereum/go-ethereum v1.9.9
 	github.com/golang/protobuf v1.3.4
 	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/google/go-cmp v0.5.0 // indirect
