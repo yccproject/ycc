@@ -64,7 +64,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	plog.Info("subcfg", "cfg", string(sub))
+	plog.Debug("subcfg", "cfg", string(sub))
 
 	n := newNode(&subcfg)
 	client := &Client{BaseClient: c, n: n, conf: &subcfg, acMap: make(map[int64]int), done: make(chan struct{})}
@@ -77,7 +77,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 func (client *Client) Close() {
 	client.done <- struct{}{}
 	client.BaseClient.Close()
-	plog.Info("pos33 consensus closed")
+	plog.Debug("pos33 consensus closed")
 }
 
 // ProcEvent do nothing?
@@ -166,7 +166,7 @@ func (c *Client) updateTicketCount(height int64) {
 	ac := c.getAllCount()
 	c.acMap[height] = ac
 	c.mycount = c.getMyCount()
-	plog.Info("allCount", "count", ac, "height", height)
+	plog.Debug("allCount", "count", ac, "height", height)
 	delete(c.acMap, height-pt.Pos33SortitionSize-1)
 }
 
@@ -191,7 +191,7 @@ func (c *Client) getAllCount() int {
 	defer c.mlock.Unlock()
 	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketCount", &types.ReqNil{})
 	if err != nil {
-		plog.Info("query Pos33AllPos33TicketCount error", "error", err)
+		plog.Debug("query Pos33AllPos33TicketCount error", "error", err)
 		return 0
 	}
 	count := int(msg.(*types.Int64).Data)
@@ -203,21 +203,21 @@ func (client *Client) CreateBlock() {
 	for {
 		select {
 		case <-client.done:
-			plog.Info("pos33 client done!!!")
+			plog.Debug("pos33 client done!!!")
 			return
 		default:
 		}
 		if client.IsClosed() {
-			plog.Info("create block stop")
+			plog.Debug("create block stop")
 			break
 		}
 		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.ForceMining) {
-			plog.Info("createblock.ismining is disable or client is caughtup is false")
+			plog.Debug("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue
 		}
 		if client.myCount() == 0 {
-			plog.Info("createblock.getticketcount = 0")
+			plog.Debug("createblock.myCount is 0")
 			time.Sleep(time.Second)
 			continue
 		}
@@ -253,7 +253,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count 
 	gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, Count: count}
 	tx3.Payload = types.Encode(&pt.Pos33TicketAction{Value: gticket, Ty: pt.Pos33TicketActionGenesis})
 	ret = append(ret, &tx3)
-	plog.Info("genesis miner", "execaddr", tx3.To)
+	plog.Debug("genesis miner", "execaddr", tx3.To)
 	return ret
 }
 

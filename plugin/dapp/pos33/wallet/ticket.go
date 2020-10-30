@@ -58,7 +58,7 @@ type subConfig struct {
 func (policy *ticketPolicy) initMingPos33TicketTicker(wait time.Duration) {
 	policy.mtx.Lock()
 	defer policy.mtx.Unlock()
-	bizlog.Info("initMingPos33TicketTicker", "Duration", wait)
+	bizlog.Debug("initMingPos33TicketTicker", "Duration", wait)
 	policy.miningPos33TicketTicker = time.NewTicker(wait)
 }
 
@@ -280,7 +280,7 @@ func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 
 // FlushPos33Ticket flush ticket
 func FlushPos33Ticket(api client.QueueProtocolAPI) {
-	bizlog.Info("wallet FLUSH TICKET")
+	bizlog.Debug("wallet FLUSH TICKET")
 	api.Notify("consensus", types.EventConsensusQuery, &types.ChainExecutor{
 		Driver:   "pos33",
 		FuncName: "FlushPos33Ticket",
@@ -302,7 +302,7 @@ func (policy *ticketPolicy) checkNeedFlushPos33Ticket(tx *types.Transaction, rec
 }
 
 func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, count int) (*types.ReplyHashes, error) {
-	bizlog.Info("closePos33Tickets", "real count", count)
+	bizlog.Debug("closePos33Tickets", "real count", count)
 	ta := &ty.Pos33TicketAction{}
 	tclose := &ty.Pos33TicketClose{Count: int32(count)}
 	ta.Value = &ty.Pos33TicketAction_Tclose{Tclose: tclose}
@@ -367,7 +367,7 @@ func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]b
 		return nil, err
 	}
 	if acc.Balance > 0 {
-		bizlog.Info("withdraw", "amount", acc.Balance)
+		bizlog.Debug("withdraw", "amount", acc.Balance)
 		hash, err := operater.SendToAddress(priv, address.ExecAddress(ty.Pos33TicketX), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
 			return nil, err
@@ -378,10 +378,10 @@ func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]b
 }
 
 func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
-	bizlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
+	bizlog.Debug("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
 	if count > ty.Pos33TicketCountOpenOnce {
 		count = ty.Pos33TicketCountOpenOnce
-		bizlog.Info("openticket", "Update count", "wait for another open")
+		bizlog.Debug("openticket", "Update count", "wait for another open")
 	}
 
 	ta := &ty.Pos33TicketAction{}
@@ -417,7 +417,7 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 			//必须大于0，才需要转移币
 			var hash *types.ReplyHash
 			if amount > 0 {
-				bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
+				bizlog.Debug("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
 				hash, err = policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
 
 				if err != nil {
@@ -456,7 +456,7 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 	if hash != nil {
 		hashes = append(hashes, hash)
 	}
-	bizlog.Info("ticketPolicy buyPos33Ticket", "Address", minerAddr, "txhash", hex.EncodeToString(hash), "n", n)
+	bizlog.Debug("ticketPolicy buyPos33Ticket", "Address", minerAddr, "txhash", hex.EncodeToString(hash), "n", n)
 	return hashes, count, nil
 }
 
@@ -524,8 +524,8 @@ func (policy *ticketPolicy) withdrawFromPos33Ticket() (hashes [][]byte, err erro
 //2. 查找ticket 可取的余额
 //3. 取出ticket 里面的钱
 func (policy *ticketPolicy) autoMining() {
-	bizlog.Info("Begin auto mining")
-	defer bizlog.Info("End auto mining")
+	bizlog.Debug("Begin auto mining")
+	defer bizlog.Debug("End auto mining")
 	operater := policy.getWalletOperate()
 	defer operater.GetWaitGroup().Done()
 
@@ -535,7 +535,7 @@ func (policy *ticketPolicy) autoMining() {
 	if q != nil {
 		cons := q.GStr("name")
 		if strings.Compare(strings.TrimSpace(cons), ty.Pos33TicketX) != 0 {
-			bizlog.Info("consensus is not ticket, exit mining")
+			bizlog.Debug("consensus is not ticket, exit mining")
 			return
 		}
 	}
@@ -546,7 +546,7 @@ func (policy *ticketPolicy) autoMining() {
 		select {
 		case <-miningPos33TicketTicker.C:
 			if policy.cfg.Minerdisable {
-				bizlog.Info("autoMining, GetMinerdisable() is true, exit autoMining()")
+				bizlog.Debug("autoMining, GetMinerdisable() is true, exit autoMining()")
 				break
 			}
 			if !(operater.IsCaughtUp() || policy.cfg.ForceMining) {
@@ -588,7 +588,7 @@ func (policy *ticketPolicy) autoMining() {
 					operater.WaitTxs(hashes)
 				}
 			}
-			bizlog.Info("END miningPos33Ticket")
+			bizlog.Debug("END miningPos33Ticket")
 		case <-operater.GetWalletDone():
 			return
 		}
