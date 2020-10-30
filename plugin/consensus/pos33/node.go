@@ -176,7 +176,7 @@ func (n *node) makeBlock(height int64, round int, minHash string, vs []*pt.Pos33
 }
 
 func (n *node) addBlock(b *types.Block) {
-	if !n.IsCaughtUp() {
+	if !n.prepareOK(b.Height) {
 		return
 	}
 
@@ -232,12 +232,16 @@ func saddr(sig *types.Signature) string {
 	return address.PubKeyToAddress(sig.Pubkey).String()
 }
 
+func (n *node) prepareOK(height int64) bool {
+	return n.IsCaughtUp() && n.allCount(height) > 0 && n.myCount() > 0
+}
+
 func (n *node) checkBlock(b, pb *types.Block) error {
 	plog.Debug("checkBlock", "height", b.Height, "pbheight", pb.Height)
 	if b.Height <= pb.Height {
 		return fmt.Errorf("check block height error")
 	}
-	if !n.IsCaughtUp() {
+	if !n.prepareOK(b.Height) {
 		return nil
 	}
 	if len(b.Txs) == 0 {
@@ -263,7 +267,7 @@ func (n *node) blockCheck(b *types.Block) error {
 	plog.Info("block check", "height", b.Height, "round", round, "from", b.Txs[0].From()[:16])
 
 	sortHeight := b.Height - pt.Pos33SortitionSize
-	allw := n.allTicketCount(sortHeight)
+	allw := n.allCount(sortHeight)
 	seed, err := n.getSortSeed(sortHeight)
 	if err != nil {
 		return err
@@ -322,7 +326,7 @@ func (n *node) reSortition(height int64, round int) bool {
 		return false
 	}
 	const staps = 2
-	allw := n.allTicketCount(height - pt.Pos33SortitionSize)
+	allw := n.allCount(height - pt.Pos33SortitionSize)
 	for s := 0; s < staps; s++ {
 		if s == 0 && n.conf.OnlyVoter {
 			continue
@@ -355,7 +359,7 @@ func (n *node) firstSortition() {
 	seed := zeroHash[:]
 	const steps = 2
 	round := 0
-	allw := n.allTicketCount(0)
+	allw := n.allCount(0)
 	for s := 0; s < steps; s++ {
 		for i := 0; i < pt.Pos33SortitionSize; i++ {
 			height := int64(i + 1)
@@ -386,7 +390,7 @@ func (n *node) firstSortition() {
 func (n *node) sortition(b *types.Block, round int) {
 	plog.Debug("sortition", "height", b.Height, "round", round)
 	const steps = 2
-	allw := n.allTicketCount(b.Height)
+	allw := n.allCount(b.Height)
 	height := b.Height + pt.Pos33SortitionSize
 	seed, err := getMinerSeed(b)
 	if err != nil {
@@ -514,7 +518,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 		plog.Error("getMinerSeed error", "err", err, "height", height)
 		return
 	}
-	allw := n.allTicketCount(sortHeight)
+	allw := n.allCount(sortHeight)
 
 	for _, vm := range vms.Vs {
 		if !myself {
@@ -665,7 +669,7 @@ func (n *node) checkSorts(height int64, round int) []*pt.Pos33SortMsg {
 	if err != nil {
 		return nil
 	}
-	allw := n.allTicketCount(sortHeight)
+	allw := n.allCount(sortHeight)
 	var rss []*pt.Pos33SortMsg
 	for _, s := range ss {
 		err := n.checkSort(s, seed, allw)

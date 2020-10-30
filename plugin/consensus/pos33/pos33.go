@@ -126,7 +126,7 @@ func (client *Client) myCount() int {
 	return client.mycount
 }
 
-func (client *Client) allTicketCount(height int64) int {
+func (client *Client) allCount(height int64) int {
 	client.mlock.Lock()
 	defer client.mlock.Unlock()
 	if height < 0 {
@@ -163,7 +163,9 @@ func (c *Client) AddBlock(b *types.Block) error {
 }
 
 func (c *Client) updateTicketCount(height int64) {
-	ac := c.getAllCount()
+	c.mlock.Lock()
+	defer c.mlock.Unlock()
+	ac := c.queryAllPos33Count()
 	c.acMap[height] = ac
 	c.mycount = c.getMyCount()
 	plog.Debug("allCount", "count", ac, "height", height)
@@ -186,9 +188,7 @@ func (c *Client) getMyCount() int {
 	return c.mycount
 }
 
-func (c *Client) getAllCount() int {
-	c.mlock.Lock()
-	defer c.mlock.Unlock()
+func (c *Client) queryAllPos33Count() int {
 	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketCount", &types.ReqNil{})
 	if err != nil {
 		plog.Debug("query Pos33AllPos33TicketCount error", "error", err)

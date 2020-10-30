@@ -76,7 +76,9 @@ func getDeposit(db dbm.KV, addr string) (*ty.Pos33DepositMsg, error) {
 	key := Key(addr)
 	value, err := db.Get(key)
 	if err != nil {
-		tlog.Error("getDeposit error", "err", err)
+		if err != types.ErrNotFound {
+			tlog.Error("getDeposit error", "err", err)
+		}
 		return nil, err
 	}
 	var dep ty.Pos33DepositMsg

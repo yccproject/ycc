@@ -41,7 +41,10 @@ func changeDiff(size, round int) int {
 }
 
 func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos33SortMsg {
-	diff := calcDiff(step, round, allw)
+	count := n.myCount()
+	if allw < count {
+		return nil
+	}
 
 	priv := n.getPriv()
 	if priv == nil {
@@ -56,10 +59,10 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
+	diff := calcDiff(step, round, allw)
 	var msgs []*pt.Pos33SortMsg
 	var minHash []byte
 	index := 0
-	count := n.myCount()
 	for i := 0; i < count; i++ {
 		data := fmt.Sprintf("%x+%d", vrfHash, i)
 		hash := hash2([]byte(data))
@@ -200,7 +203,7 @@ func (n *node) bp(height int64, round int) string {
 	if err != nil {
 		return ""
 	}
-	allw := n.allTicketCount(sortHeight)
+	allw := n.allCount(sortHeight)
 	pss := make(map[string]*pt.Pos33SortMsg)
 	for _, s := range n.cps[height][round] {
 		err := n.checkSort(s, seed, allw)
