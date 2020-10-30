@@ -60,7 +60,6 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 	var minHash []byte
 	index := 0
 	count := n.myCount()
-	plog.Info("sortition", "height", height, "round", round, "step", step, "allw", allw, "mycount", count)
 	for i := 0; i < count; i++ {
 		data := fmt.Sprintf("%x+%d", vrfHash, i)
 		hash := hash2([]byte(data))
@@ -86,6 +85,8 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		}
 		msgs = append(msgs, m)
 	}
+
+	plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs))
 
 	if len(msgs) == 0 {
 		return nil
@@ -175,7 +176,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-		plog.Info("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw)
+		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw)
 		return errDiff
 	}
 

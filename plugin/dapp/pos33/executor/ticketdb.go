@@ -148,7 +148,7 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 	receipt.KV = append(receipt.KV, receipt1.KV...)
 	receipt.Logs = append(receipt.Logs, receipt1.Logs...)
 
-	tlog.Info("GenesisInit", "count", genesis.Count)
+	tlog.Info("genesis init", "count", genesis.Count)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, int(genesis.Count)))
 	receipt.KV = append(receipt.KV, setDeposit(action.db, genesis.MinerAddress, genesis.ReturnAddress, int64(genesis.Count), 0))
 	receipt.Logs = append(receipt.Logs, pos33ReceiptLog(ty.TyLogNewPos33Ticket, int(genesis.Count), genesis.MinerAddress))
@@ -166,7 +166,7 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 		return nil, err
 	}
 
-	tlog.Info("@@@@@@@ pos33.ticket open", "ntid", topen.Count, "height", action.height)
+	tlog.Info("new deposit", "count", topen.Count, "height", action.height)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, int(topen.Count)))
 	receipt.KV = append(receipt.KV, setDeposit(action.db, topen.MinerAddress, topen.ReturnAddress, int64(topen.Count), 0))
 	receipt.Logs = append(receipt.Logs, pos33ReceiptLog(ty.TyLogNewPos33Ticket, int(topen.Count), topen.MinerAddress))
@@ -229,15 +229,15 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 			return nil, err
 		}
 
-		tlog.Info("bp rerward", "height", action.height, "reward", bpReward)
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
 		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, ty.Pos33VoteReward))
+		tlog.Info("block rerward", "height", action.height, "reward", bpReward, "from", action.fromaddr[:16], "nv", sumw)
 	}
 
 	// fund reward
 	fundReward := ty.Pos33BlockReward - (ty.Pos33VoteReward+ty.Pos33BpReward)*int64(sumw)
-	tlog.Info("fund rerward", "height", action.height, "reward", fundReward)
+	tlog.Debug("fund rerward", "height", action.height, "reward", fundReward)
 
 	return &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}, nil
 }
@@ -258,7 +258,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 		tlog.Error("Pos33TicketClose.ExecActive user", "addr", d.Raddr, "execaddr", action.execaddr, "value", price)
 		return nil, err
 	}
-	tlog.Info("@@@@@@@ pos33.ticket close", "count", count, "height", action.height)
+	tlog.Info("close deposit", "count", count, "height", action.height)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, count))
 	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, "", int64(-count), 0))
 	return receipt, nil

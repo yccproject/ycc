@@ -32,7 +32,7 @@ type mdnsNotifee struct {
 
 func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	if m.h.Network().Connectedness(pi.ID) != network.Connected {
-		plog.Info("peer mdns found", "pid", pi.ID.String())
+		plog.Debug("peer mdns found", "pid", pi.ID.String())
 		m.h.Connect(m.ctx, pi)
 	}
 }
@@ -66,7 +66,7 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 			plog.Error("bootstrap error", "err", err)
 			return err
 		}
-		plog.Info("@@@@@@@ connect boot peer", "bootpeer", targetAddr.String())
+		plog.Debug("connect boot peer", "bootpeer", targetAddr.String())
 	}
 	return nil
 }
@@ -126,7 +126,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
 	go func() {
 		for range time.NewTicker(time.Minute).C {
 			np := ps.ListPeers(topics[0])
-			plog.Info("@@@@@@@ ", "peers", len(np))
+			plog.Debug("list peers ", "len", len(np), "peers", np)
 			if len(np) < 3 {
 				g.bootstrap(g.bootPeers...)
 			}
@@ -176,7 +176,8 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port, stag string) host.H
 	if err != nil {
 		panic(err)
 	}
-	plog.Info("@@@@@@@ host inited", "host", paddr)
+
+	plog.Info("host inited", "host", paddr)
 
 	// If you want to help other peers to figure out if they are behind
 	// NATs, you can launch the server-side of AutoNAT too (AutoRelay
