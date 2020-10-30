@@ -146,6 +146,9 @@ func calcDiff(step, round, allw int) float64 {
 }
 
 func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33SortMsg) error {
+	if height <= pt.Pos33SortitionSize {
+		return nil
+	}
 	if m == nil || m.Proof == nil || m.SortHash == nil || m.Proof.Input == nil {
 		return fmt.Errorf("verifySort error: sort msg is nil")
 	}
@@ -157,8 +160,12 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	if err != nil {
 		return err
 	}
-	if d.Count < m.SortHash.Index {
-		return fmt.Errorf("sort index %d > %d your count", m.SortHash.Index, d.Count)
+	count := d.Count
+	if d.CloseHeight >= height-pt.Pos33SortitionSize {
+		count = d.PreCount
+	}
+	if count <= m.SortHash.Index {
+		return fmt.Errorf("sort index %d > %d your count, height %d, close-height %d, precount %d", m.SortHash.Index, count, height, d.CloseHeight, d.PreCount)
 	}
 
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Step: int32(step)}

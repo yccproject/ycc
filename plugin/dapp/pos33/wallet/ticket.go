@@ -302,7 +302,11 @@ func (policy *ticketPolicy) checkNeedFlushPos33Ticket(tx *types.Transaction, rec
 }
 
 func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, count int) (*types.ReplyHashes, error) {
-	bizlog.Debug("closePos33Tickets", "real count", count)
+	bizlog.Debug("closePos33Tickets", "count", count)
+	max := 1000
+	if count == 0 || count > max {
+		count = max
+	}
 	ta := &ty.Pos33TicketAction{}
 	tclose := &ty.Pos33TicketClose{Count: int32(count)}
 	ta.Value = &ty.Pos33TicketAction_Tclose{Tclose: tclose}

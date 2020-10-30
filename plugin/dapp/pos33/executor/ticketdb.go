@@ -9,6 +9,7 @@ import (
 
 	//"bytes"
 
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -86,7 +87,7 @@ func getDeposit(db dbm.KV, addr string) (*ty.Pos33DepositMsg, error) {
 	}
 	return &dep, nil
 }
-func setDeposit(db dbm.KV, maddr, raddr string, newCount int64, newReward int64) *types.KeyValue {
+func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int64) *types.KeyValue {
 	d, err := getDeposit(db, maddr)
 	if err != nil {
 		d = &ty.Pos33DepositMsg{Maddr: maddr, Raddr: raddr, Count: newCount, Reward: newReward}
@@ -94,10 +95,14 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount int64, newReward int64)
 		if raddr != "" {
 			d.Raddr = raddr
 		}
+		if newCount < 0 {
+			d.PreCount = d.Count
+			d.CloseHeight = height
+		}
 		d.Count += newCount
 		d.Reward += newReward
 	}
-	tlog.Debug("setDeposit", "maddr", maddr, "count", d.Count)
+	tlog.Debug("setDeposit", "maddr", maddr, "count", d.Count, "precount", d.PreCount, "closeheight", d.CloseHeight, "reward", d.Reward)
 	return &types.KeyValue{Key: Key(maddr), Value: types.Encode(d)}
 }
 
@@ -150,7 +155,7 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 
 	tlog.Info("genesis init", "count", genesis.Count)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, int(genesis.Count)))
-	receipt.KV = append(receipt.KV, setDeposit(action.db, genesis.MinerAddress, genesis.ReturnAddress, int64(genesis.Count), 0))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, genesis.MinerAddress, genesis.ReturnAddress, int64(genesis.Count), 0, 0))
 	receipt.Logs = append(receipt.Logs, pos33ReceiptLog(ty.TyLogNewPos33Ticket, int(genesis.Count), genesis.MinerAddress))
 	return receipt, nil
 }
@@ -168,7 +173,7 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 
 	tlog.Info("new deposit", "count", topen.Count, "height", action.height)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, int(topen.Count)))
-	receipt.KV = append(receipt.KV, setDeposit(action.db, topen.MinerAddress, topen.ReturnAddress, int64(topen.Count), 0))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, topen.MinerAddress, topen.ReturnAddress, int64(topen.Count), 0, action.height))
 	receipt.Logs = append(receipt.Logs, pos33ReceiptLog(ty.TyLogNewPos33Ticket, int(topen.Count), topen.MinerAddress))
 	return receipt, nil
 }
@@ -217,7 +222,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
-		kvs = append(kvs, setDeposit(action.db, maddr, "", 0, ty.Pos33VoteReward))
+		kvs = append(kvs, setDeposit(action.db, maddr, "", 0, ty.Pos33VoteReward, action.height))
 	}
 
 	// bp reward
@@ -231,7 +236,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
-		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, ty.Pos33VoteReward))
+		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, ty.Pos33VoteReward, action.height))
 		tlog.Info("block rerward", "height", action.height, "reward", bpReward, "from", action.fromaddr[:16], "nv", sumw)
 	}
 
@@ -247,19 +252,23 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	chain33Cfg := action.api.GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	price := cfg.Pos33TicketPrice
+
 	d, err := getDeposit(action.db, action.fromaddr)
 	if err != nil {
 		return nil, err
+	}
+	if action.height-d.CloseHeight <= ty.Pos33SortitionSize {
+		return nil, errors.New("close deposit too ofen")
 	}
 
 	count := int(tclose.Count)
 	receipt, err := action.coinsAccount.ExecActive(d.Raddr, action.execaddr, price*int64(count))
 	if err != nil {
-		tlog.Error("Pos33TicketClose.ExecActive user", "addr", d.Raddr, "execaddr", action.execaddr, "value", price)
+		tlog.Error("close deposit error", "addr", d.Raddr, "execaddr", action.execaddr, "value", price*int64(count))
 		return nil, err
 	}
 	tlog.Info("close deposit", "count", count, "height", action.height)
-	receipt.KV = append(receipt.KV, setNewCount(action.db, count))
-	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, "", int64(-count), 0))
+	receipt.KV = append(receipt.KV, setNewCount(action.db, -count))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, "", int64(-count), 0, action.height))
 	return receipt, nil
 }
