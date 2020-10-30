@@ -239,7 +239,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
 		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, ty.Pos33VoteReward, action.height))
-		tlog.Info("block rerward", "height", action.height, "reward", bpReward, "from", action.fromaddr[:16], "nv", sumw)
+		tlog.Info("block reward", "height", action.height, "reward", bpReward, "from", action.fromaddr[:16], "nv", sumw)
 	}
 
 	// fund reward
