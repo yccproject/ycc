@@ -153,35 +153,35 @@ message Pos33TicketList {
   int32 status = 3;
 }
 
-// message Pos33TicketCount { string addr = 1; }
-
-// message ReplyPos33TicketCount { int64 count = 1; }
-
 message ReplyPos33TicketReward {
   int64 voter_reward = 1;
   int64 miner_reward = 2;
 }
 
-message Pos33TicketInfos { repeated string ticketIds = 1; }
+// message Pos33TicketInfos { repeated string ticketIds = 1; }
 
-message ReplyPos33TicketList { repeated Pos33Ticket tickets = 1; }
+// message ReplyPos33TicketList { repeated Pos33Ticket tickets = 1; }
 
 message ReplyWalletPos33Count {
   bytes privkey = 2;
   int64 count = 1;
 }
 
-message ReceiptPos33Ticket {
-  int32 action = 1; // 1 is open, 2 is close
-  string addr = 2;
+message ReceiptPos33Deposit {
+  string addr = 1;
   int64 count = 3;
 }
 
-message ReceiptPos33TicketBind {
-  string oldMinerAddress = 1;
-  string newMinerAddress = 2;
-  string returnAddress = 3;
+message ReceiptPos33Miner {
+  string addr = 1;
+  int64 reward = 3;
 }
+
+// message ReceiptPos33TicketBind {
+//   string oldMinerAddress = 1;
+//   string newMinerAddress = 2;
+//   string returnAddress = 3;
+// }
 
 message ReqBindPos33Miner {
   string bindAddr = 1;
