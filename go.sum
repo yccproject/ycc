@@ -515,6 +515,16 @@ github.com/libangzhu/chain33 v0.0.0-20201029082518-e522373a9f03 h1:lV+An+xJWtkl+
 github.com/libangzhu/chain33 v0.0.0-20201029082518-e522373a9f03/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
 github.com/libangzhu/chain33 v0.0.0-20201029085211-de87c12a7146 h1:E2wUy42IFj0JjG3tkw8/NTQjXpbE7ef/xfji5+sumtc=
 github.com/libangzhu/chain33 v0.0.0-20201029085211-de87c12a7146/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
+github.com/libangzhu/chain33 v0.0.0-20201029135121-012b02090c99 h1:gD4EQ7kuUAWOJLUjicG3yg305lG30S9vogOFZfnw/4o=
+github.com/libangzhu/chain33 v0.0.0-20201029135121-012b02090c99/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
+github.com/libangzhu/chain33 v0.0.0-20201030113250-780136b8a903 h1:R/0EeT9L3+W9tqS2VC5ZTy6iMQO8ek2nTKwvNe4Vt1I=
+github.com/libangzhu/chain33 v0.0.0-20201030113250-780136b8a903/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
+github.com/libangzhu/chain33 v0.0.0-20201030115525-cbe9aa3553e6 h1:8kHjT/ICCaFB5NkQKMF1hF2Np83kb+A6BEfIy6rcWNk=
+github.com/libangzhu/chain33 v0.0.0-20201030115525-cbe9aa3553e6/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
+github.com/libangzhu/chain33 v0.0.0-20201030121234-cb4c1ec7ffeb h1:WB51MBg2Sp2fFCS2zMSvZCJfF7DBDCpOKtkM62larR8=
+github.com/libangzhu/chain33 v0.0.0-20201030121234-cb4c1ec7ffeb/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
+github.com/libangzhu/chain33 v0.0.0-20201030125005-1da78fd9b457 h1:i/YiikowTamQ1P/8nMOX1XYbffyJSfLnoTTBEgKjXIE=
+github.com/libangzhu/chain33 v0.0.0-20201030125005-1da78fd9b457/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
 github.com/libp2p/go-addr-util v0.0.1 h1:TpTQm9cXVRVSKsYbgQ7GKc3KbbHVTnbostgGaDEP+88=
 github.com/libp2p/go-addr-util v0.0.1/go.mod h1:4ac6O7n9rIAKB1dnd+s8IbbMXkt+oBpzX4/+RACcnlQ=
 github.com/libp2p/go-addr-util v0.0.2 h1:7cWK5cdA5x72jX0g8iLrQWm5TRJZ6CzGdPEhWj7plWU=

@@ -94,6 +94,9 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int6
 	if err != nil {
 		d = &ty.Pos33DepositMsg{Maddr: maddr, Raddr: raddr, Count: newCount, Reward: newReward}
 	} else {
+		if newCount == 0 && newReward == 0 {
+			return nil
+		}
 		if raddr != "" {
 			d.Raddr = raddr
 		}
