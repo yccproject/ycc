@@ -302,3 +302,12 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	receipt.Logs = append(receipt.Logs, depositReceipt(ty.TyLogClosePos33Ticket, tclose.MinerAddress, int64(tclose.Count)))
 	return receipt, nil
 }
+
+// //Pos33TicketBind 授权某个地址进行挖矿
+// func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt, error) {
+// 	if action.fromaddr != tbind.MinerAddress {
+// 		return nil, types.ErrFromAddr
+// 	}
+// 	receipt := &types.Receipt{Ty: types.ExecOk, KV: []*types.KeyValue{setDeposit(action.db, tbind.MinerAddress, tbind.ReturnAddress, 0, 0, action.height)}}
+// 	return receipt, nil
+// }
