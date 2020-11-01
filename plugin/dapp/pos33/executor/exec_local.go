@@ -41,3 +41,13 @@ func (t *Pos33Ticket) ExecLocal_Miner(payload *ty.Pos33TicketMiner, tx *types.Tr
 	}
 	return dbSet, nil
 }
+
+// // ExecLocal_Miner exec local miner
+// func (t *Pos33Ticket) ExecLocal_Bind(payload *ty.Pos33TicketBind, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+// 	tlog.Debug("ExecLocal_Bind", "height", t.GetHeight())
+// 	dbSet, err := t.execLocal(receiptData)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return dbSet, nil
+// }

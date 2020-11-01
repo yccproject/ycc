@@ -158,10 +158,6 @@ message ReplyPos33TicketReward {
   int64 miner_reward = 2;
 }
 
-// message Pos33TicketInfos { repeated string ticketIds = 1; }
-
-// message ReplyPos33TicketList { repeated Pos33Ticket tickets = 1; }
-
 message ReplyWalletPos33Count {
   bytes privkey = 2;
   int64 count = 1;
@@ -183,14 +179,14 @@ message ReceiptPos33Miner {
 //   string returnAddress = 3;
 // }
 
-message ReqBindPos33Miner {
-  string bindAddr = 1;
-  string originAddr = 2;
-  int64 amount = 3;
-  bool checkBalance = 4;
-}
+// message ReqBindPos33Miner {
+//   string bindAddr = 1;
+//   string originAddr = 2;
+//   int64 amount = 3;
+//   bool checkBalance = 4;
+// }
 
-message ReplyBindPos33Miner { string txHex = 1; }
+// message ReplyBindPos33Miner { string txHex = 1; }
 
 service pos33Ticket {
   //创建绑定挖矿
