@@ -132,7 +132,11 @@ func (client *Client) allCount(height int64) int {
 	if height < 0 {
 		height = 0
 	}
-	return client.acMap[height]
+	c, ok := client.acMap[height]
+	if !ok {
+		c = client.acMap[client.GetCurrentHeight()]
+	}
+	return c
 }
 
 func privFromBytes(privkey []byte) (crypto.PrivKey, error) {
@@ -168,7 +172,7 @@ func (c *Client) updateTicketCount(height int64) {
 	ac := c.queryAllPos33Count()
 	c.acMap[height] = ac
 	c.mycount = c.getMyCount()
-	plog.Debug("allCount", "count", ac, "height", height)
+	plog.Debug("getAllCount", "count", ac, "height", height)
 	delete(c.acMap, height-pt.Pos33SortitionSize-1)
 }
 
@@ -177,14 +181,17 @@ func (c *Client) getMyCount() int {
 	defer c.clock.Unlock()
 	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Count", &types.ReqNil{})
 	if err != nil {
+		plog.Error("WalletGetPos33Count", "err", err)
 		return 0
 	}
 	w := resp.(*pt.ReplyWalletPos33Count)
 	c.mycount = int(w.Count)
 	c.priv, err = privFromBytes(w.Privkey)
 	if err != nil {
+		plog.Error("privFromBytes", "err", err)
 		return 0
 	}
+	plog.Debug("getMyCount", "count", c.mycount)
 	return c.mycount
 }
 
