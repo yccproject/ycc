@@ -32,7 +32,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = true
+singleMode = false
 
 [p2p]
 dbCache = 4
@@ -52,9 +52,11 @@ useGithub = true
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
-port = 12801
-channel = 7
-#seeds = ["/ip4/139.155.53.12/tcp/12801/p2p/16Uiu2HAmMZnJd9cLaw7rBgG6sfn8AqJoqWyETbhE4atQx7bCSPe5"]
+port = 13801
+channel=7
+seeds = [
+	 "/ip4/139.155.53.12/tcp/13801/p2p/16Uiu2HAmNne87MDq7PBYGPHTsUafDaXDsbjmBfAjArE1M9QZx3JD" 
+	]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -71,8 +73,11 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-listenPort = "10801"
-onlyVoter = false
+listenPort = "10901"
+onlyVoter = true
+bootPeers = [
+	     "/ip4/139.155.53.12/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"
+	    ]
 
 [mempool]
 maxTxNumPerAccount = 100
