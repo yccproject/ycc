@@ -233,7 +233,7 @@ func saddr(sig *types.Signature) string {
 }
 
 func (n *node) prepareOK(height int64) bool {
-	return n.IsCaughtUp() && n.allCount(height) > 0 && n.myCount() > 0
+	return n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.myCount() > 0
 }
 
 func (n *node) checkBlock(b, pb *types.Block) error {
@@ -803,6 +803,8 @@ func (n *node) runLoop() {
 	if len(n.conf.BootPeers) > 0 {
 		n.gss.bootstrap(n.conf.BootPeers...)
 	}
+
+	n.updateTicketCount(lb.Height)
 
 	time.AfterFunc(time.Second, func() {
 		n.addBlock(lb)
