@@ -53,7 +53,7 @@ useGithub = true
 [p2p.sub.dht]
 #可以自定义设置连接节点
 port = 13801
-channel=7
+channel=9
 seeds = [
 	 "/ip4/139.155.53.12/tcp/13801/p2p/16Uiu2HAmNne87MDq7PBYGPHTsUafDaXDsbjmBfAjArE1M9QZx3JD" 
 	]

@@ -105,6 +105,9 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int6
 			d.CloseHeight = height
 		}
 		d.Count += newCount
+		if d.Count < 0 {
+			d.Count = 0
+		}
 		d.Reward += newReward
 	}
 	tlog.Debug("setDeposit", "maddr", maddr, "count", d.Count, "precount", d.PreCount, "closeheight", d.CloseHeight, "reward", d.Reward)
@@ -274,10 +277,6 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 // Pos33TicketClose close tick
 func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Receipt, error) {
-	if tclose.MinerAddress != action.fromaddr {
-		return nil, errors.New("can't close others tickets")
-	}
-
 	chain33Cfg := action.api.GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	price := cfg.Pos33TicketPrice
@@ -291,15 +290,18 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	}
 
 	count := int(tclose.Count)
+	if count <= 0 || count > int(d.Count) {
+		return nil, errors.New("close count error")
+	}
 	receipt, err := action.coinsAccount.ExecActive(d.Raddr, action.execaddr, price*int64(count))
 	if err != nil {
 		tlog.Error("close deposit error", "addr", d.Raddr, "execaddr", action.execaddr, "value", price*int64(count))
 		return nil, err
 	}
-	tlog.Info("close deposit", "count", count, "height", action.height)
+	tlog.Info("close deposit", "count", count, "height", action.height, "addr", action.fromaddr)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, -count))
 	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, "", int64(-count), 0, action.height))
-	receipt.Logs = append(receipt.Logs, depositReceipt(ty.TyLogClosePos33Ticket, tclose.MinerAddress, int64(tclose.Count)))
+	receipt.Logs = append(receipt.Logs, depositReceipt(ty.TyLogClosePos33Ticket, action.fromaddr, int64(tclose.Count)))
 	return receipt, nil
 }
 
