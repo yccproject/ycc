@@ -49,7 +49,7 @@ type genesisTicket struct {
 type subConfig struct {
 	Genesis          []*genesisTicket `json:"genesis"`
 	GenesisBlockTime int64            `json:"genesisBlockTime"`
-	ListenPort       string           `json:"listenPort,omitempty"`
+	ListenPort       int              `json:"listenPort,omitempty"`
 	BootPeers        []string         `json:"BootPeers,omitempty"`
 	// if true, you can't make block and only vote
 	OnlyVoter bool `json:"onlyVoter,omitempty"`
@@ -207,6 +207,15 @@ func (c *Client) queryAllPos33Count() int {
 
 // CreateBlock will start run
 func (client *Client) CreateBlock() {
+	b, err := client.RequestBlock(0)
+	if err != nil {
+		panic(err)
+	}
+	gtm := client.GetGenesisBlockTime()
+	plog.Info("CreateBlock", "block 0 time", b.BlockTime, "genesis time", gtm)
+	if b.BlockTime != gtm {
+		panic("block 0 is NOT match config, remove old data or change the config file")
+	}
 	for {
 		select {
 		case <-client.done:

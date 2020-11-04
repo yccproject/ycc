@@ -9,19 +9,15 @@ import (
 	ccrypto "github.com/33cn/chain33/common/crypto"
 
 	"github.com/libp2p/go-libp2p"
-	autonat "github.com/libp2p/go-libp2p-autonat-svc"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	mplex "github.com/libp2p/go-libp2p-mplex"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	routing "github.com/libp2p/go-libp2p-routing"
-	secio "github.com/libp2p/go-libp2p-secio"
-	yamux "github.com/libp2p/go-libp2p-yamux"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -42,7 +38,6 @@ type gossip2 struct {
 	h         host.Host
 	tmap      map[string]*pubsub.Topic
 	ctx       context.Context
-	cancel    context.CancelFunc
 	bootPeers []string
 }
 
@@ -71,13 +66,13 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 	return nil
 }
 
-func newGossip2(priv ccrypto.PrivKey, port, stag string, topics ...string) *gossip2 {
-	ctx, cancel := context.WithCancel(context.Background())
+func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *gossip2 {
+	ctx := context.Background()
 	pr, err := crypto.UnmarshalSecp256k1PrivateKey(priv.Bytes())
 	if err != nil {
 		panic(err)
 	}
-	h := newHost(ctx, pr, port, stag)
+	h, idht := newHost(ctx, pr, port)
 	ps, err := pubsub.NewGossipSub(ctx, h)
 	if err != nil {
 		panic(err)
@@ -90,12 +85,12 @@ func newGossip2(priv ccrypto.PrivKey, port, stag string, topics ...string) *goss
 		}
 		tmap[t] = topic
 	}
-	g := &gossip2{C: make(chan []byte, 16), h: h, tmap: tmap, ctx: ctx, cancel: cancel}
-	go g.run(ps, topics)
+	g := &gossip2{C: make(chan []byte, 16), h: h, tmap: tmap, ctx: ctx}
+	go g.run(ps, topics, idht, ns)
 	return g
 }
 
-func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
+func (g *gossip2) run(ps *pubsub.PubSub, topics []string, idht *dht.IpfsDHT, ns string) {
 	smap := make(map[string]*pubsub.Subscription)
 	for t, topic := range g.tmap {
 		s, err := topic.Subscribe()
@@ -126,12 +121,13 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
 	go func() {
 		for range time.NewTicker(time.Minute).C {
 			np := ps.ListPeers(topics[0])
-			plog.Debug("list peers ", "len", len(np), "peers", np)
+			plog.Info("pos33 peers ", "len", len(np), "peers", np)
 			if len(np) < 3 {
 				g.bootstrap(g.bootPeers...)
 			}
 		}
 	}()
+	discover(g.ctx, g.h, idht, ns)
 }
 
 func (g *gossip2) gossip(topic string, data []byte) error {
@@ -142,33 +138,21 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 	return t.Publish(g.ctx, data)
 }
 
-func newHost(ctx context.Context, priv crypto.PrivKey, port, stag string) host.Host {
+func newHost(ctx context.Context, priv crypto.PrivKey, port int) (host.Host, *dht.IpfsDHT) {
 	var idht *dht.IpfsDHT
 	h, err := libp2p.New(ctx,
-		// Use the keypair we generated
 		libp2p.Identity(priv),
-		// Multiple listen addresses
 		libp2p.ListenAddrStrings(
-			"/ip4/0.0.0.0/tcp/"+port, // regular tcp connections
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
-		libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
-		// support secio connections
-		libp2p.Security(secio.ID, secio.New),
-		// support any other default transports (TCP)
 		libp2p.DefaultTransports,
-		// Attempt to open ports using uPNP for NATed hosts.
 		libp2p.NATPortMap(),
-		// Let this host use the DHT to find other hosts
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 			dht, err := dht.New(ctx, h)
 			idht = dht
 			return idht, err
 		}),
-		// Let this host use relays and advertise itself on relays if
-		// it finds it is behind NAT. Use libp2p.Relay(options...) to
-		// enable active relays and more.
-		libp2p.EnableRelay(),
+		libp2p.EnableAutoRelay(),
 	)
 
 	if err != nil {
@@ -182,56 +166,21 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port, stag string) host.H
 	}
 
 	plog.Info("host inited", "host", paddr)
+	return h, idht
+}
 
-	// If you want to help other peers to figure out if they are behind
-	// NATs, you can launch the server-side of AutoNAT too (AutoRelay
-	// already runs the client)
-	_, err = autonat.NewAutoNATService(ctx, h,
-		// Support same non default security and transport options as
-		// original host.
-		libp2p.Security(secio.ID, secio.New),
-		libp2p.DefaultTransports,
-	)
+func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
+	err := idht.Bootstrap(ctx)
 	if err != nil {
 		panic(err)
 	}
-
-	err = idht.Bootstrap(ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	mdns, err := discovery.NewMdnsService(ctx, h, time.Second*10, stag)
-	if err != nil {
-		panic(err)
-	}
-
 	mn := &mdnsNotifee{h: h, ctx: ctx}
-	mdns.RegisterNotifee(mn)
-
-	// routingDiscovery := disc.NewRoutingDiscovery(idht)
-	// disc.Advertise(ctx, routingDiscovery, string("ycc"))
-	// peers, err := disc.FindPeers(ctx, routingDiscovery, string("ycc"))
-	// for _, peer := range peers {
-	// 	mn.HandlePeerFound(peer)
-	// }
-
-	// The last step to get fully up and running would be to connect to
-	// bootstrap peers (or any other peers). We leave this commented as
-	// this is an example and the peer will die as soon as it finishes, so
-	// it is unnecessary to put strain on the network.
-
-	/*
-		// This connects to public bootstrappers
-		for _, addr := range dht.DefaultBootstrapPeers {
-			pi, _ := peer.AddrInfoFromP2pAddr(addr)
-			// We ignore errors as some bootstrap peers may be down
-			// and that is fine.
-			h.Connect(ctx, *pi)
-		}
-	*/
-
-	return h
+	routingDiscovery := discovery.NewRoutingDiscovery(idht)
+	discovery.Advertise(ctx, routingDiscovery, ns)
+	peerCh, err := routingDiscovery.FindPeers(ctx, ns)
+	for peer := range peerCh {
+		mn.HandlePeerFound(peer)
+	}
 }
 
 func peerAddr(h host.Host) multiaddr.Multiaddr {

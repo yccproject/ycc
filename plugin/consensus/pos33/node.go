@@ -17,7 +17,7 @@ import (
 
 var plog = log15.New("module", "pos33")
 
-const pos33Topic = "pos33"
+const pos33Topic = "pos33-1104"
 
 type node struct {
 	*Client
@@ -487,9 +487,7 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 }
 
 func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
-	if n.lastBlock() == nil {
-		return
-	}
+	lb := n.lastBlock()
 	if len(vms.Vs) == 0 {
 		plog.Error("votemsg sortition is 0")
 		return
@@ -500,8 +498,12 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 		return
 	}
 	height := vm.Sort.Proof.Input.Height
-	if height <= n.lastBlock().Height {
+	if height <= lb.Height {
 		plog.Debug("vote too late")
+		return
+	}
+	if height > lb.Height+pt.Pos33SortitionSize*2 {
+		plog.Debug("vote too hight")
 		return
 	}
 
@@ -616,12 +618,16 @@ func checkVotesEnough(vs []*pt.Pos33VoteMsg, height int64, round int) bool {
 	return true
 }
 
-func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg) {
+func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg, lbHeight int64) {
 	if m == nil || m.Proof == nil || m.Proof.Input == nil || m.SortHash == nil {
 		plog.Error("handleSortitionMsg error, input msg is nil")
 		return
 	}
 	height := m.Proof.Input.Height
+	if height > lbHeight+pt.Pos33SortitionSize*2 {
+		plog.Debug("handleSort height too hight", "height", height, "lbheight", lbHeight)
+		return
+	}
 	if n.lastBlock().Height >= height {
 		err := fmt.Errorf("sort msg too late, lbHeight=%d, sortHeight=%d", n.lastBlock().Height, height)
 		plog.Debug("handleSort error", "err", err)
@@ -638,7 +644,7 @@ func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg) {
 	plog.Debug("handleSortitionMsg", "height", height, "round", round, "size", len(n.cps[height][round]))
 }
 
-func (n *node) checkSort(s *pt.Pos33SortMsg, seed []byte, allw int) error {
+func (n *node) checkSort(s *pt.Pos33SortMsg, seed []byte, allw, step int) error {
 	if s == nil {
 		return fmt.Errorf("sortMsg error")
 	}
@@ -647,7 +653,7 @@ func (n *node) checkSort(s *pt.Pos33SortMsg, seed []byte, allw int) error {
 	}
 
 	height := s.Proof.Input.Height
-	err := n.verifySort(height, int(s.Proof.Input.Step), allw, seed, s)
+	err := n.verifySort(height, step, allw, seed, s)
 	if err != nil {
 		plog.Error("verifySort error", "err", err, "height", height)
 		return err
@@ -672,7 +678,7 @@ func (n *node) checkSorts(height int64, round int) []*pt.Pos33SortMsg {
 	allw := n.allCount(sortHeight)
 	var rss []*pt.Pos33SortMsg
 	for _, s := range ss {
-		err := n.checkSort(s, seed, allw)
+		err := n.checkSort(s, seed, allw, 1)
 		if err != nil {
 			plog.Error("checkSort error", "err", err, "height", height, "round", round)
 			continue
@@ -693,7 +699,7 @@ func (n *node) handleSortsMsg(m *pt.Pos33Sorts, myself bool) {
 		return
 	}
 	if m.S != nil {
-		n.handleSortitionMsg(m.S)
+		n.handleSortitionMsg(m.S, lb.Height)
 	}
 	for i, s := range m.Sorts {
 		if !myself {
@@ -710,7 +716,8 @@ func (n *node) handleSortsMsg(m *pt.Pos33Sorts, myself bool) {
 			}
 		}
 		height := s.Proof.Input.Height
-		if height > lb.Height+pt.Pos33SortitionSize {
+		if height > lb.Height+pt.Pos33SortitionSize*2 {
+			plog.Debug("handleSort height too hight", "height", height, "lbheight", lb.Height)
 			// too
 			return
 		}
@@ -792,13 +799,14 @@ func (n *node) runLoop() {
 	if err != nil {
 		panic(err)
 	}
-
-	svcTag := n.GetAPI().GetConfig().GetTitle()
 	priv := n.getPriv()
 	if priv == nil {
 		panic("can't go here")
 	}
-	n.gss = newGossip2(priv, n.conf.ListenPort, svcTag, pos33Topic)
+
+	title := n.GetAPI().GetConfig().GetTitle()
+	ns := fmt.Sprintf("%s-%d", title, n.conf.ListenPort)
+	n.gss = newGossip2(priv, n.conf.ListenPort, ns, pos33Topic)
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
 		n.gss.bootstrap(n.conf.BootPeers...)
@@ -899,7 +907,7 @@ func hexs(b []byte) string {
 }
 
 func (n *node) vote(height int64, round int) {
-	minHash := n.bp(height, round)
+	minHash, addr := n.bp(height, round)
 	if minHash == "" {
 		plog.Debug("vote bp is nil", "height", height, "round", round)
 		return
@@ -909,7 +917,7 @@ func (n *node) vote(height int64, round int) {
 		plog.Debug("I'm not verifer", "height", height)
 		return
 	}
-	plog.Debug("vote bp", "height", height, "round", round)
+	plog.Info("block vote", "height", height, "round", round, "maker", addr[:16])
 	var vs []*pt.Pos33VoteMsg
 	for _, s := range ss {
 		v := &pt.Pos33VoteMsg{Sort: s, MinHash: []byte(minHash), SortsCount: uint32(len(n.css[height][round]))}

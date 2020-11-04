@@ -197,16 +197,16 @@ func hash2(data []byte) []byte {
 	return crypto.Sha256(crypto.Sha256(data))
 }
 
-func (n *node) bp(height int64, round int) string {
+func (n *node) bp(height int64, round int) (string, string) {
 	sortHeight := height - pt.Pos33SortitionSize
 	seed, err := n.getSortSeed(sortHeight)
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	allw := n.allCount(sortHeight)
 	pss := make(map[string]*pt.Pos33SortMsg)
 	for _, s := range n.cps[height][round] {
-		err := n.checkSort(s, seed, allw)
+		err := n.checkSort(s, seed, allw, 0)
 		if err != nil {
 			plog.Error("checkSort error", "err", err)
 			continue
@@ -214,23 +214,23 @@ func (n *node) bp(height int64, round int) string {
 		pss[string(s.SortHash.Hash)] = s
 	}
 	if len(pss) == 0 {
-		return ""
+		return "", ""
 	}
 
 	var min string
 	var ss *pt.Pos33SortMsg
 	for sh, s := range pss {
-		str := string(crypto.Sha256([]byte(fmt.Sprintf("%x", []byte(sh)))))
+		// str := string(crypto.Sha256([]byte(fmt.Sprintf("%x", []byte(sh)))))
 		if min == "" {
-			min = str
+			min = sh
 			ss = s
 		} else {
-			if min > str {
-				min = str
+			if min > sh {
+				min = sh
 				ss = s
 			}
 		}
 	}
 
-	return string(ss.SortHash.Hash)
+	return min, address.PubKeyToAddr(ss.Proof.Pubkey)
 }

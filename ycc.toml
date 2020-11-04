@@ -53,7 +53,7 @@ useGithub = true
 [p2p.sub.dht]
 #可以自定义设置连接节点
 port = 13801
-channel=9
+channel=3
 seeds = [
 	 "/ip4/139.155.53.12/tcp/13801/p2p/16Uiu2HAmNne87MDq7PBYGPHTsUafDaXDsbjmBfAjArE1M9QZx3JD" 
 	]
@@ -73,7 +73,7 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-listenPort = "10901"
+listenPort = 10901
 onlyVoter = true
 bootPeers = [
 	     "/ip4/139.155.53.12/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"
