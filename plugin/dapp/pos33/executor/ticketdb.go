@@ -285,13 +285,16 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	if err != nil {
 		return nil, err
 	}
+	if d.Count == 0 {
+		return nil, errors.New("your ticket count is 0")
+	}
 	if action.height-d.CloseHeight <= ty.Pos33SortitionSize {
 		return nil, errors.New("close deposit too ofen")
 	}
 
 	count := int(tclose.Count)
 	if count <= 0 || count > int(d.Count) {
-		return nil, errors.New("close count error")
+		count = int(d.Count)
 	}
 	receipt, err := action.coinsAccount.ExecActive(d.Raddr, action.execaddr, price*int64(count))
 	if err != nil {
