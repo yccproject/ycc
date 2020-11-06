@@ -9,6 +9,7 @@ import (
 	ccrypto "github.com/33cn/chain33/common/crypto"
 
 	"github.com/libp2p/go-libp2p"
+	autonat "github.com/libp2p/go-libp2p-autonat"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -18,8 +19,11 @@ import (
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	routing "github.com/libp2p/go-libp2p-routing"
+	disc "github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/multiformats/go-multiaddr"
 )
+
+// var _ = libp2pquic.NewTransport
 
 type mdnsNotifee struct {
 	h   host.Host
@@ -28,7 +32,7 @@ type mdnsNotifee struct {
 
 func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	if m.h.Network().Connectedness(pi.ID) != network.Connected {
-		plog.Debug("peer mdns found", "pid", pi.ID.String())
+		plog.Info("mdns peer found", "pid", pi.ID.String())
 		m.h.Connect(m.ctx, pi)
 	}
 }
@@ -56,12 +60,13 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 			return err
 		}
 
+		g.h.Peerstore().AddAddrs(targetInfo.ID, targetInfo.Addrs, peerstore.PermanentAddrTTL)
 		err = g.h.Connect(g.ctx, *targetInfo)
 		if err != nil {
 			plog.Error("bootstrap error", "err", err)
 			return err
 		}
-		plog.Debug("connect boot peer", "bootpeer", targetAddr.String())
+		plog.Info("connect boot peer", "bootpeer", targetAddr.String())
 	}
 	return nil
 }
@@ -72,46 +77,31 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *go
 	if err != nil {
 		panic(err)
 	}
-	h, idht := newHost(ctx, pr, port)
+	h := newHost(ctx, pr, port, ns)
 	ps, err := pubsub.NewGossipSub(ctx, h)
 	if err != nil {
 		panic(err)
 	}
-	tmap := make(map[string]*pubsub.Topic)
-	for _, t := range topics {
-		topic, err := ps.Join(t)
-		if err != nil {
-			panic(err)
-		}
-		tmap[t] = topic
-	}
-	g := &gossip2{C: make(chan []byte, 16), h: h, tmap: tmap, ctx: ctx}
-	go g.run(ps, topics, idht, ns)
+	g := &gossip2{C: make(chan []byte, 16), h: h, tmap: make(map[string]*pubsub.Topic), ctx: ctx}
+	go g.run(ps, topics)
 	return g
 }
 
-func (g *gossip2) run(ps *pubsub.PubSub, topics []string, idht *dht.IpfsDHT, ns string) {
-	smap := make(map[string]*pubsub.Subscription)
-	for t, topic := range g.tmap {
-		s, err := topic.Subscribe()
+func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
+	for _, t := range topics {
+		tp, err := ps.Join(t)
 		if err != nil {
 			panic(err)
 		}
-		smap[t] = s
-	}
-	for _, sb := range smap {
+		g.tmap[t] = tp
+		sb, err := tp.Subscribe()
 		go func(s *pubsub.Subscription) {
 			for {
 				m, err := s.Next(g.ctx)
 				if err != nil {
 					panic(err)
 				}
-				id, err := peer.IDFromBytes(m.From)
-				if err != nil {
-					panic(err)
-				}
-
-				if g.h.ID().String() == id.String() {
+				if g.h.ID() == m.ReceivedFrom {
 					continue
 				}
 				g.C <- m.Data
@@ -127,7 +117,6 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics []string, idht *dht.IpfsDHT, ns 
 			}
 		}
 	}()
-	discover(g.ctx, g.h, idht, ns)
 }
 
 func (g *gossip2) gossip(topic string, data []byte) error {
@@ -138,13 +127,14 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 	return t.Publish(g.ctx, data)
 }
 
-func newHost(ctx context.Context, priv crypto.PrivKey, port int) (host.Host, *dht.IpfsDHT) {
+func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host.Host {
 	var idht *dht.IpfsDHT
 	h, err := libp2p.New(ctx,
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
+		libp2p.EnableNATService(),
 		libp2p.DefaultTransports,
 		libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
@@ -152,6 +142,7 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int) (host.Host, *dh
 			idht = dht
 			return idht, err
 		}),
+		// libp2p.EnableRelay(relay.OptHop),
 		libp2p.EnableAutoRelay(),
 	)
 
@@ -165,22 +156,42 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int) (host.Host, *dh
 		panic(err)
 	}
 
+	discover(ctx, h, idht, ns)
 	plog.Info("host inited", "host", paddr)
-	return h, idht
+
+	go printPeerstore(h)
+	return h
+}
+
+func printPeerstore(h host.Host) {
+	for range time.NewTicker(time.Second * 60).C {
+		pids := h.Peerstore().PeersWithAddrs()
+		plog.Info("peersstore len", "len", pids.Len(), "pids", pids)
+		for _, id := range pids {
+			plog.Info("peer:", "pid", id.String()[:16], "addr", h.Peerstore().Addrs(id))
+		}
+	}
 }
 
 func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
-	err := idht.Bootstrap(ctx)
+	_, err := autonat.New(ctx, h)
 	if err != nil {
 		panic(err)
 	}
+	mdns, err := disc.NewMdnsService(ctx, h, time.Second*10, ns)
+	if err != nil {
+		panic(err)
+	}
+
 	mn := &mdnsNotifee{h: h, ctx: ctx}
+	mdns.RegisterNotifee(mn)
+
+	err = idht.Bootstrap(ctx)
+	if err != nil {
+		panic(err)
+	}
 	routingDiscovery := discovery.NewRoutingDiscovery(idht)
 	discovery.Advertise(ctx, routingDiscovery, ns)
-	peerCh, err := routingDiscovery.FindPeers(ctx, ns)
-	for peer := range peerCh {
-		mn.HandlePeerFound(peer)
-	}
 }
 
 func peerAddr(h host.Host) multiaddr.Multiaddr {

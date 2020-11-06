@@ -55,7 +55,7 @@ useGithub = true
 port = 13801
 channel=3
 seeds = [
-	 "/ip4/139.155.53.12/tcp/13801/p2p/16Uiu2HAmNne87MDq7PBYGPHTsUafDaXDsbjmBfAjArE1M9QZx3JD" 
+	 "/ip4/139.155.72.161/tcp/13801/p2p/16Uiu2HAm2jEVnUeRa9CucFbotccsLunAxD5Vct7p9HrL6RjMgoPR" 
 	]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
@@ -76,7 +76,8 @@ whitelist = ["127.0.0.1"]
 listenPort = 10901
 onlyVoter = true
 bootPeers = [
-	     "/ip4/139.155.53.12/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"
+	     "/ip4/139.155.92.3/tcp/10901/p2p/16Uiu2HAm87rGEfEhu751wQToM97AuBRYZPbR4ji1xZnAAyUsstaT",
+	     "/ip4/139.155.42.205/tcp/10901/p2p/16Uiu2HAmTjFLEAkdbnbMY7U62NLnQBZtGKySyWu1ww8xGKimy9HQ" 
 	    ]
 
 [mempool]

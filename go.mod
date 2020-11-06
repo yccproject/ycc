@@ -20,6 +20,7 @@ require (
 	github.com/google/go-cmp v0.5.0 // indirect
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6 // indirect
 	github.com/libp2p/go-libp2p v0.10.3
+	github.com/libp2p/go-libp2p-autonat v0.3.2
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
 	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-discovery v0.5.0
@@ -27,7 +28,7 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.2.4
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
-	github.com/libp2p/go-libp2p-quic-transport v0.4.0 // indirect
+	github.com/libp2p/go-libp2p-quic-transport v0.4.0
 	github.com/libp2p/go-libp2p-routing v0.1.0
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-libp2p-yamux v0.2.8
