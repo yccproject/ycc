@@ -45,6 +45,8 @@ type gossip2 struct {
 	bootPeers []string
 }
 
+const remoteAddrID = "yccxaddr"
+
 func (g *gossip2) bootstrap(addrs ...string) error {
 	g.bootPeers = addrs
 	for _, addr := range addrs {
@@ -67,6 +69,13 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 			return err
 		}
 		plog.Info("connect boot peer", "bootpeer", targetAddr.String())
+		s, err := g.h.NewStream(g.ctx, targetInfo.ID, remoteAddrID)
+		if err != nil {
+			plog.Error("bootstrap error", "err", err)
+			return err
+		}
+		s.Write([]byte(g.h.ID()))
+		s.Close()
 	}
 	return nil
 }
@@ -149,6 +158,13 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 	if err != nil {
 		panic(err)
 	}
+
+	h.SetStreamHandler(remoteAddrID, func(s network.Stream) {
+		maddr := s.Conn().RemoteMultiaddr()
+		plog.Info("remote addr", "remote", maddr)
+		h.Peerstore().AddAddrs(s.Conn().RemotePeer(), []multiaddr.Multiaddr{maddr}, peerstore.PermanentAddrTTL)
+		s.Close()
+	})
 
 	paddr := peerAddr(h)
 	err = ioutil.WriteFile("yccpeeraddr.txt", []byte(paddr.String()+"\n"), 0644)
