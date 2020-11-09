@@ -161,8 +161,9 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 
 	h.SetStreamHandler(remoteAddrID, func(s network.Stream) {
 		maddr := s.Conn().RemoteMultiaddr()
-		plog.Info("remote addr", "remote", maddr)
-		h.Peerstore().AddAddrs(s.Conn().RemotePeer(), []multiaddr.Multiaddr{maddr}, peerstore.PermanentAddrTTL)
+		pid := s.Conn().RemotePeer()
+		plog.Info("remote peer", "peer", pid, "addr", maddr)
+		h.Peerstore().AddAddrs(pid, []multiaddr.Multiaddr{maddr}, peerstore.PermanentAddrTTL)
 		s.Close()
 	})
 
@@ -175,16 +176,16 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 	discover(ctx, h, idht, ns)
 	plog.Info("host inited", "host", paddr)
 
-	go printPeerstore(h)
+	// go printPeerstore(h)
 	return h
 }
 
 func printPeerstore(h host.Host) {
 	for range time.NewTicker(time.Second * 60).C {
 		pids := h.Peerstore().PeersWithAddrs()
-		plog.Info("peersstore len", "len", pids.Len(), "pids", pids)
+		plog.Debug("peersstore len", "len", pids.Len(), "pids", pids)
 		for _, id := range pids {
-			plog.Info("peer:", "pid", id.String()[:16], "addr", h.Peerstore().Addrs(id))
+			plog.Debug("peer:", "pid", id.String()[:16], "addr", h.Peerstore().Addrs(id))
 		}
 	}
 }
