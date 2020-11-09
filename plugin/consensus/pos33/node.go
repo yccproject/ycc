@@ -809,7 +809,7 @@ func (n *node) runLoop() {
 	n.gss = newGossip2(priv, n.conf.ListenPort, ns, pos33Topic)
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
-		n.gss.bootstrap(n.conf.BootPeers...)
+		go n.gss.bootstrap(n.conf.BootPeers...)
 	}
 
 	n.updateTicketCount(lb.Height)
