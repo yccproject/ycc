@@ -77,6 +77,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		if minHash == nil {
 			minHash = hash
 		}
+		// minHash use string compare, define a rule for which one is min
 		if string(minHash) > string(hash) {
 			minHash = hash
 			index = len(msgs)
@@ -218,6 +219,7 @@ func (n *node) bp(height int64, round int) (string, string) {
 		return "", ""
 	}
 
+	// find min sortition hash, use string compare
 	var min string
 	var ss *pt.Pos33SortMsg
 	for sh, s := range pss {
