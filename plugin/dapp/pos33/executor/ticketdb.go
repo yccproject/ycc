@@ -289,7 +289,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 		return nil, errors.New("your ticket count is 0")
 	}
 	if action.height-d.CloseHeight <= ty.Pos33SortitionSize {
-		return nil, errors.New("close deposit too ofen")
+		return nil, errors.New("close deposit too often")
 	}
 
 	count := int(tclose.Count)

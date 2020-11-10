@@ -35,9 +35,12 @@ type node struct {
 	css map[int64]map[int][]*pt.Pos33SortMsg
 
 	// for new block incoming to add
-	bch     chan *types.Block
+	bch chan *types.Block
+	// already make block height and round
 	lheight int64
 	lround  int
+	// timeout block
+	tob string
 }
 
 // New create pos33 consensus client
@@ -527,15 +530,22 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 			err := n.checkVote(vm, height, round, seed, allw, minHash)
 			if err != nil {
 				plog.Error("check error", "height", height, "round", round, "err", err)
-				if err != nil {
-					continue
-				}
+				return
 			}
 		}
 		n.addVote(vm, height, round, minHash)
 	}
 	vs := n.cvs[height][round][minHash]
 	plog.Debug("handleVotesMsg", "height", height, "round", round, "voter", saddr(vm.GetSig()), "votes", len(vs))
+
+	// 如果 block(height, round) 超时，再收到票后，检查并 make block
+	tob := fmt.Sprintf("%d-%d", height, round)
+	if n.tob == tob && checkVotesEnough(vs, height, round) {
+		err := n.makeBlock(height, round, minHash, vs)
+		if err != nil {
+			plog.Debug("can't make block", "err", err, "height", height, "round", round)
+		}
+	}
 }
 
 func (n *node) makeNextBlock(height int64, round int) {
@@ -594,7 +604,7 @@ func (v votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
 func checkVotesEnough(vs []*pt.Pos33VoteMsg, height int64, round int) bool {
 	if len(vs) < pt.Pos33MustVotes {
-		plog.Info("vote < 11", "height", height, "round", round)
+		plog.Info("block vote < 11", "height", height, "round", round)
 		return false
 	}
 
@@ -655,7 +665,6 @@ func (n *node) checkSort(s *pt.Pos33SortMsg, seed []byte, allw, step int) error 
 	height := s.Proof.Input.Height
 	err := n.verifySort(height, step, allw, seed, s)
 	if err != nil {
-		plog.Error("verifySort error", "err", err, "height", height)
 		return err
 	}
 	return nil
@@ -821,10 +830,10 @@ func (n *node) runLoop() {
 	plog.Info("pos33 running...", "last block height", lb.Height)
 	isSync := false
 	syncTick := time.NewTicker(time.Second)
-	etm := time.NewTimer(time.Hour)
-	ch := make(chan int64, 1)
+	tch := make(chan int64, 1)
+	nch := make(chan int64, 1)
 	round := 0
-	blockTimeout := time.Second * 5
+	blockTimeout := time.Second * 3
 
 	for {
 		select {
@@ -843,23 +852,29 @@ func (n *node) runLoop() {
 		}
 
 		select {
-		case height := <-ch:
+		case height := <-tch:
 			if height == n.lastBlock().Height+1 {
+				n.tob = fmt.Sprintf("%d-%d", height, round)
 				round++
 				plog.Info("block timeout", "height", height, "round", round)
 				n.reSortition(height, round)
-				etm = time.NewTimer(time.Second * 3)
+				time.AfterFunc(blockTimeout, func() {
+					nch <- height
+				})
 			}
-		case <-etm.C:
-			height := n.lastBlock().Height + 1
-			n.makeNewBlock(height, round)
-			time.AfterFunc(blockTimeout, func() {
-				ch <- height
-			})
+		case height := <-nch:
+			if height == n.lastBlock().Height+1 {
+				n.makeNewBlock(height, round)
+				time.AfterFunc(blockTimeout, func() {
+					tch <- height
+				})
+			}
 		case b := <-n.bch: // new block add to chain
 			round = 0
 			n.handleNewBlock(b)
-			etm = time.NewTimer(time.Millisecond * 10)
+			time.AfterFunc(time.Millisecond, func() {
+				nch <- b.Height + 1
+			})
 		default:
 			time.Sleep(time.Millisecond * 10)
 		}
