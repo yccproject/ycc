@@ -201,6 +201,7 @@ func (n *node) bp(height int64, round int) (string, string) {
 	sortHeight := height - pt.Pos33SortitionSize
 	seed, err := n.getSortSeed(sortHeight)
 	if err != nil {
+		plog.Error("bp error", "err", err)
 		return "", ""
 	}
 	allw := n.allCount(sortHeight)
@@ -220,7 +221,6 @@ func (n *node) bp(height int64, round int) (string, string) {
 	var min string
 	var ss *pt.Pos33SortMsg
 	for sh, s := range pss {
-		// str := string(crypto.Sha256([]byte(fmt.Sprintf("%x", []byte(sh)))))
 		if min == "" {
 			min = sh
 			ss = s

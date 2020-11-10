@@ -370,7 +370,8 @@ func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]b
 	if err != nil {
 		return nil, err
 	}
-	if acc.Balance > 0 {
+	// 避免频繁的发送 withdraw tx，所以限定 1000
+	if acc.Balance > 1000 {
 		bizlog.Debug("withdraw", "amount", acc.Balance)
 		hash, err := operater.SendToAddress(priv, address.ExecAddress(ty.Pos33TicketX), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
