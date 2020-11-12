@@ -604,7 +604,7 @@ func (v votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
 func checkVotesEnough(vs []*pt.Pos33VoteMsg, height int64, round int) bool {
 	if len(vs) < pt.Pos33MustVotes {
-		plog.Info("block vote < 11", "height", height, "round", round)
+		plog.Debug("block vote < 11", "height", height, "round", round)
 		return false
 	}
 
@@ -833,7 +833,8 @@ func (n *node) runLoop() {
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
 	round := 0
-	blockTimeout := time.Second * 3
+	blockTimeout := time.Second * 5
+	resortTimeout := time.Second * 3
 
 	for {
 		select {
@@ -854,11 +855,10 @@ func (n *node) runLoop() {
 		select {
 		case height := <-tch:
 			if height == n.lastBlock().Height+1 {
-				n.tob = fmt.Sprintf("%d-%d", height, round)
 				round++
 				plog.Info("block timeout", "height", height, "round", round)
 				n.reSortition(height, round)
-				time.AfterFunc(blockTimeout, func() {
+				time.AfterFunc(resortTimeout, func() {
 					nch <- height
 				})
 			}
@@ -899,7 +899,10 @@ func (n *node) handleNewBlock(b *types.Block) {
 func (n *node) makeNewBlock(height int64, round int) {
 	n.checkSorts(height, round)
 	if round > 0 {
+		// if timeout, only vote, handle vote will make new block
+		n.tob = fmt.Sprintf("%d-%d", height, round)
 		n.vote(height, round)
+		return
 	}
 	n.makeNextBlock(height, round)
 }
