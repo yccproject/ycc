@@ -74,7 +74,7 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 listenPort = 10901
-onlyVoter = true
+onlyVoter = false
 bootPeers = [
 	     "/ip4/139.155.92.3/tcp/10901/p2p/16Uiu2HAm87rGEfEhu751wQToM97AuBRYZPbR4ji1xZnAAyUsstaT",
 	     "/ip4/139.155.42.205/tcp/10901/p2p/16Uiu2HAmTjFLEAkdbnbMY7U62NLnQBZtGKySyWu1ww8xGKimy9HQ" 
