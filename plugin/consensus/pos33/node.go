@@ -598,7 +598,7 @@ type votes pt.Votes
 
 func (v votes) Len() int { return len(v) }
 func (v votes) Less(i, j int) bool {
-	return string(v[i].SortsCount) < string(v[i].SortsCount)
+	return v[i].SortsCount < v[i].SortsCount
 }
 func (v votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
