@@ -600,7 +600,11 @@ func (v votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
 func checkVotesEnough(vs []*pt.Pos33VoteMsg, height int64, round int) bool {
 	if len(vs) < pt.Pos33MustVotes {
-		plog.Info("block vote < 11", "height", height, "round", round)
+		if round == 0 {
+			plog.Info("block vote < 11", "height", height, "round", round)
+		} else {
+			plog.Debug("block vote < 11", "height", height, "round", round)
+		}
 		return false
 	}
 
