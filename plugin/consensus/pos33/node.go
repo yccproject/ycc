@@ -39,8 +39,6 @@ type node struct {
 	// already make block height and round
 	lheight int64
 	lround  int
-	// timeout block
-	tob string
 }
 
 // New create pos33 consensus client
@@ -511,8 +509,6 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	}
 
 	round := int(vm.Sort.Proof.Input.Round)
-	minHash := string(vm.MinHash)
-
 	if n.lheight == height && n.lround == round {
 		return
 	}
@@ -525,6 +521,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	}
 	allw := n.allCount(sortHeight)
 
+	minHash := string(vm.MinHash)
 	for _, vm := range vms.Vs {
 		if !myself {
 			err := n.checkVote(vm, height, round, seed, allw, minHash)
@@ -538,9 +535,8 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	vs := n.cvs[height][round][minHash]
 	plog.Debug("handleVotesMsg", "height", height, "round", round, "voter", saddr(vm.GetSig()), "votes", len(vs))
 
-	// 如果 block(height, round) 超时，再收到票后，检查并 make block
-	tob := fmt.Sprintf("%d-%d", height, round)
-	if n.tob == tob && checkVotesEnough(vs, height, round) {
+	// 如果 block(height, round) 超时，收到票后，检查并 make block
+	if round > 0 && height > pt.Pos33SortitionSize && checkVotesEnough(vs, height, round) {
 		err := n.makeBlock(height, round, minHash, vs)
 		if err != nil {
 			plog.Debug("can't make block", "err", err, "height", height, "round", round)
@@ -604,7 +600,7 @@ func (v votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
 func checkVotesEnough(vs []*pt.Pos33VoteMsg, height int64, round int) bool {
 	if len(vs) < pt.Pos33MustVotes {
-		plog.Debug("block vote < 11", "height", height, "round", round)
+		plog.Info("block vote < 11", "height", height, "round", round)
 		return false
 	}
 
@@ -900,7 +896,6 @@ func (n *node) makeNewBlock(height int64, round int) {
 	n.checkSorts(height, round)
 	if round > 0 {
 		// if timeout, only vote, handle vote will make new block
-		n.tob = fmt.Sprintf("%d-%d", height, round)
 		n.vote(height, round)
 		return
 	}
