@@ -46,6 +46,7 @@ type gossip2 struct {
 }
 
 const remoteAddrID = "yccxaddr"
+const sendtoID = "yccxsendto"
 
 func (g *gossip2) bootstrap(addrs ...string) error {
 	g.bootPeers = addrs
@@ -92,8 +93,28 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *go
 		panic(err)
 	}
 	g := &gossip2{C: make(chan []byte, 16), h: h, tmap: make(map[string]*pubsub.Topic), ctx: ctx}
+	g.setHandler()
 	go g.run(ps, topics)
 	return g
+}
+
+func (g *gossip2) setHandler() {
+	h := g.h
+	h.SetStreamHandler(remoteAddrID, func(s network.Stream) {
+		maddr := s.Conn().RemoteMultiaddr()
+		pid := s.Conn().RemotePeer()
+		plog.Info("remote peer", "peer", pid, "addr", maddr)
+		h.Peerstore().AddAddrs(pid, []multiaddr.Multiaddr{maddr}, peerstore.PermanentAddrTTL)
+		s.Close()
+	})
+
+	h.SetStreamHandler(sendtoID, func(s network.Stream) {
+		data, err := ioutil.ReadAll(s)
+		if err != nil {
+			return
+		}
+		g.C <- data
+	})
 }
 
 func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
@@ -136,6 +157,41 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 	return t.Publish(g.ctx, data)
 }
 
+func (g *gossip2) sendto(pub, data []byte) error {
+	p, err := crypto.UnmarshalSecp256k1PublicKey(pub)
+	if err != nil {
+		plog.Error("sendto error", "err", err)
+		return err
+	}
+
+	pid, err := peer.IDFromPublicKey(p)
+	if err != nil {
+		plog.Error("sendto error", "err", err)
+		return err
+	}
+
+	s, err := g.h.NewStream(g.ctx, pid, sendtoID)
+	if err != nil {
+		plog.Error("sendto error", "err", err)
+		return err
+	}
+	defer s.Close()
+	l := len(data)
+	for {
+		n, err := s.Write(data)
+		if err != nil {
+			plog.Error("sendto error", "err", err)
+			return err
+		}
+		l -= n
+		if l == 0 {
+			break
+		}
+		data = data[n:]
+	}
+	return nil
+}
+
 func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host.Host {
 	var idht *dht.IpfsDHT
 	h, err := libp2p.New(ctx,
@@ -158,14 +214,6 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 	if err != nil {
 		panic(err)
 	}
-
-	h.SetStreamHandler(remoteAddrID, func(s network.Stream) {
-		maddr := s.Conn().RemoteMultiaddr()
-		pid := s.Conn().RemotePeer()
-		plog.Info("remote peer", "peer", pid, "addr", maddr)
-		h.Peerstore().AddAddrs(pid, []multiaddr.Multiaddr{maddr}, peerstore.PermanentAddrTTL)
-		s.Close()
-	})
 
 	paddr := peerAddr(h)
 	err = ioutil.WriteFile("yccpeeraddr.txt", []byte(paddr.String()+"\n"), 0644)

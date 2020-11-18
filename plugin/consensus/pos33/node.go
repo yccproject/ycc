@@ -39,6 +39,51 @@ type node struct {
 	// already make block height and round
 	lheight int64
 	lround  int
+
+	bvs []int
+}
+
+// whether sortition or vote, the same height and round, only 1 time
+//
+func (n *node) findCps(height int64, round int, pub string) bool {
+	mp, ok := n.cps[height][round]
+	if !ok {
+		return false
+	}
+	for _, v := range mp {
+		if string(v.Proof.Pubkey) == pub {
+			return true
+		}
+	}
+	return false
+}
+
+func (n *node) findCss(height int64, round int, pub string) bool {
+	mp, ok := n.css[height][round]
+	if !ok {
+		return false
+	}
+	for _, v := range mp {
+		if string(v.Proof.Pubkey) == pub {
+			return true
+		}
+	}
+	return false
+}
+
+func (n *node) findCvs(height int64, round int, pub string) bool {
+	mp, ok := n.cvs[height][round]
+	if !ok {
+		return false
+	}
+	for _, vs := range mp {
+		for _, v := range vs {
+			if string(v.Sig.Pubkey) == pub {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // New create pos33 consensus client
@@ -513,6 +558,11 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 		return
 	}
 
+	if n.findCvs(height, round, string(vm.Sig.Pubkey)) {
+		plog.Error("repeat vote msg", "height", height, "round", round, "addr", address.PubKeyToAddr(vm.Sig.Pubkey))
+		return
+	}
+
 	sortHeight := height - pt.Pos33SortitionSize
 	seed, err := n.getSortSeed(sortHeight)
 	if err != nil {
@@ -650,6 +700,10 @@ func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg, lbHeight int64) {
 	if n.cps[height][round] == nil {
 		n.cps[height][round] = make(map[string]*pt.Pos33SortMsg)
 	}
+	if n.findCps(height, round, string(m.Proof.Pubkey)) {
+		plog.Error("repeat sortition msg", "height", height, "round", round, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+		return
+	}
 	n.cps[height][round][string(m.SortHash.Hash)] = m
 	plog.Debug("handleSortitionMsg", "height", height, "round", round, "size", len(n.cps[height][round]))
 }
@@ -737,6 +791,10 @@ func (n *node) handleSortsMsg(m *pt.Pos33Sorts, myself bool) {
 		round := int(s.Proof.Input.Round)
 		if n.css[height] == nil {
 			n.css[height] = make(map[int][]*pt.Pos33SortMsg)
+		}
+		if n.findCss(height, round, string(s.Proof.Pubkey)) {
+			plog.Error("repeat sortition msg", "height", height, "round", round, "addr", address.PubKeyToAddr(s.Proof.Pubkey))
+			return
 		}
 		ss := n.css[height][round]
 		ss = append(ss, s)
@@ -894,6 +952,17 @@ func (n *node) handleNewBlock(b *types.Block) {
 	}
 	n.vote(b.Height+pt.Pos33SortitionSize/2, round)
 	n.clear(b.Height)
+
+	if b.Height > 0 {
+		m, err := getMiner(b)
+		if err != nil {
+			return
+		}
+		n.bvs = append(n.bvs, len(m.Votes))
+		if len(n.bvs) > pt.Pos33SortitionSize*100 {
+			n.bvs = n.bvs[1:]
+		}
+	}
 }
 
 func (n *node) makeNewBlock(height int64, round int) {
@@ -924,7 +993,7 @@ func hexs(b []byte) string {
 }
 
 func (n *node) vote(height int64, round int) {
-	minHash, addr := n.bp(height, round)
+	minHash, pub := n.bp(height, round)
 	if minHash == "" {
 		plog.Debug("vote bp is nil", "height", height, "round", round)
 		return
@@ -934,7 +1003,7 @@ func (n *node) vote(height int64, round int) {
 		plog.Debug("I'm not verifer", "height", height)
 		return
 	}
-	plog.Info("block vote", "height", height, "round", round, "maker", addr[:16])
+	plog.Info("block vote", "height", height, "round", round, "maker", address.PubKeyToAddr(pub)[:16])
 	var vs []*pt.Pos33VoteMsg
 	for _, s := range ss {
 		v := &pt.Pos33VoteMsg{Sort: s, MinHash: []byte(minHash), SortsCount: uint32(len(n.css[height][round]))}
@@ -946,7 +1015,11 @@ func (n *node) vote(height int64, round int) {
 		vs = append(vs, v)
 	}
 	v := &pt.Pos33Votes{Vs: vs}
-	n.gss.gossip(pos33Topic, marshalVoteMsg(v))
+	data := marshalVoteMsg(v)
+	if string(n.priv.PubKey().Bytes()) != string(pub) {
+		go n.gss.sendto(pub, data)
+		n.gss.gossip(pos33Topic, data)
+	}
 	n.handleVotesMsg(v, true)
 }
 
