@@ -59,7 +59,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	diff := calcDiff(step, round, allw)
+	diff := n.calcDiff(step, allw)
 	var msgs []*pt.Pos33SortMsg
 	var minHash []byte
 	index := 0
@@ -137,16 +137,19 @@ func (n *node) queryDeposit(addr string) (*pt.Pos33DepositMsg, error) {
 	return reply, nil
 }
 
-func calcDiff(step, round, allw int) float64 {
-	// 本轮难度：委员会票数 / (总票数 * 在线率)
+// 本轮难度：委员会票数 / (总票数 * 在线率)
+func (n *node) calcDiff(step, allw int) float64 {
 	size := pt.Pos33VoterSize
 	if step == 0 {
 		size = pt.Pos33ProposerSize
 	}
 
-	diff := float64(changeDiff(size, round)) / float64(allw)
-	diff *= diffValue
-	return diff
+	l := 0
+	for _, n := range n.bvs {
+		l += n
+	}
+	onlineR := float64(l) / float64(len(n.bvs)) / float64(pt.Pos33RewardVotes)
+	return float64(size) / float64(allw) / onlineR
 }
 
 func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33SortMsg) error {
@@ -157,7 +160,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 		return fmt.Errorf("verifySort error: sort msg is nil")
 	}
 	round := m.Proof.Input.Round
-	diff := calcDiff(step, int(round), allw)
+	diff := n.calcDiff(step, allw)
 
 	addr := address.PubKeyToAddr(m.Proof.Pubkey)
 	d, err := n.queryDeposit(addr)
@@ -198,12 +201,12 @@ func hash2(data []byte) []byte {
 	return crypto.Sha256(crypto.Sha256(data))
 }
 
-func (n *node) bp(height int64, round int) (string, string) {
+func (n *node) bp(height int64, round int) (string, []byte) {
 	sortHeight := height - pt.Pos33SortitionSize
 	seed, err := n.getSortSeed(sortHeight)
 	if err != nil {
 		plog.Error("bp error", "err", err)
-		return "", ""
+		return "", nil
 	}
 	allw := n.allCount(sortHeight)
 	pss := make(map[string]*pt.Pos33SortMsg)
@@ -216,7 +219,7 @@ func (n *node) bp(height int64, round int) (string, string) {
 		pss[string(s.SortHash.Hash)] = s
 	}
 	if len(pss) == 0 {
-		return "", ""
+		return "", nil
 	}
 
 	// find min sortition hash, use string compare
@@ -234,5 +237,5 @@ func (n *node) bp(height int64, round int) (string, string) {
 		}
 	}
 
-	return min, address.PubKeyToAddr(ss.Proof.Pubkey)
+	return min, ss.Proof.Pubkey
 }
