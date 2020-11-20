@@ -173,10 +173,31 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 			wtxdetail.Fromaddr = toaddr
 		}
 	}
+	if len(wtxdetail.Fromaddr) <= 0 {
+		//  如果奖励交易里包含钱包地址的投票，那么fromaddr = voter.addr
+		if index == 0 {
+			var pact ty.Pos33TicketAction
+			err := types.Decode(tx.Payload, &pact)
+			if err != nil {
+				bizlog.Error("pos33action decode error", "err", err)
+				return nil
+			}
+			mact := pact.GetMiner()
+			for _, v := range mact.Votes {
+				pubkey := v.Sig.Pubkey
+				addr := address.PubKeyToAddr(pubkey)
+				if len(addr) != 0 && policy.walletOperate.AddrInWallet(addr) {
+					wtxdetail.Fromaddr = addr
+					break
+				}
+			}
+		}
+	}
 
 	if policy.checkNeedFlushPos33Ticket(tx, receipt) {
 		policy.needFlush = true
 	}
+	bizlog.Info("wallet block added", "height", block.Block.Height, "from", wtxdetail.Fromaddr)
 	return wtxdetail
 }
 
