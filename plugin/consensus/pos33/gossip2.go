@@ -111,8 +111,10 @@ func (g *gossip2) setHandler() {
 	h.SetStreamHandler(sendtoID, func(s network.Stream) {
 		data, err := ioutil.ReadAll(s)
 		if err != nil {
+			plog.Error("recv remote error", "err", err)
 			return
 		}
+		plog.Info("recv from remote peer", "protocolID", sendtoID, "remote peer", s.Conn().RemotePeer())
 		g.C <- data
 	})
 }
