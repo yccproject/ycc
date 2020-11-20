@@ -183,14 +183,16 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 				return nil
 			}
 			mact := pact.GetMiner()
+			n := int64(0)
 			for _, v := range mact.Votes {
 				pubkey := v.Sig.Pubkey
 				addr := address.PubKeyToAddr(pubkey)
 				if len(addr) != 0 && policy.walletOperate.AddrInWallet(addr) {
 					wtxdetail.Fromaddr = addr
-					break
+					n++
 				}
 			}
+			wtxdetail.Amount += ty.Pos33VoteReward * n
 		}
 	}
 
