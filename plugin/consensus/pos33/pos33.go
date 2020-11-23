@@ -50,11 +50,13 @@ type subConfig struct {
 	Genesis          []*genesisTicket `json:"genesis"`
 	GenesisBlockTime int64            `json:"genesisBlockTime"`
 	ListenPort       int              `json:"listenPort,omitempty"`
-	BootPeers        []string         `json:"BootPeers,omitempty"`
+	BootPeers        []string         `json:"bootPeers,omitempty"`
 	// if true, you can't make block and only vote
 	OnlyVoter bool `json:"onlyVoter,omitempty"`
 	// only for test!!! if true, delay 5 second make block
 	TrubleMaker bool `json:"trubleMaker,omitempty"`
+	// only for test
+	CheckFutureBlockHeight int64 `json:"checkFutureBlockHeight,omitempty"`
 }
 
 // New create pos33 consensus client
@@ -117,7 +119,7 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 	if len(current.Receipts) > 0 && current.Receipts[0].Ty != types.ExecOk {
 		return types.ErrCoinBaseExecErr
 	}
-	if current.Block.BlockTime-types.Now().Unix() > 5 {
+	if current.Block.Height >= client.conf.CheckFutureBlockHeight && current.Block.BlockTime-types.Now().Unix() > 5 {
 		return types.ErrFutureBlock
 	}
 	return client.n.checkBlock(current.Block, parent)

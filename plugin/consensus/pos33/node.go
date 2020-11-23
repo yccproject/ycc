@@ -568,7 +568,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	}
 
 	if n.findCvs(height, round, string(vm.Sig.Pubkey)) {
-		plog.Error("repeat vote msg", "height", height, "round", round, "addr", address.PubKeyToAddr(vm.Sig.Pubkey))
+		plog.Debug("repeat vote msg", "height", height, "round", round, "addr", address.PubKeyToAddr(vm.Sig.Pubkey))
 		return
 	}
 
@@ -710,7 +710,7 @@ func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg, lbHeight int64) {
 		n.cps[height][round] = make(map[string]*pt.Pos33SortMsg)
 	}
 	if n.findCps(height, round, string(m.Proof.Pubkey)) {
-		plog.Error("repeat sortition msg", "height", height, "round", round, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+		plog.Debug("repeat sortition msg", "height", height, "round", round, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
 		return
 	}
 	n.cps[height][round][string(m.SortHash.Hash)] = m
@@ -802,7 +802,7 @@ func (n *node) handleSortsMsg(m *pt.Pos33Sorts, myself bool) {
 			n.css[height] = make(map[int][]*pt.Pos33SortMsg)
 		}
 		if n.findCss(height, round, string(s.Proof.Pubkey)) {
-			plog.Error("repeat sortition msg", "height", height, "round", round, "addr", address.PubKeyToAddr(s.Proof.Pubkey))
+			plog.Debug("repeat sortition msg", "height", height, "round", round, "addr", address.PubKeyToAddr(s.Proof.Pubkey))
 			return
 		}
 		ss := n.css[height][round]
