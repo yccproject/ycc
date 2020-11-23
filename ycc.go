@@ -14,6 +14,7 @@ batchBlockNum=128
 driver="leveldb"
 isStrongConsistency=false
 disableShard=true
+onChainTimeout=1
 
 [p2p]
 enable=true

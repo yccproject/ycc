@@ -144,11 +144,14 @@ func (n *node) calcDiff(step, allw int) float64 {
 		size = pt.Pos33ProposerSize
 	}
 
-	l := 0
-	for _, n := range n.bvs {
-		l += n
+	onlineR := 1.
+	if len(n.bvs) >= calcuDiffBlockN {
+		l := 0
+		for _, n := range n.bvs {
+			l += n
+		}
+		onlineR = float64(l) / float64(len(n.bvs)) / float64(pt.Pos33RewardVotes)
 	}
-	onlineR := float64(l) / float64(len(n.bvs)) / float64(pt.Pos33RewardVotes)
 	return float64(size) / float64(allw) / onlineR
 }
 

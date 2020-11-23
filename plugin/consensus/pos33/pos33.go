@@ -117,7 +117,7 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 	if len(current.Receipts) > 0 && current.Receipts[0].Ty != types.ExecOk {
 		return types.ErrCoinBaseExecErr
 	}
-	if current.Block.BlockTime > types.Now().Unix() {
+	if current.Block.BlockTime-types.Now().Unix() > 5 {
 		return types.ErrFutureBlock
 	}
 	return client.n.checkBlock(current.Block, parent)
