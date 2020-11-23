@@ -1,6 +1,7 @@
 package pos33
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -174,15 +175,18 @@ func (g *gossip2) sendto(pub, data []byte) error {
 
 	s, err := g.h.NewStream(g.ctx, pid, sendtoID)
 	if err != nil {
-		plog.Error("sendto error", "err", err)
+		plog.Debug("sendto error", "err", err)
 		return err
 	}
 	defer s.Close()
+	s.SetWriteDeadline(time.Now().Add(time.Second))
+	w := bufio.NewWriter(s)
 	l := len(data)
 	for {
-		n, err := s.Write(data)
+		n, err := w.Write(data)
 		if err != nil {
-			plog.Error("sendto error", "err", err)
+			plog.Debug("sendto error", "err", err)
+			s.Reset()
 			return err
 		}
 		l -= n
@@ -191,6 +195,7 @@ func (g *gossip2) sendto(pub, data []byte) error {
 		}
 		data = data[n:]
 	}
+	w.Flush()
 	return nil
 }
 
