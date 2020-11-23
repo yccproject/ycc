@@ -59,7 +59,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	diff := n.calcDiff(step, allw)
+	diff := n.calcDiff(step, allw, round)
 	var msgs []*pt.Pos33SortMsg
 	var minHash []byte
 	index := 0
@@ -138,7 +138,7 @@ func (n *node) queryDeposit(addr string) (*pt.Pos33DepositMsg, error) {
 }
 
 // 本轮难度：委员会票数 / (总票数 * 在线率)
-func (n *node) calcDiff(step, allw int) float64 {
+func (n *node) calcDiff(step, allw, round int) float64 {
 	size := pt.Pos33VoterSize
 	if step == 0 {
 		size = pt.Pos33ProposerSize
@@ -152,6 +152,7 @@ func (n *node) calcDiff(step, allw int) float64 {
 		}
 		onlineR = float64(l) / float64(len(n.bvs)) / float64(pt.Pos33RewardVotes)
 	}
+	// onlineR -= 0.03 * float64(round)
 	return float64(size) / float64(allw) / onlineR
 }
 
@@ -163,7 +164,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 		return fmt.Errorf("verifySort error: sort msg is nil")
 	}
 	round := m.Proof.Input.Round
-	diff := n.calcDiff(step, allw)
+	diff := n.calcDiff(step, allw, int(round))
 
 	addr := address.PubKeyToAddr(m.Proof.Pubkey)
 	d, err := n.queryDeposit(addr)

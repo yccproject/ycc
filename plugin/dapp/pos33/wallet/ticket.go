@@ -158,6 +158,7 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 		Amount:     amount,
 		Payload:    nil,
 	}
+	isMaker := false
 	if len(wtxdetail.Fromaddr) <= 0 {
 		pubkey := tx.Signature.GetPubkey()
 		address := address.PubKeyToAddress(pubkey)
@@ -165,6 +166,9 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 		fromaddress := address.String()
 		if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
 			wtxdetail.Fromaddr = fromaddress
+			if index == 0 {
+				isMaker = true
+			}
 		}
 	}
 	if len(wtxdetail.Fromaddr) <= 0 {
@@ -190,6 +194,9 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 				wtxdetail.Fromaddr = addr
 				n++
 			}
+		}
+		if !isMaker {
+			wtxdetail.Amount = 0
 		}
 		wtxdetail.Amount += ty.Pos33VoteReward * n
 	}
