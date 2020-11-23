@@ -235,9 +235,18 @@ func (n *node) addBlock(b *types.Block) {
 	plog.Info("block add", "height", b.Height, "hash", common.ToHex(b.Hash(n.GetAPI().GetConfig()))[:16])
 	if b.BlockTime-n.lastBlock().BlockTime < 1 {
 		time.AfterFunc(time.Millisecond*300, func() {
-			n.bch <- b
+			n.pushBlock(b)
 		})
 	} else {
+		n.pushBlock(b)
+	}
+}
+
+func (n *node) pushBlock(b *types.Block) {
+	select {
+	case n.bch <- b:
+	default:
+		<-n.bch
 		n.bch <- b
 	}
 }
@@ -939,6 +948,8 @@ func (n *node) runLoop() {
 	}
 }
 
+const calcuDiffBlockN = pt.Pos33SortitionSize * 100
+
 func (n *node) handleNewBlock(b *types.Block) {
 	plog.Debug("handleNewBlock", "height", b.Height)
 	round := 0
@@ -959,7 +970,7 @@ func (n *node) handleNewBlock(b *types.Block) {
 			return
 		}
 		n.bvs = append(n.bvs, len(m.Votes))
-		if len(n.bvs) > pt.Pos33SortitionSize*100 {
+		if len(n.bvs) > calcuDiffBlockN {
 			n.bvs = n.bvs[1:]
 		}
 	}
@@ -1017,7 +1028,7 @@ func (n *node) vote(height int64, round int) {
 	v := &pt.Pos33Votes{Vs: vs}
 	data := marshalVoteMsg(v)
 	if string(n.priv.PubKey().Bytes()) != string(pub) {
-		go n.gss.sendto(pub, data)
+		// go n.gss.sendto(pub, data)
 		n.gss.gossip(pos33Topic, data)
 	}
 	n.handleVotesMsg(v, true)
