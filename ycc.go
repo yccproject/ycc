@@ -54,6 +54,7 @@ minerExecs=["pos33"]
 
 [consensus.sub.pos33]
 genesisBlockTime=1604449783
+checkFutureBlockHeight=1500000
 # listenPort="10901"
 # bootPeers=["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
 
@@ -81,7 +82,7 @@ coinReward=18
 coinDevFund=12
 ticketPrice=10000
 retargetAdjustmentFactor=4
-futureBlockTime=15
+futureBlockTime=5
 ticketFrozenTime=43200
 ticketWithdrawTime=10
 ticketMinerWaitTime=7200
