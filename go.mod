@@ -32,6 +32,7 @@ require (
 	github.com/libp2p/go-libp2p-routing v0.1.0
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-libp2p-yamux v0.2.8
+	github.com/libp2p/go-msgio v0.0.6
 	github.com/libp2p/go-sockaddr v0.1.0 // indirect
 	github.com/miekg/dns v1.1.35 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
