@@ -111,13 +111,13 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *go
 	}
 
 	g := &gossip2{
-		C:        make(chan []byte, 16),
+		ctx:      ctx,
 		h:        h,
 		tmap:     make(map[string]*pubsub.Topic),
-		ctx:      ctx,
 		streams:  make(map[peer.ID]*stream),
 		incoming: make(chan *pt.Pos33Msg, 16),
 		outgoing: make(chan *smsg, 16),
+		C:        make(chan []byte, 16),
 	}
 	g.setHandler()
 	go g.run(ps, topics)
@@ -259,7 +259,7 @@ func (g *gossip2) handleOutgoing() {
 		}
 		err = s.writeMsg(m.msg)
 		if err != nil {
-			plog.Error("new stream error", "err", err)
+			plog.Error("write msg error", "err", err)
 			if err != io.EOF {
 				s.s.Reset()
 			} else {
