@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"time"
 
 	ccrypto "github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/types"
+	pt "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 
 	"github.com/libp2p/go-libp2p"
 	autonat "github.com/libp2p/go-libp2p-autonat"
@@ -21,6 +24,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	routing "github.com/libp2p/go-libp2p-routing"
 	disc "github.com/libp2p/go-libp2p/p2p/discovery"
+	pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -44,10 +48,14 @@ type gossip2 struct {
 	tmap      map[string]*pubsub.Topic
 	ctx       context.Context
 	bootPeers []string
+	streams   map[peer.ID]*stream
+	incoming  chan *pt.Pos33Msg
+	outgoing  chan *smsg
 }
 
 const remoteAddrID = "yccxaddr"
 const sendtoID = "yccxsendto"
+const pos33MsgID = "pos33msg"
 
 func (g *gossip2) bootstrap(addrs ...string) error {
 	g.bootPeers = addrs
@@ -82,6 +90,14 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 	return nil
 }
 
+type stream struct {
+	s  network.Stream
+	w  *bufio.Writer
+	wc pio.WriteCloser
+}
+
+const defaultMaxSize = 1024 * 1024
+
 func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *gossip2 {
 	ctx := context.Background()
 	pr, err := crypto.UnmarshalSecp256k1PrivateKey(priv.Bytes())
@@ -93,7 +109,16 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *go
 	if err != nil {
 		panic(err)
 	}
-	g := &gossip2{C: make(chan []byte, 16), h: h, tmap: make(map[string]*pubsub.Topic), ctx: ctx}
+
+	g := &gossip2{
+		C:        make(chan []byte, 16),
+		h:        h,
+		tmap:     make(map[string]*pubsub.Topic),
+		ctx:      ctx,
+		streams:  make(map[peer.ID]*stream),
+		incoming: make(chan *pt.Pos33Msg, 16),
+		outgoing: make(chan *smsg, 16),
+	}
 	g.setHandler()
 	go g.run(ps, topics)
 	return g
@@ -109,15 +134,7 @@ func (g *gossip2) setHandler() {
 		s.Close()
 	})
 
-	h.SetStreamHandler(sendtoID, func(s network.Stream) {
-		data, err := ioutil.ReadAll(s)
-		if err != nil {
-			plog.Error("recv remote error", "err", err)
-			return
-		}
-		plog.Info("recv from remote peer", "protocolID", sendtoID, "remote peer", s.Conn().RemotePeer())
-		g.C <- data
-	})
+	h.SetStreamHandler(pos33MsgID, g.handleIncoming)
 }
 
 func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
@@ -141,6 +158,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
 			}
 		}(sb)
 	}
+	go g.handleOutgoing()
 	go func() {
 		for range time.NewTicker(time.Minute).C {
 			np := ps.ListPeers(topics[0])
@@ -160,43 +178,96 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 	return t.Publish(g.ctx, data)
 }
 
-func (g *gossip2) sendto(pub, data []byte) error {
+func pub2pid(pub []byte) (peer.ID, error) {
 	p, err := crypto.UnmarshalSecp256k1PublicKey(pub)
 	if err != nil {
 		plog.Error("sendto error", "err", err)
-		return err
+		return "", err
 	}
 
 	pid, err := peer.IDFromPublicKey(p)
 	if err != nil {
 		plog.Error("sendto error", "err", err)
+		return "", err
+	}
+	return pid, nil
+}
+
+func (s *stream) writeMsg(msg types.Message) error {
+	err := s.wc.WriteMsg(msg)
+	if err != nil {
 		return err
 	}
 
-	s, err := g.h.NewStream(g.ctx, pid, sendtoID)
+	return s.w.Flush()
+}
+
+func (g *gossip2) newStream(pid peer.ID) (*stream, error) {
+	s, ok := g.streams[pid]
+	if !ok {
+		s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
+		if err != nil {
+			plog.Error("newStream error", "err", err)
+			return nil, err
+		}
+		w := bufio.NewWriter(s)
+		g.streams[pid] = &stream{s: s, w: w, wc: pio.NewDelimitedWriter(w)}
+	}
+	return s, nil
+}
+
+type smsg struct {
+	pid peer.ID
+	msg types.Message
+}
+
+func (g *gossip2) sendMsg(pub []byte, msg types.Message) error {
+	pid, err := pub2pid(pub)
 	if err != nil {
-		plog.Debug("sendto error", "err", err)
 		return err
 	}
-	defer s.Close()
-	s.SetWriteDeadline(time.Now().Add(time.Second))
-	w := bufio.NewWriter(s)
-	l := len(data)
-	for {
-		n, err := w.Write(data)
-		if err != nil {
-			plog.Debug("sendto error", "err", err)
-			s.Reset()
-			return err
-		}
-		l -= n
-		if l == 0 {
-			break
-		}
-		data = data[n:]
-	}
-	w.Flush()
+	g.outgoing <- &smsg{pid, msg}
 	return nil
+}
+
+func (g *gossip2) handleIncoming(s network.Stream) {
+	r := pio.NewDelimitedReader(s, defaultMaxSize)
+	for {
+		m := new(pt.Pos33Msg)
+		err := r.ReadMsg(m)
+		if err != nil {
+			if err != io.EOF {
+				plog.Error("recv remote error", "err", err)
+				s.Reset()
+				return
+			}
+			s.Close()
+			return
+		}
+		plog.Info("recv from remote peer", "protocolID", sendtoID, "remote peer", s.Conn().RemotePeer())
+		g.incoming <- m
+	}
+}
+
+func (g *gossip2) handleOutgoing() {
+	for {
+		m := <-g.outgoing
+		s, err := g.newStream(m.pid)
+		if err != nil {
+			plog.Error("new stream error", "err", err)
+			continue
+		}
+		err = s.writeMsg(m.msg)
+		if err != nil {
+			plog.Error("new stream error", "err", err)
+			if err != io.EOF {
+				s.s.Reset()
+			} else {
+				s.s.Close()
+			}
+			delete(g.streams, m.pid)
+		}
+	}
 }
 
 func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host.Host {

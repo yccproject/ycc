@@ -223,7 +223,7 @@ func (n *node) addNvs(b *types.Block) error {
 	n.lock.Lock()
 	n.nvsMap[b.Height] = len(m.Votes)
 	if len(n.nvsMap) > calcuDiffBlockN {
-		delete(n.nvsMap, b.Height - calcuDiffBlockN)
+		delete(n.nvsMap, b.Height-calcuDiffBlockN)
 	}
 	n.lock.Unlock()
 	return nil
@@ -951,6 +951,8 @@ func (n *node) runLoop() {
 			return
 		case msg := <-msgch:
 			n.handlePos33Msg(msg)
+		case msg := <-n.gss.incoming:
+			n.handlePos33Msg(msg)
 		case <-syncTick.C:
 			isSync = n.IsCaughtUp()
 		default:
@@ -1056,9 +1058,9 @@ func (n *node) vote(height int64, round int) {
 		vs = append(vs, v)
 	}
 	v := &pt.Pos33Votes{Vs: vs}
-	data := marshalVoteMsg(v)
+	pm, data := marshalVoteMsg(v)
 	if string(n.priv.PubKey().Bytes()) != string(pub) {
-		go n.gss.sendto(pub, data)
+		n.gss.sendMsg(pub, pm)
 		n.gss.gossip(pos33Topic, data)
 	}
 	n.handleVotesMsg(v, true)
@@ -1072,10 +1074,10 @@ func marshalSortsMsg(m proto.Message) []byte {
 	return types.Encode(pm)
 }
 
-func marshalVoteMsg(v proto.Message) []byte {
+func marshalVoteMsg(v proto.Message) (*pt.Pos33Msg, []byte) {
 	pm := &pt.Pos33Msg{
 		Data: types.Encode(v),
 		Ty:   pt.Pos33Msg_V,
 	}
-	return types.Encode(pm)
+	return pm, types.Encode(pm)
 }
