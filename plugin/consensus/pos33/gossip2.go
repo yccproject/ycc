@@ -244,7 +244,7 @@ func (g *gossip2) handleIncoming(s network.Stream) {
 			s.Close()
 			return
 		}
-		plog.Info("recv from remote peer", "protocolID", s.Protocol(), "remote peer", s.Conn().RemotePeer())
+		plog.Debug("recv from remote peer", "protocolID", s.Protocol(), "remote peer", s.Conn().RemotePeer())
 		g.incoming <- m
 	}
 }
