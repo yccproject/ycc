@@ -181,13 +181,13 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 func pub2pid(pub []byte) (peer.ID, error) {
 	p, err := crypto.UnmarshalSecp256k1PublicKey(pub)
 	if err != nil {
-		plog.Error("sendto error", "err", err)
+		plog.Error("pub2pid error", "err", err)
 		return "", err
 	}
 
 	pid, err := peer.IDFromPublicKey(p)
 	if err != nil {
-		plog.Error("sendto error", "err", err)
+		plog.Error("pub2pid2 error", "err", err)
 		return "", err
 	}
 	return pid, nil
@@ -203,17 +203,17 @@ func (s *stream) writeMsg(msg types.Message) error {
 }
 
 func (g *gossip2) newStream(pid peer.ID) (*stream, error) {
-	s, ok := g.streams[pid]
+	st, ok := g.streams[pid]
 	if !ok {
 		s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
 		if err != nil {
-			plog.Error("newStream error", "err", err)
 			return nil, err
 		}
 		w := bufio.NewWriter(s)
-		g.streams[pid] = &stream{s: s, w: w, wc: pio.NewDelimitedWriter(w)}
+		st = &stream{s: s, w: w, wc: pio.NewDelimitedWriter(w)}
+		g.streams[pid] = st
 	}
-	return s, nil
+	return st, nil
 }
 
 type smsg struct {
@@ -244,7 +244,7 @@ func (g *gossip2) handleIncoming(s network.Stream) {
 			s.Close()
 			return
 		}
-		plog.Info("recv from remote peer", "protocolID", sendtoID, "remote peer", s.Conn().RemotePeer())
+		plog.Info("recv from remote peer", "protocolID", s.Protocol(), "remote peer", s.Conn().RemotePeer())
 		g.incoming <- m
 	}
 }
