@@ -606,7 +606,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	vs := n.cvs[height][round][minHash]
 	plog.Debug("handleVotesMsg", "height", height, "round", round, "voter", saddr(vm.GetSig()), "votes", len(vs))
 
-	if round == 0 || height > pt.Pos33SortitionSize {
+	if round == 0 || height < pt.Pos33SortitionSize {
 		return
 	}
 
