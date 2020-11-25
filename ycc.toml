@@ -81,7 +81,7 @@ bootPeers = [
   "/ip4/139.155.42.205/tcp/10901/p2p/16Uiu2HAmTjFLEAkdbnbMY7U62NLnQBZtGKySyWu1ww8xGKimy9HQ",
 ]
 listenPort = 10901
-onlyVoter = false
+onlyVoter = true
 
 [mempool]
 maxTxNumPerAccount = 100
