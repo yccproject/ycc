@@ -3,7 +3,6 @@ package pos33
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -118,7 +117,7 @@ func vrfVerify(pub []byte, input []byte, proof []byte, hash []byte) error {
 		plog.Error("vrfVerify", "err", err)
 		return pt.ErrVrfVerify
 	}
-	plog.Debug("vrf verify", "ProofToHash", fmt.Sprintf("(%x, %x): %x", input, proof, vrfHash), "hash", hex.EncodeToString(hash))
+	// plog.Debug("vrf verify", "ProofToHash", fmt.Sprintf("(%x, %x): %x", input, proof, vrfHash), "hash", hex.EncodeToString(hash))
 	if !bytes.Equal(vrfHash[:], hash) {
 		plog.Error("vrfVerify", "err", fmt.Errorf("invalid VRF hash"))
 		return pt.ErrVrfVerify
