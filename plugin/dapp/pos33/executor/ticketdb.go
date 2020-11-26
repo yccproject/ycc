@@ -110,7 +110,7 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int6
 		}
 		d.Reward += newReward
 	}
-	tlog.Debug("setDeposit", "maddr", maddr, "count", d.Count, "precount", d.PreCount, "closeheight", d.CloseHeight, "reward", d.Reward)
+	// tlog.Debug("setDeposit", "maddr", maddr, "count", d.Count, "precount", d.PreCount, "closeheight", d.CloseHeight, "reward", d.Reward)
 	return &types.KeyValue{Key: Key(maddr), Value: types.Encode(d)}
 }
 
