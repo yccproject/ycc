@@ -41,6 +41,8 @@ type node struct {
 	lheight int64
 	lround  int
 
+	maxSortHeight int64
+
 	lock   sync.Mutex
 	nvsMap map[int64]int
 }
@@ -300,7 +302,10 @@ func saddr(sig *types.Signature) string {
 }
 
 func (n *node) prepareOK(height int64) bool {
-	return n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.myCount() > 0
+	n.lock.Lock()
+	_, ok := n.nvsMap[height-1]
+	n.lock.Unlock()
+	return ok && n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.myCount() > 0
 }
 
 func (n *node) checkBlock(b, pb *types.Block) error {
@@ -554,7 +559,6 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 }
 
 func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
-	lb := n.lastBlock()
 	if len(vms.Vs) == 0 {
 		plog.Error("votemsg sortition is 0")
 		return
@@ -565,6 +569,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 		return
 	}
 	height := vm.Sort.Proof.Input.Height
+	lb := n.lastBlock()
 	if height <= lb.Height {
 		plog.Debug("vote too late")
 		return
@@ -575,8 +580,15 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	}
 
 	round := int(vm.Sort.Proof.Input.Round)
+	minHash := string(vm.MinHash)
+
+	sort := n.checkMySort(minHash, height, round)
+	if sort == nil {
+		return // if not vote me, no use for me
+	}
+
 	if n.lheight == height && n.lround == round {
-		return
+		return // if already make, vote is late, no use
 	}
 
 	if n.findCvs(height, round, string(vm.Sig.Pubkey)) {
@@ -592,7 +604,6 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	}
 	allw := n.allCount(sortHeight)
 
-	minHash := string(vm.MinHash)
 	for _, vm := range vms.Vs {
 		if !myself {
 			err := n.checkVote(vm, height, round, seed, allw, minHash)
@@ -611,7 +622,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	}
 
 	// 如果 block(height, round) 超时，收到票后，检查并 make block
-	n.checkAndMakeBlock(height, round, minHash, vs)
+	n.checkAndMakeBlock(height, round, sort, vs)
 }
 
 func (n *node) checkMySort(minHash string, height int64, round int) *pt.Pos33SortMsg {
@@ -619,6 +630,9 @@ func (n *node) checkMySort(minHash string, height int64, round int) *pt.Pos33Sor
 	if sort == nil {
 		plog.Debug("mysort is nil", "height", height, "round", round)
 		return nil
+	}
+	if minHash == "" {
+		return sort
 	}
 	if string(sort.SortHash.Hash) != minHash {
 		plog.Debug("mysort is NOT minHash", "height", height, "round", round)
@@ -643,24 +657,15 @@ func (n *node) makeNextBlock(height int64, round int) {
 		return
 	}
 
-	minHash := ""
-	max := 0
-	for hash, vs := range mp {
-		if len(vs) > max {
-			max = len(vs)
-			minHash = hash
-		}
-	}
-	vs := mp[minHash]
-	n.checkAndMakeBlock(height, round, minHash, vs)
-}
-
-func (n *node) checkAndMakeBlock(height int64, round int, minHash string, vs []*pt.Pos33VoteMsg) {
-	sort := n.checkMySort(minHash, height, round)
+	sort := n.checkMySort("", height, round)
 	if sort == nil {
 		return
 	}
+	vs := mp[string(sort.SortHash.Hash)]
+	n.checkAndMakeBlock(height, round, sort, vs)
+}
 
+func (n *node) checkAndMakeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg) {
 	if checkVotesEnough(vs, height, round) {
 		err := n.makeBlock(height, round, sort, vs)
 		if err != nil {
@@ -744,6 +749,9 @@ func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg, lbHeight int64) {
 	}
 	n.cps[height][round][string(m.SortHash.Hash)] = m
 	plog.Debug("handleSortitionMsg", "height", height, "round", round, "size", len(n.cps[height][round]))
+	if height > n.maxSortHeight {
+		n.maxSortHeight = height
+	}
 }
 
 func (n *node) checkSort(s *pt.Pos33SortMsg, seed []byte, allw, step int) error {
@@ -899,6 +907,10 @@ func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
 	return ch
 }
 
+func (n *node) synced() bool {
+	return n.IsCaughtUp() || n.lastBlock().Height+3 < n.maxSortHeight
+}
+
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
 	if err != nil {
@@ -952,7 +964,7 @@ func (n *node) runLoop() {
 		case msg := <-n.gss.incoming:
 			n.handlePos33Msg(msg)
 		case <-syncTick.C:
-			isSync = n.IsCaughtUp()
+			isSync = n.synced()
 		default:
 		}
 		if !isSync {
