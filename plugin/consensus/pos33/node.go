@@ -45,6 +45,9 @@ type node struct {
 
 	lock   sync.Mutex
 	nvsMap map[int64]int
+
+	blackList map[string]int64
+	mypid     string
 }
 
 // whether sortition or vote, the same height and round, only 1 time
@@ -93,13 +96,14 @@ func (n *node) findCvs(height int64, round int, pub string) bool {
 // New create pos33 consensus client
 func newNode(conf *subConfig) *node {
 	n := &node{
-		ips:    make(map[int64]map[int]*pt.Pos33SortMsg),
-		ivs:    make(map[int64]map[int][]*pt.Pos33SortMsg),
-		cps:    make(map[int64]map[int]map[string]*pt.Pos33SortMsg),
-		cvs:    make(map[int64]map[int]map[string][]*pt.Pos33VoteMsg),
-		css:    make(map[int64]map[int][]*pt.Pos33SortMsg),
-		bch:    make(chan *types.Block, 16),
-		nvsMap: make(map[int64]int),
+		ips:       make(map[int64]map[int]*pt.Pos33SortMsg),
+		ivs:       make(map[int64]map[int][]*pt.Pos33SortMsg),
+		cps:       make(map[int64]map[int]map[string]*pt.Pos33SortMsg),
+		cvs:       make(map[int64]map[int]map[string][]*pt.Pos33VoteMsg),
+		css:       make(map[int64]map[int][]*pt.Pos33SortMsg),
+		bch:       make(chan *types.Block, 16),
+		nvsMap:    make(map[int64]int),
+		blackList: make(map[string]int64),
 	}
 
 	plog.Debug("@@@@@@@ node start:", "conf", conf)
@@ -214,6 +218,26 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 		}
 		time.AfterFunc(time.Millisecond*500, func() { n.setBlock(nb) })
 	}
+
+	n.sendNewBlockToVotes(nb, vs, tx.Signature.Pubkey)
+	return nil
+}
+
+// send new block to voters
+func (n *node) sendNewBlockToVotes(b *types.Block, vs []*pt.Pos33VoteMsg, mypub []byte) error {
+	i := 0
+	for _, v := range vs {
+		pub := v.Sig.Pubkey
+		if string(mypub) == string(pub) {
+			continue
+		}
+		n.gss.sendMsg(pub, &pt.Pos33Msg{Data: types.Encode(&pt.Pos33BlockMsg{B: b, Pid: n.mypid}), Ty: pt.Pos33Msg_B})
+		i++
+		// we only send 7 voters,
+		if i == 7 {
+			break
+		}
+	}
 	return nil
 }
 
@@ -290,6 +314,11 @@ func (n *node) clear(height int64) {
 	for h := range n.ivs {
 		if h <= height {
 			delete(n.ivs, h)
+		}
+	}
+	for k, v := range n.blackList {
+		if height-v >= 86400 {
+			delete(n.blackList, k)
 		}
 	}
 }
@@ -556,6 +585,12 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 		return nil, err
 	}
 	return getMinerSeed(sb)
+}
+
+func (n *node) handleBlockMsg(bm *pt.Pos33BlockMsg) {
+	bp := &types.BlockPid{Pid: bm.Pid, Block: bm.B}
+	msg := n.GetQueueClient().NewMessage("blockchain", types.EventBroadcastAddBlock, bp)
+	n.GetQueueClient().Send(msg, false)
 }
 
 func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
@@ -881,6 +916,14 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 			return false
 		}
 		n.handleVotesMsg(&vt, false)
+	case pt.Pos33Msg_B:
+		var bm pt.Pos33BlockMsg
+		err := types.Decode(pm.Data, &bm)
+		if err != nil {
+			plog.Error(err.Error())
+			return false
+		}
+		n.handleBlockMsg(&bm)
 	default:
 		panic("not support this message type")
 	}
@@ -916,6 +959,7 @@ func (n *node) runLoop() {
 	if err != nil {
 		panic(err)
 	}
+	// add pre-blocks for calculate diff
 	if lb.Height > calcuDiffBlockN {
 		for i := lb.Height - calcuDiffBlockN; i <= lb.Height; i++ {
 			b, err := n.RequestBlock(i)
@@ -926,6 +970,15 @@ func (n *node) runLoop() {
 		}
 	}
 
+	// get my pid
+	list, err := n.GetAPI().PeerInfo(&types.P2PGetPeerReq{})
+	if err != nil {
+		panic(err)
+	}
+	self := list.Peers[len(list.Peers)-1]
+	n.mypid = self.Name
+
+	// start p2p gossip
 	priv := n.getPriv()
 	if priv == nil {
 		panic("can't go here")
@@ -954,6 +1007,8 @@ func (n *node) runLoop() {
 	blockTimeout := time.Second * 5
 	resortTimeout := time.Second * 3
 
+	bp := ""
+
 	for {
 		select {
 		case <-n.done:
@@ -981,6 +1036,10 @@ func (n *node) runLoop() {
 				time.AfterFunc(resortTimeout, func() {
 					nch <- height
 				})
+				// add timeout bp to blicklist, only round 1
+				if round == 1 && bp != "" {
+					n.blackList[bp] = height
+				}
 			}
 		case height := <-nch:
 			if height == n.lastBlock().Height+1 {
@@ -991,7 +1050,7 @@ func (n *node) runLoop() {
 			}
 		case b := <-n.bch: // new block add to chain
 			round = 0
-			n.handleNewBlock(b)
+			bp = n.handleNewBlock(b)
 			time.AfterFunc(time.Millisecond, func() {
 				nch <- b.Height + 1
 			})
@@ -1003,7 +1062,7 @@ func (n *node) runLoop() {
 
 const calcuDiffBlockN = pt.Pos33SortitionSize * 100
 
-func (n *node) handleNewBlock(b *types.Block) {
+func (n *node) handleNewBlock(b *types.Block) string {
 	plog.Debug("handleNewBlock", "height", b.Height)
 	round := 0
 	if b.Height == 0 {
@@ -1014,8 +1073,9 @@ func (n *node) handleNewBlock(b *types.Block) {
 	if b.Height < pt.Pos33SortitionSize/2 {
 		n.vote(b.Height+1, round)
 	}
-	n.vote(b.Height+pt.Pos33SortitionSize/2, round)
+	bp := n.vote(b.Height+pt.Pos33SortitionSize/2, round)
 	n.clear(b.Height)
+	return bp
 }
 
 func (n *node) makeNewBlock(height int64, round int) {
@@ -1045,16 +1105,16 @@ func hexs(b []byte) string {
 	return s[:16]
 }
 
-func (n *node) vote(height int64, round int) {
+func (n *node) vote(height int64, round int) string {
 	minHash, pub := n.bp(height, round)
 	if minHash == "" {
 		plog.Debug("vote bp is nil", "height", height, "round", round)
-		return
+		return ""
 	}
 	ss := n.myVotes(height, round)
 	if ss == nil {
 		plog.Debug("I'm not verifer", "height", height)
-		return
+		return ""
 	}
 	plog.Info("block vote", "height", height, "round", round, "maker", address.PubKeyToAddr(pub)[:16])
 	var vs []*pt.Pos33VoteMsg
@@ -1074,6 +1134,7 @@ func (n *node) vote(height int64, round int) {
 		n.gss.gossip(pos33Topic, data)
 	}
 	n.handleVotesMsg(v, true)
+	return string(pub)
 }
 
 func marshalSortsMsg(m proto.Message) []byte {

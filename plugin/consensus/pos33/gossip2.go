@@ -3,6 +3,7 @@ package pos33
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -51,6 +52,7 @@ type gossip2 struct {
 	streams   map[peer.ID]*stream
 	incoming  chan *pt.Pos33Msg
 	outgoing  chan *smsg
+	sch       chan *stream
 }
 
 const remoteAddrID = "yccxaddr"
@@ -91,9 +93,10 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 }
 
 type stream struct {
-	s  network.Stream
-	w  *bufio.Writer
-	wc pio.WriteCloser
+	pid peer.ID
+	s   network.Stream
+	w   *bufio.Writer
+	wc  pio.WriteCloser
 }
 
 const defaultMaxSize = 1024 * 1024
@@ -118,6 +121,7 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *go
 		incoming: make(chan *pt.Pos33Msg, 16),
 		outgoing: make(chan *smsg, 16),
 		C:        make(chan []byte, 16),
+		sch:      make(chan *stream, 1),
 	}
 	g.setHandler()
 	go g.run(ps, topics)
@@ -205,13 +209,17 @@ func (s *stream) writeMsg(msg types.Message) error {
 func (g *gossip2) newStream(pid peer.ID) (*stream, error) {
 	st, ok := g.streams[pid]
 	if !ok {
-		s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
-		if err != nil {
-			return nil, err
-		}
-		w := bufio.NewWriter(s)
-		st = &stream{s: s, w: w, wc: pio.NewDelimitedWriter(w)}
-		g.streams[pid] = st
+		go func() {
+			s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
+			if err != nil {
+				plog.Info("newStream error", "err", err)
+				return
+			}
+			w := bufio.NewWriter(s)
+			st = &stream{pid: pid, s: s, w: w, wc: pio.NewDelimitedWriter(w)}
+			g.sch <- st
+		}()
+		return nil, errors.New("not steam in cache")
 	}
 	return st, nil
 }
@@ -251,21 +259,25 @@ func (g *gossip2) handleIncoming(s network.Stream) {
 
 func (g *gossip2) handleOutgoing() {
 	for {
-		m := <-g.outgoing
-		s, err := g.newStream(m.pid)
-		if err != nil {
-			plog.Error("new stream error", "err", err)
-			continue
-		}
-		err = s.writeMsg(m.msg)
-		if err != nil {
-			plog.Error("write msg error", "err", err)
-			if err != io.EOF {
-				s.s.Reset()
-			} else {
-				s.s.Close()
+		select {
+		case s := <-g.sch:
+			g.streams[s.pid] = s
+		case m := <-g.outgoing:
+			s, err := g.newStream(m.pid)
+			if err != nil {
+				plog.Error("new stream error", "err", err)
+				continue
 			}
-			delete(g.streams, m.pid)
+			err = s.writeMsg(m.msg)
+			if err != nil {
+				plog.Error("write msg error", "err", err)
+				if err != io.EOF {
+					s.s.Reset()
+				} else {
+					s.s.Close()
+				}
+				delete(g.streams, m.pid)
+			}
 		}
 	}
 }

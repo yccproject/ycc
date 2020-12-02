@@ -80,7 +80,8 @@ message Pos33Sorts {
 
 message Pos33BlockMsg {
   Block b = 1;
-  Signature sig = 2;
+  // Signature sig = 2;
+  string pid = 2;
 }
 
 message Pos33VoteMsg {
