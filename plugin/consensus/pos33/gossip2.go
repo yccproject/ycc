@@ -3,7 +3,6 @@ package pos33
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -52,15 +51,18 @@ type gossip2 struct {
 	streams   map[peer.ID]*stream
 	incoming  chan *pt.Pos33Msg
 	outgoing  chan *smsg
-	sch       chan *stream
+
+	bootPids map[peer.ID]struct{}
 }
 
 const remoteAddrID = "yccxaddr"
 const sendtoID = "yccxsendto"
 const pos33MsgID = "pos33msg"
 
-func (g *gossip2) bootstrap(addrs ...string) error {
-	g.bootPeers = addrs
+func (g *gossip2) bootstrap(first bool, addrs ...string) error {
+	if first {
+		g.bootPeers = addrs
+	}
 	for _, addr := range addrs {
 		targetAddr, err := multiaddr.NewMultiaddr(addr)
 		if err != nil {
@@ -80,12 +82,16 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 			plog.Error("bootstrap error", "err", err)
 			return err
 		}
+		if first {
+			g.bootPids[targetInfo.ID] = struct{}{}
+		}
 		plog.Info("connect boot peer", "bootpeer", targetAddr.String())
 		s, err := g.h.NewStream(g.ctx, targetInfo.ID, remoteAddrID)
 		if err != nil {
 			plog.Error("bootstrap error", "err", err)
 			return err
 		}
+		// g.newStream(targetInfo.ID)
 		s.Write([]byte(g.h.ID()))
 		s.Close()
 	}
@@ -121,7 +127,7 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *go
 		incoming: make(chan *pt.Pos33Msg, 16),
 		outgoing: make(chan *smsg, 16),
 		C:        make(chan []byte, 16),
-		sch:      make(chan *stream, 1),
+		bootPids: make(map[peer.ID]struct{}),
 	}
 	g.setHandler()
 	go g.run(ps, topics)
@@ -168,7 +174,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
 			np := ps.ListPeers(topics[0])
 			plog.Info("pos33 peers ", "len", len(np), "peers", np)
 			if len(np) < 3 {
-				g.bootstrap(g.bootPeers...)
+				g.bootstrap(false, g.bootPeers...)
 			}
 		}
 	}()
@@ -209,17 +215,14 @@ func (s *stream) writeMsg(msg types.Message) error {
 func (g *gossip2) newStream(pid peer.ID) (*stream, error) {
 	st, ok := g.streams[pid]
 	if !ok {
-		go func() {
-			s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
-			if err != nil {
-				plog.Info("newStream error", "err", err)
-				return
-			}
-			w := bufio.NewWriter(s)
-			st = &stream{pid: pid, s: s, w: w, wc: pio.NewDelimitedWriter(w)}
-			g.sch <- st
-		}()
-		return nil, errors.New("not steam in cache")
+		s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
+		if err != nil {
+			plog.Info("newStream error", "err", err)
+			return nil, err
+		}
+		w := bufio.NewWriter(s)
+		st = &stream{pid: pid, s: s, w: w, wc: pio.NewDelimitedWriter(w)}
+		g.streams[pid] = st
 	}
 	return st, nil
 }
@@ -230,11 +233,17 @@ type smsg struct {
 }
 
 func (g *gossip2) sendMsg(pub []byte, msg types.Message) error {
-	pid, err := pub2pid(pub)
-	if err != nil {
-		return err
+	if pub != nil {
+		pid, err := pub2pid(pub)
+		if err != nil {
+			return err
+		}
+		g.outgoing <- &smsg{pid, msg}
+	} else {
+		for pid := range g.bootPids {
+			g.outgoing <- &smsg{pid, msg}
+		}
 	}
-	g.outgoing <- &smsg{pid, msg}
 	return nil
 }
 
@@ -260,8 +269,6 @@ func (g *gossip2) handleIncoming(s network.Stream) {
 func (g *gossip2) handleOutgoing() {
 	for {
 		select {
-		case s := <-g.sch:
-			g.streams[s.pid] = s
 		case m := <-g.outgoing:
 			s, err := g.newStream(m.pid)
 			if err != nil {

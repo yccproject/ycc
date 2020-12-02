@@ -219,25 +219,7 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 		time.AfterFunc(time.Millisecond*500, func() { n.setBlock(nb) })
 	}
 
-	n.sendNewBlockToVotes(nb, vs, tx.Signature.Pubkey)
-	return nil
-}
-
-// send new block to voters
-func (n *node) sendNewBlockToVotes(b *types.Block, vs []*pt.Pos33VoteMsg, mypub []byte) error {
-	i := 0
-	for _, v := range vs {
-		pub := v.Sig.Pubkey
-		if string(mypub) == string(pub) {
-			continue
-		}
-		n.gss.sendMsg(pub, &pt.Pos33Msg{Data: types.Encode(&pt.Pos33BlockMsg{B: b, Pid: n.mypid}), Ty: pt.Pos33Msg_B})
-		i++
-		// we only send 7 voters,
-		if i == 7 {
-			break
-		}
-	}
+	n.gss.sendMsg(nil, &pt.Pos33Msg{Data: types.Encode(&pt.Pos33BlockMsg{B: nb, Pid: n.mypid}), Ty: pt.Pos33Msg_B})
 	return nil
 }
 
@@ -587,10 +569,14 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 	return getMinerSeed(sb)
 }
 
-func (n *node) handleBlockMsg(bm *pt.Pos33BlockMsg) {
+func (n *node) handleBlockMsg(bm *pt.Pos33BlockMsg, b bool) {
 	bp := &types.BlockPid{Pid: bm.Pid, Block: bm.B}
 	msg := n.GetQueueClient().NewMessage("blockchain", types.EventBroadcastAddBlock, bp)
 	n.GetQueueClient().Send(msg, false)
+	if b {
+		data := marshalBlockMsg(bm)
+		n.gss.gossip(pos33Topic, data)
+	}
 }
 
 func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
@@ -895,7 +881,7 @@ func unmarshal(b []byte) (*pt.Pos33Msg, error) {
 	return &pm, nil
 }
 
-func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
+func (n *node) handlePos33Msg(pm *pt.Pos33Msg, b bool) bool {
 	if pm == nil {
 		return false
 	}
@@ -923,7 +909,7 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 			plog.Error(err.Error())
 			return false
 		}
-		n.handleBlockMsg(&bm)
+		n.handleBlockMsg(&bm, b)
 	default:
 		panic("not support this message type")
 	}
@@ -989,7 +975,7 @@ func (n *node) runLoop() {
 	n.gss = newGossip2(priv, n.conf.ListenPort, ns, pos33Topic)
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
-		go n.gss.bootstrap(n.conf.BootPeers...)
+		go n.gss.bootstrap(true, n.conf.BootPeers...)
 	}
 
 	n.updateTicketCount(lb.Height)
@@ -1015,9 +1001,9 @@ func (n *node) runLoop() {
 			plog.Debug("pos33 consensus run loop stoped")
 			return
 		case msg := <-msgch:
-			n.handlePos33Msg(msg)
+			n.handlePos33Msg(msg, false)
 		case msg := <-n.gss.incoming:
-			n.handlePos33Msg(msg)
+			n.handlePos33Msg(msg, true)
 		case <-syncTick.C:
 			isSync = n.synced()
 		default:
@@ -1141,6 +1127,14 @@ func marshalSortsMsg(m proto.Message) []byte {
 	pm := &pt.Pos33Msg{
 		Data: types.Encode(m),
 		Ty:   pt.Pos33Msg_S,
+	}
+	return types.Encode(pm)
+}
+
+func marshalBlockMsg(m proto.Message) []byte {
+	pm := &pt.Pos33Msg{
+		Data: types.Encode(m),
+		Ty:   pt.Pos33Msg_B,
 	}
 	return types.Encode(pm)
 }
