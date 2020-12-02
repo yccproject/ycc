@@ -48,6 +48,7 @@ type node struct {
 
 	blackList map[string]int64
 	mypid     string
+	bmp       map[string]int64
 }
 
 // whether sortition or vote, the same height and round, only 1 time
@@ -104,6 +105,7 @@ func newNode(conf *subConfig) *node {
 		bch:       make(chan *types.Block, 16),
 		nvsMap:    make(map[int64]int),
 		blackList: make(map[string]int64),
+		bmp:       make(map[string]int64),
 	}
 
 	plog.Debug("@@@@@@@ node start:", "conf", conf)
@@ -209,6 +211,9 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	nb.Difficulty = n.blockDiff(lb, len(vs))
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs))
 
+	// we send the new block to other peers
+	n.gss.sendMsg(nil, &pt.Pos33Msg{Data: types.Encode(&pt.Pos33BlockMsg{B: nb, Pid: n.mypid}), Ty: pt.Pos33Msg_B})
+
 	// this code ONLY for TEST
 	if n.conf.TrubleMaker {
 		time.AfterFunc(time.Second*5, func() { n.setBlock(nb) })
@@ -219,7 +224,6 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 		time.AfterFunc(time.Millisecond*500, func() { n.setBlock(nb) })
 	}
 
-	n.gss.sendMsg(nil, &pt.Pos33Msg{Data: types.Encode(&pt.Pos33BlockMsg{B: nb, Pid: n.mypid}), Ty: pt.Pos33Msg_B})
 	return nil
 }
 
@@ -301,6 +305,11 @@ func (n *node) clear(height int64) {
 	for k, v := range n.blackList {
 		if height-v >= 86400 {
 			delete(n.blackList, k)
+		}
+	}
+	for k, v := range n.bmp {
+		if v <= height {
+			delete(n.bmp, k)
 		}
 	}
 }
@@ -570,9 +579,18 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 }
 
 func (n *node) handleBlockMsg(bm *pt.Pos33BlockMsg, b bool) {
+	k := string(bm.B.Hash(n.GetAPI().GetConfig()))
+	_, ok := n.bmp[k]
+	if ok {
+		return
+	}
+	n.bmp[k] = bm.B.Height
+
 	bp := &types.BlockPid{Pid: bm.Pid, Block: bm.B}
 	msg := n.GetQueueClient().NewMessage("blockchain", types.EventBroadcastAddBlock, bp)
 	n.GetQueueClient().Send(msg, false)
+
+	// broadcast the block to others
 	if b {
 		data := marshalBlockMsg(bm)
 		n.gss.gossip(pos33Topic, data)

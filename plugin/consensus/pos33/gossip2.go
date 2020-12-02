@@ -217,7 +217,6 @@ func (g *gossip2) newStream(pid peer.ID) (*stream, error) {
 	if !ok {
 		s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
 		if err != nil {
-			plog.Info("newStream error", "err", err)
 			return nil, err
 		}
 		w := bufio.NewWriter(s)
