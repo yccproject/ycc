@@ -82,6 +82,7 @@ bootPeers = [
 ]
 listenPort = 10901
 onlyVoter = true
+sendBlockBootpeer = true
 
 [mempool]
 maxTxNumPerAccount = 100

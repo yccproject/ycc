@@ -594,8 +594,8 @@ func (n *node) handleBlockMsg(bm *pt.Pos33BlockMsg, b bool) {
 
 	// broadcast the block to others
 	if b {
-		data := marshalBlockMsg(bm)
-		n.gss.gossip(pos33Topic, data)
+		// data := marshalBlockMsg(bm)
+		// n.gss.gossip(pos33Topic, data)
 	}
 }
 
@@ -931,7 +931,7 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg, b bool) bool {
 		}
 		n.handleBlockMsg(&bm, b)
 	default:
-		panic("not support this message type")
+		plog.Info("not support this message type")
 	}
 
 	return true
