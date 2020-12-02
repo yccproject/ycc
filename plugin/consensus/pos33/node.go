@@ -212,7 +212,9 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs))
 
 	// we send the new block to other peers
-	n.gss.sendMsg(nil, &pt.Pos33Msg{Data: types.Encode(&pt.Pos33BlockMsg{B: nb, Pid: n.mypid}), Ty: pt.Pos33Msg_B})
+	if n.conf.SendBlockBootpeer {
+		n.gss.sendMsg(nil, &pt.Pos33Msg{Data: types.Encode(&pt.Pos33BlockMsg{B: nb, Pid: n.mypid}), Ty: pt.Pos33Msg_B})
+	}
 
 	// this code ONLY for TEST
 	if n.conf.TrubleMaker {

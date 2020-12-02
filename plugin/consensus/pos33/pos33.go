@@ -54,7 +54,8 @@ type subConfig struct {
 	// if true, you can't make block and only vote
 	OnlyVoter bool `json:"onlyVoter,omitempty"`
 	// only for test!!! if true, delay 5 second make block
-	TrubleMaker bool `json:"trubleMaker,omitempty"`
+	TrubleMaker       bool `json:"trubleMaker,omitempty"`
+	SendBlockBootpeer bool `json:"sendBlockBootpeer,omitempty"`
 	// only for test
 	CheckFutureBlockHeight int64 `json:"checkFutureBlockHeight,omitempty"`
 }
