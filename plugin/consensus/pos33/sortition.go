@@ -231,10 +231,10 @@ func (n *node) bp(height int64, round int) (string, []byte) {
 	var min string
 	var ss *pt.Pos33SortMsg
 	for sh, s := range pss {
-		_, ok := n.blackList[string(s.Proof.Pubkey)]
-		if ok {
-			continue
-		}
+		// _, ok := n.blackList[string(s.Proof.Pubkey)]
+		// if ok {
+		// 	continue
+		// }
 		if min == "" {
 			min = sh
 			ss = s
