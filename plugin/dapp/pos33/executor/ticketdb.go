@@ -247,7 +247,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		}
 
 		logs = append(logs, receipt.Logs...)
-		logs = append(logs, minerReceipt(ty.TyLogVoterPos33Ticket, action.fromaddr, ty.Pos33VoteReward))
+		logs = append(logs, minerReceipt(ty.TyLogVoterPos33Ticket, maddr, ty.Pos33VoteReward))
 		kvs = append(kvs, receipt.KV...)
 		kvs = append(kvs, setDeposit(action.db, maddr, "", 0, ty.Pos33VoteReward, action.height))
 	}

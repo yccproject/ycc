@@ -749,7 +749,7 @@ func (n *node) handleSortitionMsg(m *pt.Pos33SortMsg, lbHeight int64) {
 	}
 	n.cps[height][round][string(m.SortHash.Hash)] = m
 	plog.Debug("handleSortitionMsg", "height", height, "round", round, "size", len(n.cps[height][round]))
-	if height > n.maxSortHeight {
+	if round > 0 && height > n.maxSortHeight {
 		n.maxSortHeight = height
 	}
 }
@@ -908,7 +908,7 @@ func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
 }
 
 func (n *node) synced() bool {
-	return n.IsCaughtUp() || n.lastBlock().Height+3 < n.maxSortHeight
+	return n.IsCaughtUp() || n.lastBlock().Height+3 > n.maxSortHeight
 }
 
 func (n *node) runLoop() {
@@ -979,7 +979,12 @@ func (n *node) runLoop() {
 				plog.Info("block timeout", "height", height, "round", round)
 				n.reSortition(height, round)
 				time.AfterFunc(resortTimeout, func() {
-					nch <- height
+					nh := n.lastBlock().Height + 1
+					if height == nh {
+						nch <- height
+					} else if height > nh {
+						tch <- nh
+					}
 				})
 			}
 		case height := <-nch:

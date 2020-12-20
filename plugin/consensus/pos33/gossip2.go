@@ -163,9 +163,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
 		for range time.NewTicker(time.Minute).C {
 			np := ps.ListPeers(topics[0])
 			plog.Info("pos33 peers ", "len", len(np), "peers", np)
-			if len(np) < 3 {
-				g.bootstrap(g.bootPeers...)
-			}
+			g.bootstrap(g.bootPeers...)
 		}
 	}()
 }

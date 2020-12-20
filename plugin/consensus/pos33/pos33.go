@@ -119,10 +119,13 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 	if len(current.Receipts) > 0 && current.Receipts[0].Ty != types.ExecOk {
 		return types.ErrCoinBaseExecErr
 	}
-	if current.Block.Height >= client.conf.CheckFutureBlockHeight && current.Block.BlockTime-types.Now().Unix() > 5 {
+	return client.BlockCheck(parent, current.Block)
+}
+func (client *Client) BlockCheck(parent *types.Block, current *types.Block) error {
+	if current.Height >= client.conf.CheckFutureBlockHeight && current.BlockTime-types.Now().Unix() > 5 {
 		return types.ErrFutureBlock
 	}
-	return client.n.checkBlock(current.Block, parent)
+	return client.n.checkBlock(current, parent)
 }
 
 func (client *Client) myCount() int {
@@ -349,6 +352,16 @@ func (client *Client) Get(key []byte) ([]byte, error) {
 
 // CmpBestBlock 比较newBlock是不是最优区块
 func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool {
+	pb, err := client.RequestBlock(newBlock.Height - 1)
+	if err != nil {
+		plog.Error("block cmp error", "err", err)
+		return false
+	}
+	err = client.BlockCheck(pb, newBlock)
+	if err != nil {
+		plog.Error("block cmp error", "err", err)
+		return false
+	}
 	m1, err := getMiner(newBlock)
 	if err != nil {
 		return false
@@ -359,6 +372,8 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 		return true
 	}
 	r2 := m2.Sort.Proof.Input.Round
+
+	plog.Info("block cmp", "r1", r1, "r2", r2, "nv1", len(m1.Votes), "nv2", len(m2.Votes))
 
 	return r1 > r2 || len(m1.Votes) > len(m2.Votes)
 }
