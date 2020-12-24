@@ -146,6 +146,9 @@ func (policy *ticketPolicy) Call(funName string, in types.Message) (ret types.Me
 
 // OnAddBlockTx add Block tx
 func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
+	return policy.onAddOrDeleteBlockTx(block, tx, index, dbbatch, true)
+}
+func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch, isAdd bool) *types.WalletTxDetail {
 	receipt := block.Receipts[index]
 	amount, _ := tx.Amount()
 	wtxdetail := &types.WalletTxDetail{
@@ -204,44 +207,20 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 	if policy.checkNeedFlushPos33Ticket(tx, receipt) {
 		policy.needFlush = true
 	}
-	bizlog.Info("wallet block added", "height", block.Block.Height, "from", wtxdetail.Fromaddr, "amount", wtxdetail.Amount)
+
+	if len(wtxdetail.Fromaddr) > 0 {
+		if isAdd {
+			bizlog.Info("wallet block added", "height", block.Block.Height, "from", wtxdetail.Fromaddr, "amount", wtxdetail.Amount)
+		} else {
+			bizlog.Info("wallet block delete", "height", block.Block.Height, "from", wtxdetail.Fromaddr, "amount", wtxdetail.Amount)
+		}
+	}
 	return wtxdetail
 }
 
 // OnDeleteBlockTx on delete block
 func (policy *ticketPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
-	receipt := block.Receipts[index]
-	amount, _ := tx.Amount()
-	wtxdetail := &types.WalletTxDetail{
-		Tx:         tx,
-		Height:     block.Block.Height,
-		Index:      int64(index),
-		Receipt:    receipt,
-		Blocktime:  block.Block.BlockTime,
-		ActionName: tx.ActionName(),
-		Amount:     amount,
-		Payload:    nil,
-	}
-	if len(wtxdetail.Fromaddr) <= 0 {
-		pubkey := tx.Signature.GetPubkey()
-		address := address.PubKeyToAddress(pubkey)
-		//from addr
-		fromaddress := address.String()
-		if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
-			wtxdetail.Fromaddr = fromaddress
-		}
-	}
-	if len(wtxdetail.Fromaddr) <= 0 {
-		toaddr := tx.GetTo()
-		if len(toaddr) != 0 && policy.walletOperate.AddrInWallet(toaddr) {
-			wtxdetail.Fromaddr = toaddr
-		}
-	}
-
-	if policy.checkNeedFlushPos33Ticket(tx, receipt) {
-		policy.needFlush = true
-	}
-	return wtxdetail
+	return policy.onAddOrDeleteBlockTx(block, tx, index, dbbatch, false)
 }
 
 // SignTransaction sign tx
