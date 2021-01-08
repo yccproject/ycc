@@ -983,15 +983,27 @@ func (n *node) runLoop() {
 					if height == nh {
 						nch <- height
 					} else if height > nh {
+						plog.Info("block height reduce 1", "height", height, "lastHeight", nh)
 						tch <- nh
 					}
 				})
 			}
 		case height := <-nch:
-			if height == n.lastBlock().Height+1 {
+			nh := n.lastBlock().Height + 1
+			if height == nh {
 				n.makeNewBlock(height, round)
 				time.AfterFunc(blockTimeout, func() {
-					tch <- height
+					nh := n.lastBlock().Height + 1
+					if height == nh {
+						tch <- height
+					} else if height > nh {
+						plog.Info("block height reduce 2", "height", height, "lastHeight", nh)
+						tch <- nh
+					}
+				})
+			} else if height > nh {
+				time.AfterFunc(time.Millisecond, func() {
+					tch <- nh
 				})
 			}
 		case b := <-n.bch: // new block add to chain
