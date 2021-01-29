@@ -206,41 +206,30 @@ func hash2(data []byte) []byte {
 	return crypto.Sha256(crypto.Sha256(data))
 }
 
-func (n *node) bp(height int64, round int) (string, []byte) {
+func (n *node) bp(height int64, round int) []*pt.Pos33SortMsg {
 	sortHeight := height - pt.Pos33SortitionSize
 	seed, err := n.getSortSeed(sortHeight)
 	if err != nil {
 		plog.Error("bp error", "err", err)
-		return "", nil
+		return nil
 	}
 	allw := n.allCount(sortHeight)
-	pss := make(map[string]*pt.Pos33SortMsg)
+	var pss []*pt.Pos33SortMsg
 	for _, s := range n.cps[height][round] {
 		err := n.checkSort(s, seed, allw, 0)
 		if err != nil {
 			plog.Error("checkSort error", "err", err)
 			continue
 		}
-		pss[string(s.SortHash.Hash)] = s
+		pss = append(pss, s)
 	}
 	if len(pss) == 0 {
-		return "", nil
+		return nil
 	}
 
-	// find min sortition hash, use string compare
-	var min string
-	var ss *pt.Pos33SortMsg
-	for sh, s := range pss {
-		if min == "" {
-			min = sh
-			ss = s
-		} else {
-			if min > sh {
-				min = sh
-				ss = s
-			}
-		}
+	sort.Sort(pt.Sorts(pss))
+	if len(pss) <= 3 {
+		return pss
 	}
-
-	return min, ss.Proof.Pubkey
+	return pss[:3]
 }

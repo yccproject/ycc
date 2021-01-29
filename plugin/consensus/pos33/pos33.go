@@ -366,16 +366,22 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 	if err != nil {
 		return false
 	}
-	r1 := m1.Sort.Proof.Input.Round
 	m2, err := getMiner(cmpBlock)
 	if err != nil {
 		return true
 	}
-	r2 := m2.Sort.Proof.Input.Round
 
-	plog.Info("block cmp", "r1", r1, "r2", r2, "nv1", len(m1.Votes), "nv2", len(m2.Votes))
+	cb := client.GetCurrentBlock()
+	if cb.Height > newBlock.Height {
+		return false
+	}
 
-	return r1 > r2 || len(m1.Votes) > len(m2.Votes)
+	plog.Info("block cmp",  "nv1", len(m1.Votes), "nv2", len(m2.Votes))
+
+	if len(m1.Votes) == len(m2.Votes) {
+		return string(m1.Sort.SortHash.Hash) < string (m2.Sort.SortHash.Hash)
+	}
+	return len(m1.Votes) > len(m2.Votes)
 }
 
 // Query_GetTicketCount ticket query ticket count function
