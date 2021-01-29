@@ -53,9 +53,9 @@ type gossip2 struct {
 	outgoing  chan *smsg
 }
 
-const remoteAddrID = "yccxaddr"
-const sendtoID = "yccxsendto"
-const pos33MsgID = "pos33msg"
+const remoteAddrID = "ycc-pos33-addr"
+const sendtoID = "ycc-pos33-sendto"
+const pos33MsgID = "ycc-pos33-msg"
 
 func (g *gossip2) bootstrap(addrs ...string) error {
 	g.bootPeers = addrs

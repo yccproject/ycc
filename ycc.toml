@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc"
+Title = "ycc-alterblock"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -46,20 +46,14 @@ waitPid = false
 innerBounds = 300
 innerSeedEnable = true
 isSeed = false
-port = 13802
-seeds = []
-useGithub = true
+port = 13902
+useGithub = false
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
 channel = 3
-port = 13801
-seeds = [
-  "/ip4/139.155.72.161/tcp/13801/p2p/16Uiu2HAm2jEVnUeRa9CucFbotccsLunAxD5Vct7p9HrL6RjMgoPR",
-  "/ip4/139.155.92.3/tcp/13801/p2p/16Uiu2HAmRKoEozJHeZZNZ5sSBUWscju8Kpiupgie87ouhn4Fkxy9",
-  "/ip4/124.71.10.240/tcp/13801/p2p/16Uiu2HAmFf8E8pzpivkNJVzozxWnTLvsUAqDSUU7qYPU3mWjSV8d",
-  "/ip4/139.9.5.17/tcp/13801/p2p/16Uiu2HAmV8uY63jiYs7CM7ZfTiSSjtoyHpkBhvJqbjFiShEYPMWS",
-]
+port = 13901
+seeds = []
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -68,19 +62,16 @@ minLtBlockSize = 1
 [rpc]
 certFile = "cert.pem"
 enableTLS = false
-grpcBindAddr = "localhost:9902"
+grpcBindAddr = "localhost:8902"
 grpcFuncWhitelist = ["*"]
-jrpcBindAddr = "localhost:9901"
+jrpcBindAddr = "localhost:8901"
 jrpcFuncWhitelist = ["*"]
 keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-bootPeers = [
-  "/ip4/139.155.92.3/tcp/10901/p2p/16Uiu2HAm87rGEfEhu751wQToM97AuBRYZPbR4ji1xZnAAyUsstaT",
-  "/ip4/139.155.42.205/tcp/10901/p2p/16Uiu2HAmTjFLEAkdbnbMY7U62NLnQBZtGKySyWu1ww8xGKimy9HQ",
-]
-listenPort = 10901
+bootPeers = []
+listenPort = 10801
 onlyVoter = false
 
 [mempool]
