@@ -80,13 +80,15 @@ message Pos33Sorts {
 
 message Pos33BlockMsg {
   Block b = 1;
-  Signature sig = 2;
+  string pid = 2;
+  uint32 order = 3;
 }
 
 message Pos33VoteMsg {
   Pos33SortMsg sort = 1;
   bytes min_hash = 2;
   uint32 sorts_count = 3;
+  uint32 order = 5;
   Signature sig = 4;
 }
 
