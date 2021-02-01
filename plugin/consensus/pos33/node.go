@@ -45,6 +45,16 @@ type node struct {
 
 	lock   sync.Mutex
 	nvsMap map[int64]int
+
+	pid string
+	abs map[int64]map[int][]*pt.Pos33BlockMsg
+	tch chan *tmt
+}
+
+type tmt struct {
+	h int64
+	r int
+	t time.Time
 }
 
 // whether sortition or vote, the same height and round, only 1 time
@@ -99,7 +109,9 @@ func newNode(conf *subConfig) *node {
 		cvs:    make(map[int64]map[int]map[string][]*pt.Pos33VoteMsg),
 		css:    make(map[int64]map[int][]*pt.Pos33SortMsg),
 		bch:    make(chan *types.Block, 16),
+		abs:    make(map[int64]map[int][]*pt.Pos33BlockMsg),
 		nvsMap: make(map[int64]int),
+		tch:    make(chan *tmt),
 	}
 
 	plog.Debug("@@@@@@@ node start:", "conf", conf)
@@ -205,16 +217,29 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	nb.Difficulty = n.blockDiff(lb, len(vs))
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs))
 
+	pub := priv.PubKey().Bytes()
 	// this code ONLY for TEST
 	if n.conf.TrubleMaker {
-		time.AfterFunc(time.Second*3, func() { n.setBlock(nb) })
+		time.AfterFunc(time.Second*3,
+			func() {
+				n.sendBlockToPeer(pub, nb, vs[0].Order)
+			})
+
 	} else {
-		if nb.BlockTime-lb.BlockTime >= 1 {
-			return n.setBlock(nb)
-		}
-		time.AfterFunc(time.Millisecond*500, func() { n.setBlock(nb) })
+		n.sendBlockToPeer(pub, nb, vs[0].Order)
+		/*
+			if nb.BlockTime-lb.BlockTime >= 1 {
+				return n.setBlock(nb)
+			}
+			time.AfterFunc(time.Millisecond*500, func() { n.setBlock(nb) })
+		*/
 	}
 	return nil
+}
+func (n *node) sendBlockToPeer(pub []byte, b *types.Block, order uint32) {
+	m := &pt.Pos33BlockMsg{B: b, Pid: n.pid, Order: order}
+	n.handleBlockMsg(m, true)
+	n.gss.sendMsg(pub, &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_B})
 }
 
 func (n *node) addNvs(b *types.Block) error {
@@ -237,6 +262,7 @@ func (n *node) addBlock(b *types.Block) {
 	}
 
 	if !n.prepareOK(b.Height) {
+		panic("go here")
 		return
 	}
 
@@ -303,6 +329,9 @@ func saddr(sig *types.Signature) string {
 }
 
 func (n *node) prepareOK(height int64) bool {
+	if height < 10 {
+		return true
+	}
 	n.lock.Lock()
 	_, ok := n.nvsMap[height-1]
 	n.lock.Unlock()
@@ -561,6 +590,64 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 	return getMinerSeed(sb)
 }
 
+func (n *node) sendBlockToChain(m *pt.Pos33BlockMsg) {
+	plog.Info("sendBlockToChain", "height", m.B.Height)
+	n.setBlock(m.B)
+	/*
+		bp := &types.BlockPid{Pid: m.Pid, Block: m.B}
+		msg := n.GetQueueClient().NewMessage("blockchain", types.EventBroadcastAddBlock, bp)
+		n.GetQueueClient().Send(msg, false)
+	*/
+	delete(n.abs, m.B.Height)
+}
+
+func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
+	pb := n.lastBlock()
+	if pb == nil {
+		return
+	}
+	if string(m.B.ParentHash) != string(pb.Hash(n.GetAPI().GetConfig())) {
+		plog.Error("handleBlock error", "err", "parentHash not match")
+		return
+	}
+	err := n.blockCheck(m.B)
+	if err != nil {
+		plog.Error("handleBlock error", "err", err)
+		return
+	}
+
+	miner, err := getMiner(m.B)
+	if err != nil {
+		plog.Error("getMiner error", "err", err)
+		return
+	}
+	vs0 := miner.Votes[0]
+	if vs0.Order != m.Order {
+		plog.Error("handleBlock error", "err", "orer is not match")
+		return
+	}
+
+	if m.Order == 1 {
+		n.sendBlockToChain(m)
+		return
+	}
+
+	bmp, ok := n.abs[m.B.Height]
+	if !ok {
+		bmp = make(map[int][]*pt.Pos33BlockMsg)
+		n.abs[m.B.Height] = bmp
+	}
+	round := int(miner.Sort.Proof.Input.Round)
+	abs := bmp[round]
+	if len(abs) == 0 {
+		time.AfterFunc(time.Millisecond*500, func() {
+			n.tch <- &tmt{h: m.B.Height, r: round, t: time.Now()}
+		})
+	}
+	abs = append(abs, m)
+	n.abs[m.B.Height][round] = abs
+}
+
 func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 	n.handleVotes(vms.Vs1, myself, 1)
 	n.handleVotes(vms.Vs2, myself, 2)
@@ -569,7 +656,7 @@ func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
 
 func (n *node) handleVotes(vs []*pt.Pos33VoteMsg, myself bool, index int) {
 	if len(vs) == 0 {
-		plog.Error("votemsg sortition is 0")
+		plog.Error("votemsg sortition is 0", "index", index)
 		return
 	}
 
@@ -883,13 +970,21 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 		}
 		n.handleSortsMsg(&m, false)
 	case pt.Pos33Msg_V:
-		var vt pt.Pos33Votes
-		err := types.Decode(pm.Data, &vt)
+		var m pt.Pos33Votes
+		err := types.Decode(pm.Data, &m)
 		if err != nil {
 			plog.Error(err.Error())
 			return false
 		}
-		n.handleVotesMsg(&vt, false)
+		n.handleVotesMsg(&m, false)
+	case pt.Pos33Msg_B:
+		var m pt.Pos33BlockMsg
+		err := types.Decode(pm.Data, &m)
+		if err != nil {
+			plog.Error(err.Error())
+			return false
+		}
+		n.handleBlockMsg(&m, false)
 	default:
 		panic("not support this message type")
 	}
@@ -920,6 +1015,16 @@ func (n *node) synced() bool {
 	return n.IsCaughtUp() || n.lastBlock().Height+3 > n.maxSortHeight
 }
 
+func (n *node) getPID() {
+	// get my pid
+	list, err := n.GetAPI().PeerInfo(&types.P2PGetPeerReq{})
+	if err != nil {
+		panic(err)
+	}
+	self := list.Peers[len(list.Peers)-1]
+	n.pid = self.Name
+}
+
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
 	if err != nil {
@@ -934,6 +1039,8 @@ func (n *node) runLoop() {
 			n.addNvs(b)
 		}
 	}
+
+	n.getPID()
 
 	priv := n.getPriv()
 	if priv == nil {
@@ -950,9 +1057,11 @@ func (n *node) runLoop() {
 
 	n.updateTicketCount(lb.Height)
 
-	time.AfterFunc(time.Second, func() {
-		n.addBlock(lb)
-	})
+	if lb.Height > 0 {
+		time.AfterFunc(time.Second, func() {
+			n.addBlock(lb)
+		})
+	}
 
 	plog.Info("pos33 running...", "last block height", lb.Height)
 	isSync := false
@@ -960,8 +1069,8 @@ func (n *node) runLoop() {
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
 	round := 0
-	blockTimeout := time.Second * 5
-	resortTimeout := time.Second * 3
+	blockTimeout := time.Second * 3
+	resortTimeout := time.Second * 2
 
 	for {
 		select {
@@ -999,6 +1108,7 @@ func (n *node) runLoop() {
 			}
 		case height := <-nch:
 			nh := n.lastBlock().Height + 1
+			plog.Info("go here", "height", height, "nh", nh)
 			if height == nh {
 				n.makeNewBlock(height, round)
 				time.AfterFunc(blockTimeout, func() {
@@ -1021,16 +1131,46 @@ func (n *node) runLoop() {
 			time.AfterFunc(time.Millisecond, func() {
 				nch <- b.Height + 1
 			})
+		case t := <-n.tch:
+			n.handleAlterBlock(t)
 		default:
 			time.Sleep(time.Millisecond * 10)
 		}
 	}
 }
 
+func (n *node) handleAlterBlock(t *tmt) {
+	abs := n.abs[t.h][t.r]
+	if len(abs) == 0 {
+		return
+	}
+	if len(abs) == 1 {
+		n.sendBlockToChain(abs[0])
+		return
+	}
+	var tb *pt.Pos33BlockMsg
+	var minHash string
+	for _, b := range abs {
+		m, err := getMiner(b.B)
+		if err != nil {
+			panic("can't go here")
+		}
+		h := string(m.Sort.SortHash.Hash)
+		if minHash == "" {
+			minHash = h
+		}
+		if minHash > h {
+			minHash = h
+			tb = b
+		}
+	}
+	n.sendBlockToChain(tb)
+}
+
 const calcuDiffBlockN = pt.Pos33SortitionSize * 100
 
 func (n *node) handleNewBlock(b *types.Block) {
-	plog.Debug("handleNewBlock", "height", b.Height)
+	plog.Info("handleNewBlock", "height", b.Height)
 	round := 0
 	if b.Height == 0 {
 		n.firstSortition()
@@ -1087,7 +1227,7 @@ func (n *node) vote(height int64, round int) {
 		minHash := sm.SortHash.Hash
 		var vs []*pt.Pos33VoteMsg
 		for _, s := range ss {
-			v := &pt.Pos33VoteMsg{Sort: s, MinHash: minHash, SortsCount: uint32(len(n.css[height][round]))}
+			v := &pt.Pos33VoteMsg{Sort: s, MinHash: minHash, SortsCount: uint32(len(n.css[height][round])), Order: uint32(i + 1)}
 			priv := n.getPriv()
 			if priv == nil {
 				panic("can't go here")
