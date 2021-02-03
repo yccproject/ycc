@@ -55,4 +55,4 @@ require (
 	mvdan.cc/sh v2.6.4+incompatible // indirect
 )
 
-replace github.com/33cn/chain33 => github.com/wchh/chain33 v0.0.0-20201126132210-88934c1188b8
+replace github.com/33cn/chain33 => github.com/wchh/chain33 v0.0.0-20210125035650-6c4d47f85d88

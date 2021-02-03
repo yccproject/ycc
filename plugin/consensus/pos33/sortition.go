@@ -153,7 +153,10 @@ func (n *node) calcDiff(step, allw, round int) float64 {
 		onlineR = float64(l) / float64(len(n.nvsMap)) / float64(pt.Pos33RewardVotes)
 	}
 	n.lock.Unlock()
-	// onlineR -= 0.03 * float64(round)
+	onlineR -= 0.33 * float64(round%10)
+	if onlineR <= 0 {
+		return 1.
+	}
 	return float64(size) / float64(allw) / onlineR
 }
 
