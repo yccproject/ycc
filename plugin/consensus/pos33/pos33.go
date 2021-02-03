@@ -376,12 +376,14 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 		return false
 	}
 
-	plog.Info("block cmp",  "nv1", len(m1.Votes), "nv2", len(m2.Votes))
+	plog.Info("block cmp", "nv1", len(m1.Votes), "nv2", len(m2.Votes))
 
-	if len(m1.Votes) == len(m2.Votes) {
-		return string(m1.Sort.SortHash.Hash) < string (m2.Sort.SortHash.Hash)
+	vw1 := voteWeight(m1.Votes)
+	vw2 := voteWeight(m2.Votes)
+	if int(vw1) == int(vw2) {
+		return string(m1.Sort.SortHash.Hash) < string(m2.Sort.SortHash.Hash)
 	}
-	return len(m1.Votes) > len(m2.Votes)
+	return vw1 > vw2
 }
 
 // Query_GetTicketCount ticket query ticket count function
