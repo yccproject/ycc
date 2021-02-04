@@ -221,7 +221,8 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	pub := priv.PubKey().Bytes()
 	// this code ONLY for TEST
 	if n.conf.TrubleMaker {
-		time.AfterFunc(time.Millisecond*time.Duration(500+rand.Intn(700)),
+		plog.Info("aha, I'am trubleMaker.", "height", height, "round", round)
+		time.AfterFunc(time.Millisecond*time.Duration(500+rand.Intn(500)),
 			func() {
 				n.sendBlockToPeer(pub, nb, vs[0].Order)
 			})
@@ -552,6 +553,7 @@ func (n *node) checkVote(vm *pt.Pos33VoteMsg, height int64, round int, seed []by
 
 	err := n.verifySort(height, 1, allw, seed, vm.Sort)
 	if err != nil {
+		plog.Error("check vote error", "height", height, "round", round, "err", err, "addr", address.PubKeyToAddr(vm.Sig.Pubkey))
 		return err
 	}
 	return nil
@@ -620,7 +622,7 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	}
 	err := n.blockCheck(m.B)
 	if err != nil {
-		plog.Error("handleBlock error", "err", err)
+		plog.Error("handleBlock error", "height", m.B.Height, "err", err)
 		return
 	}
 
@@ -731,7 +733,6 @@ func (n *node) handleVotes(vs []*pt.Pos33VoteMsg, myself bool, index int) {
 		if !myself {
 			err := n.checkVote(vm, height, round, seed, allw, minHash)
 			if err != nil {
-				plog.Error("check error", "height", height, "round", round, "err", err)
 				return
 			}
 		}
@@ -1113,7 +1114,7 @@ func (n *node) runLoop() {
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
 	round := 0
-	blockTimeout := time.Second * 3
+	blockTimeout := time.Second * 2
 	resortTimeout := time.Second * 2
 
 	for {
