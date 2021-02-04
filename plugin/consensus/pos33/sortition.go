@@ -89,7 +89,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		msgs = append(msgs, m)
 	}
 
-	plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs))
+	plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs), "diff", diff, "addr", address.PubKeyToAddr(proof.Pubkey))
 
 	if len(msgs) == 0 {
 		return nil
@@ -167,8 +167,6 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	if m == nil || m.Proof == nil || m.SortHash == nil || m.Proof.Input == nil {
 		return fmt.Errorf("verifySort error: sort msg is nil")
 	}
-	round := m.Proof.Input.Round
-	diff := n.calcDiff(step, allw, int(round))
 
 	addr := address.PubKeyToAddr(m.Proof.Pubkey)
 	d, err := n.queryDeposit(addr)
@@ -183,6 +181,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 		return fmt.Errorf("sort index %d > %d your count, height %d, close-height %d, precount %d", m.SortHash.Index, count, height, d.CloseHeight, d.PreCount)
 	}
 
+	round := m.Proof.Input.Round
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Step: int32(step)}
 	in := types.Encode(input)
 	err = vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
@@ -195,10 +194,11 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 		return fmt.Errorf("sort hash error")
 	}
 
+	diff := n.calcDiff(step, allw, int(round))
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw)
+		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw, "diff", diff, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
 		return errDiff
 	}
 
