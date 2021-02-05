@@ -53,7 +53,7 @@ useGithub = false
 #可以自定义设置连接节点
 channel = 3
 port = 13901
-seeds = ["/ip4/139.159.246.76/tcp/13901/p2p/16Uiu2HAkxXCzuXqzX7fyJYaUQrySCpcL7TS8qEpJCjgWA2iWnsDR"]
+seeds = ["/ip4/121.37.192.67/tcp/13901/p2p/16Uiu2HAm7VY94RHHx4KmhcLfSEiShaE9kfn7nT8v2R2Kn6bjcVJ2"]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -70,7 +70,7 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-bootPeers = ["/ip4/139.159.246.76/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+bootPeers = ["/ip4/121.37.192.67/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
 listenPort = 10801
 onlyVoter = false
 
