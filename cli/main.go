@@ -14,7 +14,7 @@ import (
 
 func main() {
 	if buildflags.RPCAddr == "" {
-		buildflags.RPCAddr = "http://localhost:8901"
+		buildflags.RPCAddr = "http://localhost:9901"
 	}
 	cli.Run(buildflags.RPCAddr, buildflags.ParaName, "ycc")
 }
