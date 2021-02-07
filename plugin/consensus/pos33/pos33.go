@@ -321,7 +321,8 @@ func getMiner(b *types.Block) (*pt.Pos33TicketMiner, error) {
 		return nil, fmt.Errorf("b is nil")
 	}
 	if len(b.Txs) == 0 {
-		panic("No tx in the block")
+		//panic("No tx in the block")
+		return nil, errors.New("No tx in the block")
 	}
 	tx := b.Txs[0]
 	var pact pt.Pos33TicketAction

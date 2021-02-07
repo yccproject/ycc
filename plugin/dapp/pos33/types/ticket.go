@@ -222,7 +222,7 @@ func (v *Pos33VoteMsg) Equal(other *Pos33VoteMsg) bool {
 	return v.Sort.Proof.Input.Height == other.Sort.Proof.Input.Height &&
 		v.Sort.Proof.Input.Round == other.Sort.Proof.Input.Round &&
 		v.Sort.SortHash.Index == other.Sort.SortHash.Index &&
-		string(v.MinHash) == string(other.MinHash)
+		string(v.Hash) == string(other.Hash)
 	// v.Tid == other.Tid
 }
 
