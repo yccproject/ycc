@@ -1216,6 +1216,7 @@ github.com/wchh/chain33 v0.0.0-20210125035650-6c4d47f85d88 h1:OfQE5a4xaFeN/WTYdH
 github.com/wchh/chain33 v0.0.0-20210125035650-6c4d47f85d88/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
 github.com/wchh/chain33 v0.0.0-20210207044307-568d0cc1fc97 h1:VUcwPMQkjJ4A4EOGVzaNDps4+f6VDgSuDMJfkn+QI9E=
 github.com/wchh/chain33 v0.0.0-20210207044307-568d0cc1fc97/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
+github.com/wchh/chain33 v0.0.0-20210207135206-2de2112e9654 h1:inXFWHStDN+le9ZBDLiHn7kYf85UEl7ETCQ5N8xxuKs=
 github.com/wchh/chain33 v0.0.0-20210207135206-2de2112e9654/go.mod h1:wHcOzFsfp0f0Zio+RHAUgUYyJhyVQyPbvmL0MYFBTng=
 github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc h1:BCPnHtcboadS0DvysUuJXZ4lWVv5Bh5i7+tbIyi+ck4=
 github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc/go.mod h1:r45hJU7yEoA81k6MWNhpMj/kms0n14dkzkxYHoB96UM=
