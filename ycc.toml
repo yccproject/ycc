@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc-alterblock"
+Title = "ycc-alterblock2"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -51,9 +51,9 @@ useGithub = false
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
-channel = 7
+channel = 9
 port = 13801
-seeds = ["/ip4/121.37.192.67/tcp/13801/p2p/16Uiu2HAmUpTEkvtmFnHCgKSudrwJBnzKYpzEi7qRE4ehCG7HT6HS"]
+seeds = ["/ip4/121.37.192.67/tcp/13801/p2p/16Uiu2HAmGhw4XN36RyyMzb1Kms5wb7Fiv8eDyAW6TuEnupPuakvz"]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k

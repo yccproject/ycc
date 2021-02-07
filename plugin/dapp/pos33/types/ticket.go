@@ -283,7 +283,7 @@ type Votes []*Pos33VoteMsg
 
 func (v Votes) Len() int { return len(v) }
 func (v Votes) Less(i, j int) bool {
-	return string(v[i].Sort.SortHash.Hash) < string(v[i].Sort.SortHash.Hash)
+	return string(v[i].Sort.SortHash.Hash) < string(v[j].Sort.SortHash.Hash)
 }
 func (v Votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 
