@@ -44,6 +44,7 @@ message Pos33Msg {
     V = 0; // vote msg
     S = 1; // sortition msg
     B = 2;
+    V2 = 3;
   }
   Ty ty = 2;
 }
@@ -86,7 +87,7 @@ message Pos33BlockMsg {
 
 message Pos33VoteMsg {
   Pos33SortMsg sort = 1;
-  bytes min_hash = 2;
+  bytes hash = 2;
   uint32 sorts_count = 3;
   uint32 order = 5;
   Signature sig = 4;
@@ -100,6 +101,8 @@ message Pos33DepositMsg {
   int64 close_height = 6;
   int64 reward = 3;
 }
+
+message Pos33Votes2 { repeated Pos33VoteMsg vs = 1; }
 
 message Pos33Votes {
   repeated Pos33VoteMsg vs1 = 1;
