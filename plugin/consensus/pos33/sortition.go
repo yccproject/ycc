@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"sort"
 
@@ -89,7 +90,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 		msgs = append(msgs, m)
 	}
 
-	plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs), "diff", diff, "addr", address.PubKeyToAddr(proof.Pubkey))
+	plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey))
 
 	if len(msgs) == 0 {
 		return nil
@@ -153,10 +154,7 @@ func (n *node) calcDiff(step, allw, round int) float64 {
 		onlineR = float64(l) / float64(len(n.nvsMap)) / float64(pt.Pos33RewardVotes)
 	}
 	n.lock.Unlock()
-	onlineR -= 0.33 * float64(round%10)
-	if onlineR <= 0 {
-		return 1.
-	}
+	onlineR *= math.Pow(0.9, float64(round))
 	return float64(size) / float64(allw) / onlineR
 }
 
@@ -198,7 +196,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw, "diff", diff, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw, "diff", diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
 		return errDiff
 	}
 
