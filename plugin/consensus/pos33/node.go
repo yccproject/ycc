@@ -323,6 +323,11 @@ func (n *node) clear(height int64) {
 			delete(n.ivs, h)
 		}
 	}
+	for h := range n.abs {
+		if h <= height {
+			delete(n.abs, h)
+		}
+	}
 }
 
 func saddr(sig *types.Signature) string {
@@ -601,7 +606,6 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 func (n *node) sendBlockToChain(m *pt.Pos33BlockMsg, self bool) {
 	plog.Info("sendBlockToChain", "height", m.B.Height)
 	n.setBlock(m.B)
-	delete(n.abs, m.B.Height-1)
 }
 
 func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
@@ -1101,6 +1105,7 @@ func (n *node) runLoop() {
 	nch := make(chan int64, 1)
 	ach := make(chan tmt, 1)
 	round := 0
+	at := 0
 	blockTimeout := time.Second * 3
 	resortTimeout := time.Second * 2
 
@@ -1166,22 +1171,39 @@ func (n *node) runLoop() {
 				nch <- b.Height + 1
 			})
 		case t := <-ach:
-			n.handleAlterBlock(t)
+			lb := n.lastBlock()
+			at++
+			if lb.Height < t.h && at <= 3 {
+				l := n.handleAlterBlock(t.h, t.r, at)
+				if l > 0 {
+					time.AfterFunc(time.Millisecond*300, func() {
+						ach <- t
+					})
+				}
+			} else {
+				at = 0
+			}
 		default:
 			time.Sleep(time.Millisecond * 10)
 		}
 	}
 }
 
-func (n *node) handleAlterBlock(t tmt) {
-	plog.Info("handleAlterBlock", "height", t.h, "round", t.r)
-	bs := n.abs[t.h][t.r].bs
-	if len(bs) == 0 {
-		return
+func (n *node) handleAlterBlock(h int64, r, t int) int {
+	plog.Info("handleAlterBlock", "height", h, "round", r)
+	bs := n.abs[h][r].bs
+	l := len(bs)
+	if t < 3 {
+		if l < 3 {
+			return l
+		}
 	}
-	if len(bs) == 1 {
+	if l == 0 {
+		return 0
+	}
+	if l == 1 {
 		n.sendBlockToChain(bs[0], false)
-		return
+		return 0
 	}
 	var tb *pt.Pos33BlockMsg
 	var minHash string
@@ -1201,6 +1223,7 @@ func (n *node) handleAlterBlock(t tmt) {
 		}
 	}
 	n.sendBlockToChain(tb, false)
+	return 0
 }
 
 const calcuDiffBlockN = pt.Pos33SortitionSize * 100

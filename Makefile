@@ -13,8 +13,8 @@ default: build
 all:  build
 
 build: toolimport
-	go build ${BUILD_FLAGS} -v -i -o ycc
-	go build ${BUILD_FLAGS} -v -i -o ycc-cli github.com/yccproject/ycc/cli
+	go build ${BUILD_FLAGS} -v  -o ycc
+	go build ${BUILD_FLAGS} -v  -o ycc-cli github.com/yccproject/ycc/cli
 
 
 
@@ -65,7 +65,7 @@ fmt: fmt_shell ## go fmt
 
 
 buildtool: ## chain33 tool
-	@go build -i -o tool `go list -f {{.Dir}} github.com/33cn/chain33`/cmd/tools
+	@go build -o tool `go list -f {{.Dir}} github.com/33cn/chain33`/cmd/tools
 
 toolimport: buildtool ## update plugin import
 	@./tool import --path "plugin" --packname "github.com/yccproject/ycc/plugin" --conf "plugin/plugin.toml"
