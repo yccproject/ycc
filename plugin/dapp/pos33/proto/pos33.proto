@@ -51,6 +51,7 @@ message Pos33Msg {
 
 message SortHash {
   // string tid = 1;
+  int32 num = 3; // 0, 1, or 2
   int64 index = 1;
   bytes hash = 2;
 }
@@ -76,7 +77,7 @@ message Pos33SortMsg {
 
 message Pos33Sorts {
   Pos33SortMsg s = 1;
-  repeated Pos33SortMsg sorts = 2;
+  // repeated Pos33SortMsg sorts = 2;
 }
 
 message Pos33BlockMsg {
