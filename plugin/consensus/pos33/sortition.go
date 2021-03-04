@@ -40,7 +40,7 @@ func changeDiff(size, round int) int {
 	return size
 }
 
-func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos33SortMsg {
+func (n *node) sort(seed []byte, height int64, round, step, allw int) [][]*pt.Pos33SortMsg {
 	count := n.myCount()
 	if allw < count {
 		return nil
@@ -60,50 +60,57 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) []*pt.Pos3
 	}
 
 	diff := n.calcDiff(step, allw, round)
-	var msgs []*pt.Pos33SortMsg
-	var minHash []byte
-	index := 0
-	for i := 0; i < count; i++ {
-		data := fmt.Sprintf("%x+%d", vrfHash, i)
-		hash := hash2([]byte(data))
 
-		// 转为big.Float计算，比较难度diff
-		y := new(big.Int).SetBytes(hash)
-		z := new(big.Float).SetInt(y)
-		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+	var ma [3][]*pt.Pos33SortMsg
+	var minSort *pt.Pos33SortMsg
+
+	for j := 0; j < 3; j++ {
+		var msgs []*pt.Pos33SortMsg
+		for i := 0; i < count; i++ {
+			data := fmt.Sprintf("%x+%d+%d", vrfHash, i, j)
+			hash := hash2([]byte(data))
+
+			// 转为big.Float计算，比较难度diff
+			y := new(big.Int).SetBytes(hash)
+			z := new(big.Float).SetInt(y)
+			if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+				continue
+			}
+
+			// 符合，表示抽中了
+			m := &pt.Pos33SortMsg{
+				SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: int32(j)},
+				Proof:    proof,
+			}
+			if minSort == nil {
+				minSort = m
+			}
+			// minHash use string compare, define a rule for which one is min
+			if string(minSort.SortHash.Hash) > string(hash) {
+				minSort = m
+			}
+			msgs = append(msgs, m)
+		}
+
+		plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+
+		if len(msgs) == 0 {
 			continue
+			// return nil
 		}
-
-		if minHash == nil {
-			minHash = hash
+		if step == 1 {
+			sort.Sort(pt.Sorts(msgs))
+			c := pt.Pos33RewardVotes
+			if len(msgs) > c {
+				msgs = msgs[:c]
+			}
+			ma[j] = msgs
 		}
-		// minHash use string compare, define a rule for which one is min
-		if string(minHash) > string(hash) {
-			minHash = hash
-			index = len(msgs)
-		}
-		// 符合，表示抽中了
-		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(i)},
-			Proof:    proof,
-		}
-		msgs = append(msgs, m)
-	}
-
-	plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey))
-
-	if len(msgs) == 0 {
-		return nil
 	}
 	if step == 0 {
-		return []*pt.Pos33SortMsg{msgs[index]}
+		return [][]*pt.Pos33SortMsg{{minSort}}
 	}
-	sort.Sort(pt.Sorts(msgs))
-	c := pt.Pos33VoterSize
-	if len(msgs) > c {
-		return msgs[:c]
-	}
-	return msgs
+	return ma[:]
 }
 
 func vrfVerify(pub []byte, input []byte, proof []byte, hash []byte) error {
@@ -187,7 +194,10 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	if err != nil {
 		return err
 	}
-	data := fmt.Sprintf("%x+%d", m.Proof.VrfHash, m.SortHash.Index)
+	if m.SortHash.Num >= 3 || m.SortHash.Num < 0 {
+		return fmt.Errorf("sort number > 3", "num", m.SortHash.Num)
+	}
+	data := fmt.Sprintf("%x+%d+%d", m.Proof.VrfHash, m.SortHash.Index, m.SortHash.Num)
 	hash := hash2([]byte(data))
 	if string(hash) != string(m.SortHash.Hash) {
 		return fmt.Errorf("sort hash error")
@@ -216,22 +226,37 @@ func (n *node) bp(height int64, round int) []*pt.Pos33SortMsg {
 		return nil
 	}
 	allw := n.allCount(sortHeight)
-	var pss []*pt.Pos33SortMsg
-	for _, s := range n.cps[height][round] {
-		err := n.checkSort(s, seed, allw, 0)
-		if err != nil {
-			plog.Error("checkSort error", "err", err)
+	var pss [3]*pt.Pos33SortMsg
+	for i := 0; i < 3; i++ {
+		var minSort *pt.Pos33SortMsg
+		_, ok := n.cps[height]
+		if !ok {
+			return nil
+		}
+		_, ok = n.cps[height][round]
+		if !ok {
+			return nil
+		}
+		for _, s := range n.cps[height][round][i] {
+			if s == nil {
+				continue
+			}
+			err := n.checkSort(s, seed, allw, 0)
+			if err != nil {
+				plog.Error("checkSort error", "err", err)
+				continue
+			}
+			if minSort == nil {
+				minSort = s
+			}
+			if string(minSort.SortHash.Hash) > string(s.SortHash.Hash) {
+				minSort = s
+			}
+		}
+		if len(pss) == 0 {
 			continue
 		}
-		pss = append(pss, s)
+		pss[i] = minSort
 	}
-	if len(pss) == 0 {
-		return nil
-	}
-
-	sort.Sort(pt.Sorts(pss))
-	if len(pss) <= 3 {
-		return pss
-	}
-	return pss[:3]
+	return pss[:]
 }
