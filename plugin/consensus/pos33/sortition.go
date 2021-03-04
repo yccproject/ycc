@@ -145,15 +145,16 @@ func (n *node) calcDiff(step, allw, round int) float64 {
 	}
 
 	onlineR := 1.
-	n.lock.Lock()
-	if len(n.nvsMap) >= calcuDiffBlockN {
-		l := 0
-		for _, n := range n.nvsMap {
-			l += n
-		}
-		onlineR = float64(l) / float64(len(n.nvsMap)) / float64(pt.Pos33RewardVotes)
-	}
-	n.lock.Unlock()
+	// n.lock.Lock()
+	// if len(n.nvsMap) >= calcuDiffBlockN {
+	// 	l := 0
+	// 	for _, n := range n.nvsMap {
+	// 		l += n
+	// 	}
+	// 	onlineR = float64(l) / float64(len(n.nvsMap)) / float64(pt.Pos33RewardVotes)
+	// }
+	// n.lock.Unlock()
+	// plog.Info("calcDiff", "step", step, "allw", allw, "round", round, "r", onlineR)
 	onlineR *= math.Pow(0.9, float64(round))
 	return float64(size) / float64(allw) / onlineR
 }
