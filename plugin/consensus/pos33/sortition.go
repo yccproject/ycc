@@ -192,6 +192,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	in := types.Encode(input)
 	err = vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
 	if err != nil {
+		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "step", step, "seed", )
 		return err
 	}
 	if m.SortHash.Num >= 3 || m.SortHash.Num < 0 {
