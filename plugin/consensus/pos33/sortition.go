@@ -151,19 +151,12 @@ func (n *node) calcDiff(step, allw, round int) float64 {
 		size = pt.Pos33ProposerSize
 	}
 
-	onlineR := 1.
-	// n.lock.Lock()
-	// if len(n.nvsMap) >= calcuDiffBlockN {
-	// 	l := 0
-	// 	for _, n := range n.nvsMap {
-	// 		l += n
-	// 	}
-	// 	onlineR = float64(l) / float64(len(n.nvsMap)) / float64(pt.Pos33RewardVotes)
-	// }
-	// n.lock.Unlock()
-	// plog.Info("calcDiff", "step", step, "allw", allw, "round", round, "r", onlineR)
+	onlineR := float64(allw)
+	if n.pli.height != 0 && n.pli.online != 0 {
+		onlineR -= float64(int64(allw)-n.pli.online) / 10.
+	}
 	onlineR *= math.Pow(0.9, float64(round))
-	return float64(size) / float64(allw) / onlineR
+	return float64(size) / onlineR
 }
 
 func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33SortMsg) error {
@@ -192,7 +185,7 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 	in := types.Encode(input)
 	err = vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
 	if err != nil {
-		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "step", step, "seed", )
+		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "step", step, "seed")
 		return err
 	}
 	if m.SortHash.Num >= 3 || m.SortHash.Num < 0 {
