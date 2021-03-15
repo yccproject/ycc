@@ -45,6 +45,7 @@ message Pos33Msg {
     S = 1; // sortition msg
     B = 2;
     V2 = 3;
+    O = 4;
   }
   Ty ty = 2;
 }
@@ -78,6 +79,12 @@ message Pos33SortMsg {
 message Pos33Sorts {
   Pos33SortMsg s = 1;
   // repeated Pos33SortMsg sorts = 2;
+}
+
+message Pos33Online {
+  int64 Height = 1;
+  int64 W = 2;
+  Signature Sig = 3;
 }
 
 message Pos33BlockMsg {

@@ -21,6 +21,47 @@ var plog = log15.New("module", "pos33")
 
 const pos33Topic = "ycc-pos33"
 
+type peerListInfo struct {
+	online  int64
+	height  int64
+	listMap map[string]int64
+	n       *node
+}
+
+const onlineDeration = 600
+
+func (pli *peerListInfo) init(height int64) {
+	if height%onlineDeration != 0 {
+		return
+	}
+	pli.height = height
+	all := int64(0)
+	for _, v := range pli.listMap {
+		all += v
+	}
+	pli.online = all
+	pli.listMap = make(map[string]int64)
+	plog.Info("peerListInfo init", "all", pli.online, "height", height)
+}
+
+func (pli *peerListInfo) add(height int64, w int64, addr string) bool {
+	if height/onlineDeration*onlineDeration != pli.height {
+		return false
+	}
+	_, err := pli.n.queryDeposit(addr)
+	if err != nil {
+		plog.Info("queryDeposit error", "err", err, "addr", addr)
+		return false
+	}
+	// if r.Count != w {
+	// 	return false
+	// }
+	plog.Info("peerListInfo recv", "addr", addr[:16], "height", height, "w", w)
+
+	pli.listMap[addr] = w
+	return true
+}
+
 type node struct {
 	*Client
 	gss *gossip2
@@ -49,6 +90,8 @@ type node struct {
 
 	pid string
 	abs map[int64]map[int]alterBlock
+
+	pli peerListInfo
 }
 
 type alterBlock struct {
@@ -116,6 +159,7 @@ func newNode(conf *subConfig) *node {
 		abs:    make(map[int64]map[int]alterBlock),
 		nvsMap: make(map[int64]int),
 	}
+	n.pli.n = n
 
 	plog.Debug("@@@@@@@ node start:", "conf", conf)
 	return n
@@ -593,6 +637,27 @@ func (n *node) sendBlockToChain(m *pt.Pos33BlockMsg, self bool) {
 	n.setBlock(m.B)
 }
 
+func (n *node) handleOnlineMsg(m *pt.Pos33Online, myself bool) {
+	if !m.Verify() {
+		return
+	}
+	n.pli.add(m.Height, m.W, address.PubKeyToAddr(m.Sig.Pubkey))
+}
+
+func (n *node) sendOnline(height int64) {
+	if height%onlineDeration != 0 {
+		return
+	}
+	n.pli.init(height)
+	m := &pt.Pos33Online{Height: height, W: int64(n.getMyCount())}
+	m.Sign(n.priv)
+	n.pli.add(m.Height, m.W, address.PubKeyToAddr(m.Sig.Pubkey))
+
+	pm := &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_O}
+	data := types.Encode(pm)
+	n.gss.gossip(pos33Topic, data)
+}
+
 func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	pb := n.lastBlock()
 	if pb == nil {
@@ -1015,6 +1080,14 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 			return false
 		}
 		n.handleBlockMsg(&m, false)
+	case pt.Pos33Msg_O:
+		var m pt.Pos33Online
+		err := types.Decode(pm.Data, &m)
+		if err != nil {
+			plog.Error(err.Error())
+			return false
+		}
+		n.handleOnlineMsg(&m, false)
 	default:
 		panic("not support this message type")
 	}
@@ -1237,6 +1310,7 @@ func (n *node) handleNewBlock(b *types.Block) {
 	}
 	n.vote(b.Height+pt.Pos33SortitionSize/2, round)
 	n.clear(b.Height)
+	n.sendOnline(b.Height)
 }
 
 func (n *node) makeNewBlock(height int64, round int) {

@@ -208,6 +208,23 @@ const (
 	Pos33MustVotes = 11
 )
 
+// Verify is verify online msg
+func (v *Pos33Online) Verify() bool {
+	s := v.Sig
+	v.Sig = nil
+	b := crypto.Sha256(types.Encode(v))
+	v.Sig = s
+	return types.CheckSign(b, "", s)
+}
+
+// Sign is sign online msg
+func (v *Pos33Online) Sign(priv crypto.PrivKey) {
+	v.Sig = nil
+	b := crypto.Sha256(types.Encode(v))
+	sig := priv.Sign(b)
+	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
+}
+
 // Verify is verify vote msg
 func (v *Pos33VoteMsg) Verify() bool {
 	s := v.Sig
