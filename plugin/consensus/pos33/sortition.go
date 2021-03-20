@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"sort"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -40,11 +39,8 @@ func changeDiff(size, round int) int {
 	return size
 }
 
-func (n *node) sort(seed []byte, height int64, round, step, allw int) [][]*pt.Pos33SortMsg {
+func (n *node) sort(seed []byte, height int64, round, step int) [][]*pt.Pos33SortMsg {
 	count := n.myCount()
-	if allw < count {
-		return nil
-	}
 
 	priv := n.getPriv()
 	if priv == nil {
@@ -59,7 +55,7 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) [][]*pt.Po
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	diff := n.calcDiff(step, allw, round)
+	diff := n.calcDiff(height, step, round, false)
 
 	var ma [3][]*pt.Pos33SortMsg
 	var minSort *pt.Pos33SortMsg
@@ -92,21 +88,20 @@ func (n *node) sort(seed []byte, height int64, round, step, allw int) [][]*pt.Po
 			msgs = append(msgs, m)
 		}
 
-		plog.Info("block sort", "height", height, "round", round, "step", step, "allw", allw, "mycount", count, "len", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
-
 		if len(msgs) == 0 {
 			continue
 			// return nil
 		}
 		if step == 1 {
-			sort.Sort(pt.Sorts(msgs))
-			c := pt.Pos33RewardVotes
-			if len(msgs) > c {
-				msgs = msgs[:c]
-			}
+			// sort.Sort(pt.Sorts(msgs))
+			// c := pt.Pos33RewardVotes
+			// if len(msgs) > c {
+			// 	msgs = msgs[:c]
+			// }
 			ma[j] = msgs
 		}
 	}
+	plog.Info("block sort", "height", height, "round", round, "step", step, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	if step == 0 {
 		return [][]*pt.Pos33SortMsg{{minSort}}
 	}
@@ -145,21 +140,19 @@ func (n *node) queryDeposit(addr string) (*pt.Pos33DepositMsg, error) {
 }
 
 // 本轮难度：委员会票数 / (总票数 * 在线率)
-func (n *node) calcDiff(step, allw, round int) float64 {
-	size := pt.Pos33VoterSize
-	if step == 0 {
-		size = pt.Pos33ProposerSize
+func (n *node) calcDiff(height int64, step, round int, v bool) float64 {
+	// diff := n.getDiff(height, step, v)
+	online := n.getOnline(height)
+	m := pt.Pos33ProposerSize
+	if step == 1 {
+		m = pt.Pos33VoterSize
 	}
-
-	onlineR := float64(allw)
-	if n.pli.height != 0 && n.pli.online != 0 {
-		onlineR -= float64(int64(allw)-n.pli.online) / 10.
-	}
-	onlineR *= math.Pow(0.9, float64(round))
-	return float64(size) / onlineR
+	diff := float64(m) / float64(online)
+	diff *= math.Pow(0.9, float64(round))
+	return diff
 }
 
-func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33SortMsg) error {
+func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMsg) error {
 	if height <= pt.Pos33SortitionSize {
 		return nil
 	}
@@ -197,11 +190,11 @@ func (n *node) verifySort(height int64, step, allw int, seed []byte, m *pt.Pos33
 		return fmt.Errorf("sort hash error")
 	}
 
-	diff := n.calcDiff(step, allw, int(round))
+	diff := n.calcDiff(height-pt.Pos33SortitionSize, step, int(round), true)
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "allw", allw, "diff", diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
 		return errDiff
 	}
 
@@ -219,7 +212,6 @@ func (n *node) bp(height int64, round int) []*pt.Pos33SortMsg {
 		plog.Error("bp error", "err", err)
 		return nil
 	}
-	allw := n.allCount(sortHeight)
 	var pss [3]*pt.Pos33SortMsg
 	for i := 0; i < 3; i++ {
 		var minSort *pt.Pos33SortMsg
@@ -235,7 +227,7 @@ func (n *node) bp(height int64, round int) []*pt.Pos33SortMsg {
 			if s == nil {
 				continue
 			}
-			err := n.checkSort(s, seed, allw, 0)
+			err := n.checkSort(s, seed, 0)
 			if err != nil {
 				plog.Error("checkSort error", "err", err)
 				continue

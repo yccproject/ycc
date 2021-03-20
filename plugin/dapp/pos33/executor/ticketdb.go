@@ -238,6 +238,11 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 	}
 
 	// reward voters
+	// vs := miner.Votes
+	// if len(vs) > ty.Pos33RewardVotes {
+	// 	sort.Sort(ty.Votes(vs))
+	// 	vs = vs[:ty.Pos33RewardVotes]
+	// }
 	for _, v := range miner.Votes {
 		maddr := saddr(v.Sig)
 		receipt, err := action.coinsAccount.ExecDeposit(maddr, action.execaddr, ty.Pos33VoteReward)
