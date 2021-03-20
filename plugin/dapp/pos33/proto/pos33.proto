@@ -43,9 +43,9 @@ message Pos33Msg {
   enum Ty {
     V = 0; // vote msg
     S = 1; // sortition msg
-    B = 2;
-    V2 = 3;
-    O = 4;
+    B = 2; // block
+    I = 3; // init
+    O = 4; // online info
   }
   Ty ty = 2;
 }
@@ -82,8 +82,8 @@ message Pos33Sorts {
 }
 
 message Pos33Online {
-  int64 Height = 1;
-  int64 W = 2;
+  int64 online = 1;
+  bool onlined = 2;
   Signature Sig = 3;
 }
 

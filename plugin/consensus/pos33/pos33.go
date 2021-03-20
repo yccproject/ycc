@@ -193,6 +193,9 @@ func (c *Client) getMyCount() int {
 		return 0
 	}
 	w := resp.(*pt.ReplyWalletPos33Count)
+	if c.mycount != int(w.Count) {
+		c.n.changeMyCount()
+	}
 	c.mycount = int(w.Count)
 	c.priv, err = privFromBytes(w.Privkey)
 	if err != nil {
