@@ -131,7 +131,7 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 			return 0, nil
 		}
 		nvs := len(ticketMiner.Votes)
-		bpr := Pos33BpReward * int64(nvs)
+		bpr := Pos33MakerReward * int64(nvs)
 		return bpr, nil
 	}
 	return 0, nil
@@ -190,18 +190,16 @@ const Pos33AllTicketCountKeyPrefix = "LODB-pos33-all:"
 const (
 	// Pos33BlockReward 区块奖励
 	Pos33BlockReward = types.Coin * 15
-	// Pos33SortitionSize 多少区块做一次抽签
-	Pos33SortitionSize = 10
+	// Pos33SortBlocks 多少区块做一次抽签
+	Pos33SortBlocks = 10
 	// Pos33VoteReward 每ticket区块voter奖励
 	Pos33VoteReward = types.Coin * 7 / Pos33RewardVotes
-	// Pos33BpReward 每ticket区块bp奖励
-	Pos33BpReward = types.Coin * 2 / Pos33RewardVotes
-	// Pos33ProposerSize 候选区块Proposer数量
-	Pos33ProposerSize = 7
-	// Pos33VoterSize  候选区块Voter数量
+	// Pos33MakerReward 每ticket区块bp奖励
+	Pos33MakerReward = types.Coin * 2 / Pos33RewardVotes
+	// Pos33MakeerSize 候选区块maker数量
+	Pos33MakerSize = 7
+	// Pos33VoterSize  候选区块voter数量
 	Pos33VoterSize = 30
-	// Pos33SortSize  候选区块sort数量
-	Pos33SortSize = 22
 	// Pos33RewardVotes 奖励的票数
 	Pos33RewardVotes = 20
 	// Pos33MustVotes 必须达到的票数
@@ -315,8 +313,8 @@ func (v Votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 // 	} else {
 // 		return false
 // 	}
-// 	h1 := actHeight + Pos33SortitionSize - actHeight%Pos33SortitionSize
-// 	h2 := height - height%Pos33SortitionSize
+// 	h1 := actHeight + Pos33SortBlocks - actHeight%Pos33SortBlocks
+// 	h2 := height - height%Pos33SortBlocks
 // 	if b {
 // 		return h1 >= h2
 // 	}

@@ -257,7 +257,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 	}
 
 	// bp reward
-	bpReward := ty.Pos33BpReward * int64(sumw)
+	bpReward := ty.Pos33MakerReward * int64(sumw)
 	if bpReward > 0 {
 		receipt, err := action.coinsAccount.ExecDeposit(action.fromaddr, action.execaddr, bpReward)
 		if err != nil {
@@ -272,7 +272,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 	}
 
 	// fund reward
-	fundReward := ty.Pos33BlockReward - (ty.Pos33VoteReward+ty.Pos33BpReward)*int64(sumw)
+	fundReward := ty.Pos33BlockReward - (ty.Pos33VoteReward+ty.Pos33MakerReward)*int64(sumw)
 	tlog.Debug("fund rerward", "height", action.height, "reward", fundReward)
 
 	return &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}, nil
@@ -291,7 +291,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	if d.Count == 0 {
 		return nil, errors.New("your ticket count is 0")
 	}
-	if action.height-d.CloseHeight <= ty.Pos33SortitionSize {
+	if action.height-d.CloseHeight <= ty.Pos33SortBlocks {
 		return nil, errors.New("close deposit too often")
 	}
 

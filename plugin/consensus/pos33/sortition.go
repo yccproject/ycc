@@ -5,8 +5,8 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
+	"sort"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -35,29 +35,75 @@ func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 	return hash, vrfProof
 }
 
-func changeDiff(size, round int) int {
-	return size
+func (n *node) voterSort(seed []byte, height int64, round, num int, diff float64) []*pt.Pos33SortMsg {
+	count := n.myCount()
+	priv := n.getPriv()
+	if priv == nil {
+		return nil
+	}
+
+	diff *= float64(pt.Pos33VoterSize) / float64(pt.Pos33MakerSize)
+
+	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Step: int32(1)}
+	vrfHash, vrfProof := calcuVrfHash(input, priv)
+	proof := &pt.HashProof{
+		Input:    input,
+		Diff:     diff,
+		VrfHash:  vrfHash,
+		VrfProof: vrfProof,
+		Pubkey:   priv.PubKey().Bytes(),
+	}
+
+	var msgs []*pt.Pos33SortMsg
+	for i := 0; i < count; i++ {
+		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, num)
+		hash := hash2([]byte(data))
+
+		// 转为big.Float计算，比较难度diff
+		y := new(big.Int).SetBytes(hash)
+		z := new(big.Float).SetInt(y)
+		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+			continue
+		}
+
+		// 符合，表示抽中了
+		m := &pt.Pos33SortMsg{
+			SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: int32(num)},
+			Proof:    proof,
+		}
+		msgs = append(msgs, m)
+	}
+
+	if len(msgs) == 0 {
+		return nil
+	}
+	if len(msgs) > pt.Pos33RewardVotes {
+		sort.Sort(pt.Sorts(msgs))
+		msgs = msgs[:pt.Pos33RewardVotes]
+	}
+	plog.Info("votes sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	return msgs
 }
 
-func (n *node) sort(seed []byte, height int64, round, step int) [][]*pt.Pos33SortMsg {
+func (n *node) makerSort(seed []byte, height int64, round int) []*pt.Pos33SortMsg {
 	count := n.myCount()
 
 	priv := n.getPriv()
 	if priv == nil {
 		return nil
 	}
-	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Step: int32(step)}
+
+	diff := float64(pt.Pos33MakerSize) / float64(n.getOnline(height-pt.Pos33SortBlocks-1))
+	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Step: int32(0)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
 		Input:    input,
+		Diff:     diff,
 		VrfHash:  vrfHash,
 		VrfProof: vrfProof,
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	diff := n.calcDiff(height, step, round, false)
-
-	var ma [3][]*pt.Pos33SortMsg
 	var minSort *pt.Pos33SortMsg
 
 	for j := 0; j < 3; j++ {
@@ -90,22 +136,10 @@ func (n *node) sort(seed []byte, height int64, round, step int) [][]*pt.Pos33Sor
 
 		if len(msgs) == 0 {
 			continue
-			// return nil
-		}
-		if step == 1 {
-			// sort.Sort(pt.Sorts(msgs))
-			// c := pt.Pos33RewardVotes
-			// if len(msgs) > c {
-			// 	msgs = msgs[:c]
-			// }
-			ma[j] = msgs
 		}
 	}
-	plog.Info("block sort", "height", height, "round", round, "step", step, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
-	if step == 0 {
-		return [][]*pt.Pos33SortMsg{{minSort}}
-	}
-	return ma[:]
+	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	return []*pt.Pos33SortMsg{minSort}
 }
 
 func vrfVerify(pub []byte, input []byte, proof []byte, hash []byte) error {
@@ -139,21 +173,8 @@ func (n *node) queryDeposit(addr string) (*pt.Pos33DepositMsg, error) {
 	return reply, nil
 }
 
-// 本轮难度：委员会票数 / (总票数 * 在线率)
-func (n *node) calcDiff(height int64, step, round int, v bool) float64 {
-	// diff := n.getDiff(height, step, v)
-	online := n.getOnline(height)
-	m := pt.Pos33ProposerSize
-	if step == 1 {
-		m = pt.Pos33VoterSize
-	}
-	diff := float64(m) / float64(online)
-	diff *= math.Pow(0.9, float64(round))
-	return diff
-}
-
 func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMsg) error {
-	if height <= pt.Pos33SortitionSize {
+	if height <= pt.Pos33SortBlocks {
 		return nil
 	}
 	if m == nil || m.Proof == nil || m.SortHash == nil || m.Proof.Input == nil {
@@ -166,7 +187,7 @@ func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMs
 		return err
 	}
 	count := d.Count
-	if d.CloseHeight >= height-pt.Pos33SortitionSize {
+	if d.CloseHeight >= height-pt.Pos33SortBlocks {
 		count = d.PreCount
 	}
 	if count <= m.SortHash.Index {
@@ -190,11 +211,19 @@ func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMs
 		return fmt.Errorf("sort hash error")
 	}
 
-	diff := n.calcDiff(height-pt.Pos33SortitionSize, step, int(round), true)
+	sz := pt.Pos33VoterSize
+	if step == 0 {
+		sz = pt.Pos33MakerSize
+	}
+	minDiff := float64(sz) / float64(n.allCount(height-pt.Pos33SortBlocks))
+	if m.Proof.Diff < minDiff {
+		return fmt.Errorf("diff too low")
+	}
+
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
-	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(m.Proof.Diff)) > 0 {
+		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "diff", m.Proof.Diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
 		return errDiff
 	}
 
@@ -205,8 +234,8 @@ func hash2(data []byte) []byte {
 	return crypto.Sha256(crypto.Sha256(data))
 }
 
-func (n *node) bp(height int64, round int) []*pt.Pos33SortMsg {
-	sortHeight := height - pt.Pos33SortitionSize
+func (n *node) getMakerSorts(height int64, round int) []*pt.Pos33SortMsg {
+	sortHeight := height - pt.Pos33SortBlocks
 	seed, err := n.getSortSeed(sortHeight)
 	if err != nil {
 		plog.Error("bp error", "err", err)
@@ -215,15 +244,15 @@ func (n *node) bp(height int64, round int) []*pt.Pos33SortMsg {
 	var pss [3]*pt.Pos33SortMsg
 	for i := 0; i < 3; i++ {
 		var minSort *pt.Pos33SortMsg
-		_, ok := n.cps[height]
+		_, ok := n.cms[height]
 		if !ok {
 			return nil
 		}
-		_, ok = n.cps[height][round]
+		_, ok = n.cms[height][round]
 		if !ok {
 			return nil
 		}
-		for _, s := range n.cps[height][round][i] {
+		for _, s := range n.cms[height][round][i] {
 			if s == nil {
 				continue
 			}

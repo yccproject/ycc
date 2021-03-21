@@ -181,7 +181,7 @@ func (c *Client) updateTicketCount(height int64) {
 	c.acMap[height] = ac
 	c.mycount = c.getMyCount()
 	plog.Debug("getAllCount", "count", ac, "height", height)
-	delete(c.acMap, height-pt.Pos33SortitionSize-1)
+	delete(c.acMap, height-pt.Pos33SortBlocks-1)
 }
 
 func (c *Client) getMyCount() int {
@@ -428,7 +428,7 @@ func (client *Client) Query_GetPos33Reward(req *pt.Pos33TicketReward) (types.Mes
 		addr = saddr(b.Signature)
 	}
 	if saddr(b.Signature) == addr {
-		br = pt.Pos33BpReward * int64(len(m.Votes))
+		br = pt.Pos33MakerReward * int64(len(m.Votes))
 	}
 	for _, v := range m.Votes {
 		if saddr(v.Sig) == addr {
