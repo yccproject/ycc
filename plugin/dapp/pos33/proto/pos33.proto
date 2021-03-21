@@ -66,6 +66,7 @@ message VrfInput {
 
 message HashProof {
   VrfInput input = 1;
+  double diff = 2;
   bytes vrf_hash = 5;
   bytes vrf_proof = 6;
   bytes pubkey = 7;
