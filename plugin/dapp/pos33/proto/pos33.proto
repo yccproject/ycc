@@ -83,7 +83,6 @@ message Pos33Sorts {
 }
 
 message Pos33Online {
-  int64 online = 1;
   bool onlined = 2;
   Signature Sig = 3;
 }
