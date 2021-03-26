@@ -3,6 +3,7 @@ package pos33
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/rand"
 	"sort"
 	"time"
@@ -23,20 +24,19 @@ const pos33Topic = "ycc-pos33"
 const onlineDeration = 60
 
 type onlineInfo struct {
-	o int64
 	w int64
 	h int64
 }
 
-func (n *node) addOnline(addr string, o, h int64) bool {
+func (n *node) addOnline(addr string, h int64) bool {
 	r, err := n.queryDeposit(addr)
 	if err != nil {
 		plog.Info("queryDeposit error", "err", err, "addr", addr)
 		return false
 	}
-	plog.Info("online recv", "addr", addr[:16], "w", r.Count, "height", h, "o", o)
+	plog.Info("online recv", "addr", addr[:16], "w", r.Count, "height", h)
 
-	n.olMap[addr] = &onlineInfo{o: o, w: r.Count, h: h}
+	n.olMap[addr] = &onlineInfo{w: r.Count, h: h}
 	return true
 }
 
@@ -386,8 +386,7 @@ func (n *node) reSortition(height int64, round int) bool {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return false
 	}
-	n.makerSort(seed, height, round)
-	n.sendSorts(height, round)
+	n.sortMaker(seed, height, round)
 	return true
 }
 
@@ -423,7 +422,7 @@ func (n *node) sortMaker(seed []byte, height int64, round int) {
 	if sms != nil {
 		n.ims[height][round] = sms[0]
 	}
-	n.sendSorts(height, 0)
+	n.sendSorts(height, round)
 }
 
 func (n *node) checkVote(vm *pt.Pos33VoteMsg, height int64, round int, seed []byte, minHash string) error {
@@ -505,43 +504,22 @@ func (n *node) handleOnlineMsg(m *pt.Pos33Online, myself bool) {
 	if !m.Onlined && !myself {
 		n.sendOnline(true)
 	} else {
-		n.addOnline(addr, m.Online, height)
+		n.addOnline(addr, height)
 	}
 }
 
-func (n *node) setOnline(height int64) {
-	mp := make(map[int64]int)
-	for _, o := range n.olMap {
-		mp[o.o] += 1
-	}
-	max := 0
-	online := int64(0)
-	for o, e := range mp {
-		if max < e {
-			max = e
-			online = o
-		}
-	}
-	n.onlines[height] = online
-}
-
-func (n *node) getOnline(height int64) int64 {
-	l := len(n.onlines)
+func (n *node) getDiff(height int64, round int) float64 {
+	height -= pt.Pos33SortBlocks + 1
 	o, ok := n.onlines[height]
-	if l < pt.Pos33SortBlocks*2 || !ok {
-		allw := int64(n.allCount(height))
-		o = allw
-		plog.Info("getOnline", "height", height, "allw", allw)
+	if !ok {
+		o = int64(n.allCount(height))
 	}
-	return o
+	diff := float64(pt.Pos33MakerSize) / float64(o)
+	diff *= math.Pow(1.1, float64(round))
+	return diff
 }
 
 func (n *node) updateOnline(height int64) {
-	if height-n.startHeight < onlineDeration/10 {
-		n.setOnline(height)
-		return
-	}
-
 	allw := int64(n.allCount(height))
 	online := int64(0)
 	for _, o := range n.olMap {
@@ -563,13 +541,15 @@ func (n *node) updateOnline(height int64) {
 		}
 	}
 	plog.Info("updateOnline", "height", height, "allw", allw, "online", online)
+	if height%(onlineDeration/10) == 0 {
+		n.sendOnline(true)
+	}
 	n.onlines[height] = online
 	delete(n.onlines, height-pt.Pos33SortBlocks*2)
 }
 
 func (n *node) sendOnline(onlined bool) {
-	height := n.GetCurrentHeight()
-	m := &pt.Pos33Online{Onlined: onlined, Online: n.getOnline(height - 1)}
+	m := &pt.Pos33Online{Onlined: onlined}
 	m.Sign(n.priv)
 
 	n.handleOnlineMsg(m, true)
@@ -1120,25 +1100,26 @@ func (n *node) handleAlterBlock(h int64, r, t int) int {
 const calcuDiffN = pt.Pos33SortBlocks * 1
 
 func (n *node) handleNewBlock(b *types.Block) {
+	if b.Height < n.lastBlock().Height {
+		return
+	}
+	if n.startHeight == 0 {
+		n.startHeight = b.Height
+	}
+	n.updateOnline(b.Height)
 	round := 0
 	if b.Height == 0 {
 		n.firstSortition()
 	} else {
-		n.sortition(b, round)
+		if b.Height <= pt.Pos33SortBlocks || b.Height-n.startHeight > pt.Pos33SortBlocks {
+			n.sortition(b, round)
+		}
 	}
 	if b.Height < pt.Pos33SortBlocks/2 {
 		n.vote(b.Height+1, round)
 	}
 	n.vote(b.Height+pt.Pos33SortBlocks/2, round)
 	n.clear(b.Height)
-	if b.Height%(onlineDeration/10) == 0 {
-		n.sendOnline(true)
-	}
-	if n.startHeight == 0 {
-		n.startHeight = b.Height
-		n.sendOnline(false)
-	}
-	n.updateOnline(b.Height)
 }
 
 func (n *node) makeNewBlock(height int64, round int) {

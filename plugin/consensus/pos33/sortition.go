@@ -81,7 +81,7 @@ func (n *node) voterSort(seed []byte, height int64, round, num int, diff float64
 		sort.Sort(pt.Sorts(msgs))
 		msgs = msgs[:pt.Pos33RewardVotes]
 	}
-	plog.Info("votes sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	plog.Info("voter sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	return msgs
 }
 
@@ -93,7 +93,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) []*pt.Pos33SortMs
 		return nil
 	}
 
-	diff := float64(pt.Pos33MakerSize) / float64(n.getOnline(height-pt.Pos33SortBlocks-1))
+	diff := n.getDiff(height, round)
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Step: int32(0)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
@@ -105,9 +105,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) []*pt.Pos33SortMs
 	}
 
 	var minSort *pt.Pos33SortMsg
-
 	for j := 0; j < 3; j++ {
-		var msgs []*pt.Pos33SortMsg
 		for i := 0; i < count; i++ {
 			data := fmt.Sprintf("%x+%d+%d", vrfHash, i, j)
 			hash := hash2([]byte(data))
@@ -131,14 +129,9 @@ func (n *node) makerSort(seed []byte, height int64, round int) []*pt.Pos33SortMs
 			if string(minSort.SortHash.Hash) > string(hash) {
 				minSort = m
 			}
-			msgs = append(msgs, m)
-		}
-
-		if len(msgs) == 0 {
-			continue
 		}
 	}
-	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16], "sortHash", minSort != nil)
 	return []*pt.Pos33SortMsg{minSort}
 }
 
@@ -211,14 +204,14 @@ func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMs
 		return fmt.Errorf("sort hash error")
 	}
 
-	sz := pt.Pos33VoterSize
-	if step == 0 {
-		sz = pt.Pos33MakerSize
-	}
-	minDiff := float64(sz) / float64(n.allCount(height-pt.Pos33SortBlocks))
-	if m.Proof.Diff < minDiff {
-		return fmt.Errorf("diff too low")
-	}
+	// sz := pt.Pos33VoterSize
+	// if step == 0 {
+	// 	sz = pt.Pos33MakerSize
+	// }
+	// minDiff := float64(sz) / float64(n.allCount(height-pt.Pos33SortBlocks))
+	// if m.Proof.Diff < minDiff {
+	// 	return fmt.Errorf("diff too low")
+	// }
 
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
