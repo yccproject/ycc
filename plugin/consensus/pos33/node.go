@@ -65,12 +65,13 @@ type node struct {
 	maxSortHeight int64
 
 	pid string
-	abs map[int64]map[int]alterBlock
+	abs map[int64]map[int]*alterBlock
 }
 
 type alterBlock struct {
-	voted bool
-	bs    []*pt.Pos33BlockMsg
+	ok bool
+	n  int
+	bs []*pt.Pos33BlockMsg
 }
 
 type tmt struct {
@@ -117,7 +118,7 @@ func newNode(conf *subConfig) *node {
 		olMap:   make(map[string]*onlineInfo),
 		onlines: make(map[int64]int64),
 		bch:     make(chan *types.Block, 16),
-		abs:     make(map[int64]map[int]alterBlock),
+		abs:     make(map[int64]map[int]*alterBlock),
 		cch:     make(chan bool, 1),
 	}
 
@@ -490,8 +491,9 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 	return getMinerSeed(sb)
 }
 
-func (n *node) sendBlockToChain(m *pt.Pos33BlockMsg, self bool) {
-	plog.Info("sendBlockToChain", "height", m.B.Height, "hash", common.HashHex(m.B.Hash(n.GetAPI().GetConfig()))[:16])
+func (n *node) sendBlockToChain(m *pt.Pos33BlockMsg, height int64, round int) {
+	plog.Info("set block", "height", m.B.Height, "hash", common.HashHex(m.B.Hash(n.GetAPI().GetConfig()))[:16])
+	n.abs[height][round].ok = true
 	n.setBlock(m.B)
 }
 
@@ -569,18 +571,21 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 		return
 	}
 	height := m.B.Height
-	if height != pb.Height+1 {
-		plog.Error("handleBlock error", "err", "height not match", "height", height, "pheight", pb.Height)
-		return
-	}
-	if string(m.B.ParentHash) != string(pb.Hash(n.GetAPI().GetConfig())) {
-		plog.Error("handleBlock error", "err", "parentHash not match")
-		return
-	}
-	err := n.blockCheck(m.B)
-	if err != nil {
-		plog.Error("handleBlock error", "height", m.B.Height, "err", err)
-		return
+
+	if !myself {
+		if height != pb.Height+1 {
+			plog.Error("handleBlock error", "err", "height not match", "height", height, "pheight", pb.Height)
+			return
+		}
+		if string(m.B.ParentHash) != string(pb.Hash(n.GetAPI().GetConfig())) {
+			plog.Error("handleBlock error", "err", "parentHash not match")
+			return
+		}
+		err := n.blockCheck(m.B)
+		if err != nil {
+			plog.Error("handleBlock error", "height", m.B.Height, "err", err)
+			return
+		}
 	}
 
 	miner, err := getMiner(m.B)
@@ -592,13 +597,20 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	plog.Info("handleBlock", "height", height)
 	bmp, ok := n.abs[height]
 	if !ok {
-		bmp = make(map[int]alterBlock)
+		bmp = make(map[int]*alterBlock)
 		n.abs[height] = bmp
 	}
 	round := int(miner.Sort.Proof.Input.Round)
-	bs := bmp[round]
+	bs, ok := bmp[round]
+	if !ok {
+		bs = &alterBlock{}
+		n.abs[height][round] = bs
+	}
 	bs.bs = append(bs.bs, m)
-	n.abs[height][round] = bs
+	// n.abs[height][round] = bs
+	if len(bs.bs) >= 3 {
+		n.handleAlterBlock(height, round)
+	}
 }
 
 func (n *node) handleVotesMsg(vms *pt.Pos33Votes, myself bool) {
@@ -972,7 +984,6 @@ func (n *node) runLoop() {
 	nch := make(chan int64, 1)
 	ach := make(chan tmt, 1)
 	round := 0
-	at := 0
 	blockTimeout := time.Second * 3
 	resortTimeout := time.Second * 2
 
@@ -1031,7 +1042,6 @@ func (n *node) runLoop() {
 					tch <- nh
 				})
 			}
-			at = 0
 			time.AfterFunc(time.Millisecond*700, func() {
 				ach <- tmt{height, round}
 			})
@@ -1043,16 +1053,13 @@ func (n *node) runLoop() {
 			})
 		case t := <-ach:
 			lb := n.lastBlock()
-			at++
-			if lb.Height < t.h && at <= 3 {
-				l := n.handleAlterBlock(t.h, t.r, at)
-				if l > 0 {
-					time.AfterFunc(time.Millisecond*300, func() {
+			if lb.Height < t.h {
+				ok := n.handleAlterBlock(t.h, t.r)
+				if !ok {
+					time.AfterFunc(time.Millisecond*700, func() {
 						ach <- t
 					})
 				}
-			} else {
-				at = 0
 			}
 		default:
 			time.Sleep(time.Millisecond * 10)
@@ -1060,21 +1067,27 @@ func (n *node) runLoop() {
 	}
 }
 
-func (n *node) handleAlterBlock(h int64, r, t int) int {
+func (n *node) handleAlterBlock(h int64, r int) bool {
+	alb, ok := n.abs[h][r]
+	if !ok {
+		return false
+	}
+	if alb.ok {
+		return true
+	}
+	if alb.n >= 3 {
+		return true
+	}
 	plog.Info("handleAlterBlock", "height", h, "round", r)
+	alb.n++
 	bs := n.abs[h][r].bs
 	l := len(bs)
-	if t < 3 {
-		if l < 3 {
-			return l
-		}
-	}
-	if l == 0 {
-		return 0
+	if alb.n < 3 && l < 3 {
+		return false
 	}
 	if l == 1 {
-		n.sendBlockToChain(bs[0], false)
-		return 0
+		n.sendBlockToChain(bs[0], h, r)
+		return true
 	}
 	var tb *pt.Pos33BlockMsg
 	var minHash string
@@ -1093,8 +1106,8 @@ func (n *node) handleAlterBlock(h int64, r, t int) int {
 			tb = b
 		}
 	}
-	n.sendBlockToChain(tb, false)
-	return 0
+	n.sendBlockToChain(tb, h, r)
+	return true
 }
 
 const calcuDiffN = pt.Pos33SortBlocks * 1

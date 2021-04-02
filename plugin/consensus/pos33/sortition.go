@@ -187,12 +187,22 @@ func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMs
 		return fmt.Errorf("sort index %d > %d your count, height %d, close-height %d, precount %d", m.SortHash.Index, count, height, d.CloseHeight, d.PreCount)
 	}
 
+	if m.Proof.Input.Height != height {
+		return fmt.Errorf("verifySort error, height NOT match: %d!=%d", m.Proof.Input.Height, height)
+	}
+	if string(m.Proof.Input.Seed) != string(seed) {
+		return fmt.Errorf("verifySort error, seed NOT match")
+	}
+	if m.Proof.Input.Step != int32(step) {
+		return fmt.Errorf("verifySort error, step NOT match")
+	}
+
 	round := m.Proof.Input.Round
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Step: int32(step)}
 	in := types.Encode(input)
 	err = vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
 	if err != nil {
-		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "step", step, "seed")
+		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "step", step, "who", addr[:16])
 		return err
 	}
 	if m.SortHash.Num >= 3 || m.SortHash.Num < 0 {
