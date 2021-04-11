@@ -173,6 +173,14 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 	if !ok {
 		return fmt.Errorf("%s topic NOT match", topic)
 	}
+	/*
+		if slow {
+			time.AfterFunc(time.Millisecond*700*time.Duration(rand.Intn(9)), func() {
+				t.Publish(g.ctx, data)
+			})
+			return nil
+		}
+	*/
 	return t.Publish(g.ctx, data)
 }
 
