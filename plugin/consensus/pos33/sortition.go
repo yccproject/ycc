@@ -35,16 +35,62 @@ func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 	return hash, vrfProof
 }
 
-func (n *node) voterSort(seed []byte, height int64, round, num int, diff float64) []*pt.Pos33SortMsg {
+func (n *node) blockVoterSort(seed []byte, height int64, round int) []*pt.Pos33SortMsg {
 	count := n.myCount()
 	priv := n.getPriv()
 	if priv == nil {
 		return nil
 	}
 
+	diff := n.getDiff(height, round)
+	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(2)}
+	vrfHash, vrfProof := calcuVrfHash(input, priv)
+	proof := &pt.HashProof{
+		Input:    input,
+		Diff:     diff,
+		VrfHash:  vrfHash,
+		VrfProof: vrfProof,
+		Pubkey:   priv.PubKey().Bytes(),
+	}
+
+	var msgs []*pt.Pos33SortMsg
+	for i := 0; i < count; i++ {
+		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, 0)
+		hash := hash2([]byte(data))
+
+		// 转为big.Float计算，比较难度diff
+		y := new(big.Int).SetBytes(hash)
+		z := new(big.Float).SetInt(y)
+		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+			continue
+		}
+
+		// 符合，表示抽中了
+		m := &pt.Pos33SortMsg{
+			SortHash: &pt.SortHash{Hash: hash, Index: int64(i)},
+			Proof:    proof,
+		}
+		msgs = append(msgs, m)
+	}
+	plog.Info("block voter sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	return msgs
+}
+
+func (n *node) makerVoterSort(seed []byte, height int64, round, num int, diff float64) []*pt.Pos33SortMsg {
+	count := n.myCount()
+	priv := n.getPriv()
+	if priv == nil {
+		return nil
+	}
+
+	mydiff := n.getDiff(height, round)
+	if diff-mydiff > mydiff/10. {
+		plog.Error("maker diff error", "height", height, "round", round)
+		return nil
+	}
 	diff *= float64(pt.Pos33VoterSize) / float64(pt.Pos33MakerSize)
 
-	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Step: int32(1)}
+	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(1)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
 		Input:    input,
@@ -87,14 +133,13 @@ func (n *node) voterSort(seed []byte, height int64, round, num int, diff float64
 
 func (n *node) makerSort(seed []byte, height int64, round int) []*pt.Pos33SortMsg {
 	count := n.myCount()
-
 	priv := n.getPriv()
 	if priv == nil {
 		return nil
 	}
 
 	diff := n.getDiff(height, round)
-	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Step: int32(0)}
+	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(0)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
 		Input:    input,
@@ -166,7 +211,7 @@ func (n *node) queryDeposit(addr string) (*pt.Pos33DepositMsg, error) {
 	return reply, nil
 }
 
-func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMsg) error {
+func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg) error {
 	if height <= pt.Pos33SortBlocks {
 		return nil
 	}
@@ -193,16 +238,16 @@ func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMs
 	if string(m.Proof.Input.Seed) != string(seed) {
 		return fmt.Errorf("verifySort error, seed NOT match")
 	}
-	if m.Proof.Input.Step != int32(step) {
+	if m.Proof.Input.Ty != int32(ty) {
 		return fmt.Errorf("verifySort error, step NOT match")
 	}
 
 	round := m.Proof.Input.Round
-	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Step: int32(step)}
+	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Ty: int32(ty)}
 	in := types.Encode(input)
 	err = vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
 	if err != nil {
-		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "step", step, "who", addr[:16])
+		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "ty", ty, "who", addr[:16])
 		return err
 	}
 	if m.SortHash.Num >= 3 || m.SortHash.Num < 0 {
@@ -226,7 +271,7 @@ func (n *node) verifySort(height int64, step int, seed []byte, m *pt.Pos33SortMs
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(m.Proof.Diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "step", step, "round", round, "diff", m.Proof.Diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", m.Proof.Diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
 		return errDiff
 	}
 

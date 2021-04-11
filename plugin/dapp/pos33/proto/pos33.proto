@@ -46,6 +46,8 @@ message Pos33Msg {
     B = 2; // block
     I = 3; // init
     O = 4; // online info
+    BS = 5;
+    BV = 6;
   }
   Ty ty = 2;
 }
@@ -60,7 +62,7 @@ message SortHash {
 message VrfInput {
   int64 height = 1;
   int32 round = 2;
-  int32 step = 3;
+  int32 ty = 3;
   bytes seed = 4;
 }
 
@@ -77,10 +79,7 @@ message Pos33SortMsg {
   HashProof proof = 2;
 }
 
-message Pos33Sorts {
-  Pos33SortMsg s = 1;
-  // repeated Pos33SortMsg sorts = 2;
-}
+message Pos33Sorts { repeated Pos33SortMsg sorts = 2; }
 
 message Pos33Online {
   bool onlined = 2;
@@ -91,6 +90,14 @@ message Pos33BlockMsg {
   Block b = 1;
   string pid = 2;
   uint32 order = 3;
+}
+
+message Pos33BlockVoter {
+  int64 height = 1;
+  int32 round = 2;
+  bytes block_hash = 3;
+  repeated bytes sort_hashs = 5;
+  Signature sig = 4;
 }
 
 message Pos33VoteMsg {

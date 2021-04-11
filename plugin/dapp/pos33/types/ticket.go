@@ -223,6 +223,23 @@ func (v *Pos33Online) Sign(priv crypto.PrivKey) {
 	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
 }
 
+// Sign is sign block voter msg
+func (v *Pos33BlockVoter) Sign(priv crypto.PrivKey) {
+	v.Sig = nil
+	b := crypto.Sha256(types.Encode(v))
+	sig := priv.Sign(b)
+	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
+}
+
+// Verify is verify block vote msg
+func (v *Pos33BlockVoter) Verify() bool {
+	s := v.Sig
+	v.Sig = nil
+	b := crypto.Sha256(types.Encode(v))
+	v.Sig = s
+	return types.CheckSign(b, "", s)
+}
+
 // Verify is verify vote msg
 func (v *Pos33VoteMsg) Verify() bool {
 	s := v.Sig
