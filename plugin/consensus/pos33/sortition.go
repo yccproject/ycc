@@ -42,7 +42,7 @@ func (n *node) blockVoterSort(seed []byte, height int64, round int) []*pt.Pos33S
 		return nil
 	}
 
-	diff := n.getDiff(height, round)
+	diff := n.getDiff(height, round) * 3
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(2)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
@@ -83,11 +83,11 @@ func (n *node) makerVoterSort(seed []byte, height int64, round, num int, diff fl
 		return nil
 	}
 
-	mydiff := n.getDiff(height, round)
-	if diff-mydiff > mydiff/10. {
-		plog.Error("maker diff error", "height", height, "round", round)
-		return nil
-	}
+	// mydiff := n.getDiff(height, round)
+	// if diff-mydiff > mydiff/10. {
+	// 	plog.Error("maker diff error", "height", height, "round", round)
+	// 	return nil
+	// }
 	diff *= float64(pt.Pos33VoterSize) / float64(pt.Pos33MakerSize)
 
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(1)}
