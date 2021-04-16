@@ -362,12 +362,12 @@ func (n *node) sortMaker(seed []byte, height int64, round int) {
 	if n.conf.OnlyVoter {
 		return
 	}
-	sms := n.makerSort(seed, height, round)
-	if sms == nil {
+	s := n.makerSort(seed, height, round)
+	if s == nil {
 		return
 	}
 	m := n.getMaker(height, round)
-	m.my = sms[0]
+	m.my = s
 	n.sendMakerSort(m.my, height, round)
 }
 

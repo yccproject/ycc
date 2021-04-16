@@ -41,49 +41,6 @@ func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 	return hash, vrfProof
 }
 
-/*
-func (n *node) blockVoterSort(seed []byte, height int64, round int) []*pt.Pos33SortMsg {
-	count := n.myCount()
-	priv := n.getPriv()
-	if priv == nil {
-		return nil
-	}
-
-	diff := n.getDiff(height, round) * 3
-	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(BlockVoter)}
-	vrfHash, vrfProof := calcuVrfHash(input, priv)
-	proof := &pt.HashProof{
-		Input:    input,
-		Diff:     diff,
-		VrfHash:  vrfHash,
-		VrfProof: vrfProof,
-		Pubkey:   priv.PubKey().Bytes(),
-	}
-
-	var msgs []*pt.Pos33SortMsg
-	for i := 0; i < count; i++ {
-		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, 0)
-		hash := hash2([]byte(data))
-
-		// 转为big.Float计算，比较难度diff
-		y := new(big.Int).SetBytes(hash)
-		z := new(big.Float).SetInt(y)
-		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-			continue
-		}
-
-		// 符合，表示抽中了
-		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(i)},
-			Proof:    proof,
-		}
-		msgs = append(msgs, m)
-	}
-	plog.Info("block voter sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
-	return msgs
-}
-*/
-
 func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33SortMsg {
 	count := n.myCount()
 	priv := n.getPriv()
@@ -134,7 +91,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33So
 	return msgs
 }
 
-func (n *node) makerSort(seed []byte, height int64, round int) []*pt.Pos33SortMsg {
+func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg {
 	count := n.myCount()
 	priv := n.getPriv()
 	if priv == nil {
@@ -180,7 +137,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) []*pt.Pos33SortMs
 		}
 	}
 	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16], "sortHash", minSort != nil)
-	return []*pt.Pos33SortMsg{minSort}
+	return minSort
 }
 
 func vrfVerify(pub []byte, input []byte, proof []byte, hash []byte) error {
@@ -258,15 +215,6 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	if string(hash) != string(m.SortHash.Hash) {
 		return fmt.Errorf("sort hash error")
 	}
-
-	// sz := pt.Pos33VoterSize
-	// if step == 0 {
-	// 	sz = pt.Pos33MakerSize
-	// }
-	// minDiff := float64(sz) / float64(n.allCount(height-pt.Pos33SortBlocks))
-	// if m.Proof.Diff < minDiff {
-	// 	return fmt.Errorf("diff too low")
-	// }
 
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
