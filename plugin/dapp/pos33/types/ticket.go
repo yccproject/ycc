@@ -206,40 +206,6 @@ const (
 	Pos33MustVotes = 11
 )
 
-// Verify is verify online msg
-func (v *Pos33Online) Verify() bool {
-	s := v.Sig
-	v.Sig = nil
-	b := crypto.Sha256(types.Encode(v))
-	v.Sig = s
-	return types.CheckSign(b, "", s)
-}
-
-// Sign is sign online msg
-func (v *Pos33Online) Sign(priv crypto.PrivKey) {
-	v.Sig = nil
-	b := crypto.Sha256(types.Encode(v))
-	sig := priv.Sign(b)
-	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
-}
-
-// Sign is sign block voter msg
-func (v *Pos33BlockVoter) Sign(priv crypto.PrivKey) {
-	v.Sig = nil
-	b := crypto.Sha256(types.Encode(v))
-	sig := priv.Sign(b)
-	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
-}
-
-// Verify is verify block vote msg
-func (v *Pos33BlockVoter) Verify() bool {
-	s := v.Sig
-	v.Sig = nil
-	b := crypto.Sha256(types.Encode(v))
-	v.Sig = s
-	return types.CheckSign(b, "", s)
-}
-
 // Verify is verify vote msg
 func (v *Pos33VoteMsg) Verify() bool {
 	s := v.Sig
@@ -247,15 +213,6 @@ func (v *Pos33VoteMsg) Verify() bool {
 	b := crypto.Sha256(types.Encode(v))
 	v.Sig = s
 	return types.CheckSign(b, "", s)
-}
-
-// Equal is ...
-func (v *Pos33VoteMsg) Equal(other *Pos33VoteMsg) bool {
-	return v.Sort.Proof.Input.Height == other.Sort.Proof.Input.Height &&
-		v.Sort.Proof.Input.Round == other.Sort.Proof.Input.Round &&
-		v.Sort.SortHash.Index == other.Sort.SortHash.Index &&
-		string(v.Hash) == string(other.Hash)
-	// v.Tid == other.Tid
 }
 
 // Sign is sign vote msg
@@ -266,32 +223,6 @@ func (v *Pos33VoteMsg) Sign(priv crypto.PrivKey) {
 	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
 }
 
-/*
-func (m *Pos33BlockMsg) Sign(priv crypto.PrivKey) {
-	m.Sig = nil
-	b := crypto.Sha256(types.Encode(m))
-	sig := priv.Sign(b)
-	m.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
-}
-
-func (m *Pos33BlockMsg) Verify() bool {
-	s := m.Sig
-	m.Sig = nil
-	b := crypto.Sha256(types.Encode(m))
-	m.Sig = s
-	return types.CheckSign(b, "", s)
-}
-
-// ToString is rands to string
-func (m *Pos33Rands) ToString() string {
-	s := ""
-	for _, r := range m.Rands {
-		s += hex.EncodeToString(r.Hash) + " "
-	}
-	return s
-}
-*/
-
 // ToString is reword to string
 func (act *Pos33TicketMiner) ToString() string {
 	b, err := json.MarshalIndent(act, "", "  ")
@@ -301,7 +232,7 @@ func (act *Pos33TicketMiner) ToString() string {
 	return string(b)
 }
 
-// Sorts is for sort []*Pos33SortitionMsg
+// Sorts is for sort []*Pos33SortMsg
 type Sorts []*Pos33SortMsg
 
 func (m Sorts) Len() int { return len(m) }
@@ -310,30 +241,11 @@ func (m Sorts) Less(i, j int) bool {
 }
 func (m Sorts) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 
-// Votes for sort
+// Votes is for sort []*Pos33SortMsg
 type Votes []*Pos33VoteMsg
 
-func (v Votes) Len() int { return len(v) }
-func (v Votes) Less(i, j int) bool {
-	return string(v[i].Sort.SortHash.Hash) < string(v[j].Sort.SortHash.Hash)
+func (m Votes) Len() int { return len(m) }
+func (m Votes) Less(i, j int) bool {
+	return string(m[i].Sort.SortHash.Hash) < string(m[j].Sort.SortHash.Hash)
 }
-func (v Votes) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
-
-// func CheckTicketHeight(t *Pos33Ticket, height int64) bool {
-// 	actHeight := height
-// 	b := false
-// 	if t.Status == Pos33TicketOpened {
-// 		actHeight = t.OpenHeight
-// 	} else if t.Status == Pos33TicketClosed {
-// 		actHeight = t.CloseHeight
-// 		b = true
-// 	} else {
-// 		return false
-// 	}
-// 	h1 := actHeight + Pos33SortBlocks - actHeight%Pos33SortBlocks
-// 	h2 := height - height%Pos33SortBlocks
-// 	if b {
-// 		return h1 >= h2
-// 	}
-// 	return h1 <= h2
-// }
+func (m Votes) Swap(i, j int) { m[i], m[j] = m[j], m[i] }

@@ -41,13 +41,12 @@ message Pos33TicketAction {
 message Pos33Msg {
   bytes data = 1;
   enum Ty {
-    V = 0; // vote msg
-    S = 1; // sortition msg
-    B = 2; // block
-    I = 3; // init
-    O = 4; // online info
-    BS = 5;
-    BV = 6;
+    MV = 0;  // maker vote msg
+    BV = 1;  // block vote msg
+    B = 2;   // block msg
+    MS = 3;  // maker sort msg
+    BVS = 4; // block voter sort msg
+    MVS = 5; // maker voter sort msg
   }
   Ty ty = 2;
 }
@@ -79,7 +78,7 @@ message Pos33SortMsg {
   HashProof proof = 2;
 }
 
-message Pos33Sorts { repeated Pos33SortMsg sorts = 2; }
+message Pos33Sorts { repeated Pos33SortMsg sorts = 1; }
 
 message Pos33Online {
   bool onlined = 2;
@@ -89,23 +88,22 @@ message Pos33Online {
 message Pos33BlockMsg {
   Block b = 1;
   string pid = 2;
-  uint32 order = 3;
 }
 
-message Pos33BlockVoter {
+/*
+message Pos33VoteMsg {
   int64 height = 1;
   int32 round = 2;
-  bytes block_hash = 3;
+  bytes hash = 3; // block or maker hash
   repeated bytes sort_hashs = 5;
-  Signature sig = 4;
+  Signature sig = 6;
 }
+*/
 
 message Pos33VoteMsg {
   Pos33SortMsg sort = 1;
   bytes hash = 2;
-  uint32 sorts_count = 3;
-  uint32 order = 5;
-  Signature sig = 4;
+  Signature sig = 3;
 }
 
 message Pos33DepositMsg {
@@ -117,13 +115,7 @@ message Pos33DepositMsg {
   int64 reward = 3;
 }
 
-message Pos33Votes2 { repeated Pos33VoteMsg vs = 1; }
-
-message Pos33Votes {
-  repeated Pos33VoteMsg vs1 = 1;
-  repeated Pos33VoteMsg vs2 = 2;
-  repeated Pos33VoteMsg vs3 = 3;
-}
+message Pos33Votes { repeated Pos33VoteMsg vs = 1; }
 
 message Pos33TicketMiner {
   repeated Pos33VoteMsg votes = 1;
