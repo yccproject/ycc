@@ -26,20 +26,21 @@ type alterBlock struct {
 	bs []*types.Block
 }
 type voter struct {
-	mymvss []*pt.Pos33SortMsg
-	mybvss []*pt.Pos33SortMsg
-	mss    map[string]*pt.Pos33SortMsg
-	ab     *alterBlock
+	mymvss []*pt.Pos33SortMsg          // 我作为 maker voter 的抽签
+	mybvss []*pt.Pos33SortMsg          // 我作为 block voter 的抽签
+	mss    map[string]*pt.Pos33SortMsg // 我都到的 maker 的抽签
+	ab     *alterBlock                 // 我接收到所有备选block
 }
 
+// 区块制作人
 type maker struct {
-	my     *pt.Pos33SortMsg
-	mvss   map[string]*pt.Pos33SortMsg
-	bvss   map[string]*pt.Pos33SortMsg
-	mvs    map[string][]*pt.Pos33VoteMsg
-	bvs    map[string][]*pt.Pos33VoteMsg
-	ok     bool
-	makeok bool
+	my     *pt.Pos33SortMsg              // 我的抽签
+	mvss   map[string]*pt.Pos33SortMsg   // 我收到的 maker vote 的抽签
+	bvss   map[string]*pt.Pos33SortMsg   // 我收到的 block vote 的抽签
+	mvs    map[string][]*pt.Pos33VoteMsg // 我收到的 maker vote
+	bvs    map[string][]*pt.Pos33VoteMsg // 我收到的 block vote
+	makeok bool                          // 区块是否制作完成
+	ok     bool                          // 区块是否写入链，表示本轮完成
 }
 
 type node struct {
@@ -49,11 +50,6 @@ type node struct {
 	vmp map[int64]map[int]*voter
 	mmp map[int64]map[int]*maker
 	bch chan *types.Block
-
-	// for new block incoming to add
-	// already make block height and round
-	lheight int64
-	lround  int
 
 	maxSortHeight int64
 	pid           string
@@ -113,9 +109,6 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	if height != lb.Height+1 {
 		return fmt.Errorf("makeBlock height error")
 	}
-	if n.lheight == height && n.lround == round {
-		return fmt.Errorf("makeBlock already made error")
-	}
 
 	priv := n.getPriv()
 	if priv == nil {
@@ -131,8 +124,6 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	if err != nil {
 		return err
 	}
-	n.lheight = height
-	n.lround = round
 
 	nb.Difficulty = n.blockDiff(lb, len(vs))
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "hash", common.HashHex(nb.Hash(n.GetAPI().GetConfig()))[:16])
@@ -485,8 +476,10 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 	if ty == int(pt.Pos33Msg_BV) {
 		n.trySetBlock(height, round)
-		// } else if ty == int(pt.Pos33Msg_MV) {
-		// n.tryMakeBlock(height, round)
+	} else if ty == int(pt.Pos33Msg_MV) {
+		if round > 0 {
+			n.tryMakeBlock(height, round)
+		}
 	}
 }
 
@@ -496,6 +489,7 @@ func (n *node) tryMakeBlock(height int64, round int) {
 		return
 	}
 	if maker.makeok {
+		plog.Info("go here0")
 		return
 	}
 	mh := string(maker.my.SortHash.Hash)
@@ -539,7 +533,7 @@ func (n *node) trySetBlock(height int64, round int) bool {
 	}
 
 	nvss := len(maker.bvss)
-	plog.Info("try set block", "height", height, "round", round, "nbss", nvss, "nbvs", len(maker.bvs), "sum", sum, "max", max)
+	plog.Info("try set block", "height", height, "round", round, "nbss", nvss, "sum", sum, "max", max)
 	if sum < nvss*2/3+1 {
 		return false
 	}
@@ -626,7 +620,7 @@ func (n *node) voteMaker(height int64, round int) {
 					v.Sign(n.priv)
 					vs = append(vs, v)
 				}
-				plog.Info("vote maker", "nvs", len(vs), "height", height, "round", round, "num", i)
+				plog.Info("vote maker", "addr", address.PubKeyToAddr(s.Proof.Pubkey)[:16], "nvs", len(vs), "height", height, "round", round, "num", i)
 				n.sendVote(vs, int(pt.Pos33Msg_MV))
 				break
 			}
@@ -660,14 +654,6 @@ func (n *node) voteBlock(blockHash []byte, height int64, round int) {
 	}
 	plog.Info("vote block", "height", height, "round", round, "bh", common.HashHex(blockHash)[:16], "nvs", len(vs))
 	n.sendVote(vs, int(pt.Pos33Msg_BV))
-}
-
-func (n *node) makeNextBlock(height int64, round int) {
-	plog.Debug("makeNextBlock", "height", height)
-	if n.lastBlock().Height+1 != height {
-		return
-	}
-	// n.voteMaker(height, round)
 }
 
 func (n *node) handleMakerSort(m *pt.Pos33SortMsg, myself bool) {
@@ -869,34 +855,16 @@ func (n *node) runLoop() {
 				n.reSortition(height, round)
 				time.AfterFunc(resortTimeout, func() {
 					nh := n.lastBlock().Height + 1
-					if height == nh {
-						nch <- height
-					} else if height > nh {
-						plog.Info("block height reduce 1", "height", height, "lastHeight", nh)
-						tch <- nh
-					}
+					nch <- nh
 				})
 			}
 		case height := <-nch:
-			nh := n.lastBlock().Height + 1
-			if height == nh {
-				n.makeNewBlock(height, round)
-				time.AfterFunc(blockTimeout, func() {
-					nh := n.lastBlock().Height + 1
-					if height == nh {
-						tch <- height
-					} else if height > nh {
-						plog.Info("block height reduce 2", "height", height, "lastHeight", nh)
-						tch <- nh
-					}
-				})
-			} else if height > nh {
-				time.AfterFunc(time.Millisecond, func() {
-					tch <- nh
-				})
-			}
+			n.makeNewBlock(height, round)
 			time.AfterFunc(time.Millisecond*700, func() {
 				ach <- hr{height, round}
+			})
+			time.AfterFunc(blockTimeout, func() {
+				tch <- height
 			})
 		case b := <-n.bch: // new block add to chain
 			round = 0
@@ -960,17 +928,17 @@ func (n *node) handleNewBlock(b *types.Block) {
 		n.voteMaker(b.Height+1, round)
 	}
 	n.voteMaker(b.Height+pt.Pos33SortBlocks/2, round)
+	plog.Info("handleNewBlock", "height", b.Height, "round", round)
 	n.clear(b.Height)
 }
 
 func (n *node) makeNewBlock(height int64, round int) {
-	// n.checkSorts(height, round)
+	plog.Info("makeNewBlock", "height", height, "round", round)
 	if round > 0 {
 		// if timeout, only vote, handle vote will make new block
 		n.voteMaker(height, round)
 		return
 	}
-	// n.makeNextBlock(height, round)
 	n.tryMakeBlock(height, round)
 }
 
