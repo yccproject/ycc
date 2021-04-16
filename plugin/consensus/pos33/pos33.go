@@ -193,9 +193,9 @@ func (c *Client) getMyCount() int {
 		return 0
 	}
 	w := resp.(*pt.ReplyWalletPos33Count)
-	if c.mycount != int(w.Count) {
-		c.n.changeMyCount()
-	}
+	// if c.mycount != int(w.Count) {
+	// 	c.n.changeMyCount()
+	// }
 	c.mycount = int(w.Count)
 	c.priv, err = privFromBytes(w.Privkey)
 	if err != nil {
@@ -381,13 +381,14 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 	}
 
 	plog.Info("block cmp", "nv1", len(m1.Votes), "nv2", len(m2.Votes))
+	return true
 
-	vw1 := voteWeight(m1.Votes)
-	vw2 := voteWeight(m2.Votes)
-	if int(vw1) == int(vw2) {
-		return string(m1.Sort.SortHash.Hash) < string(m2.Sort.SortHash.Hash)
-	}
-	return vw1 > vw2
+	// vw1 := voteWeight(m1.Votes)
+	// vw2 := voteWeight(m2.Votes)
+	// if int(vw1) == int(vw2) {
+	// 	return string(m1.Sort.SortHash.Hash) < string(m2.Sort.SortHash.Hash)
+	// }
+	// return vw1 > vw2
 }
 
 // Query_GetTicketCount ticket query ticket count function
