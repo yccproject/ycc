@@ -39,8 +39,9 @@ type maker struct {
 	bvss   map[string]*pt.Pos33SortMsg   // 我收到的 block vote 的抽签
 	mvs    map[string][]*pt.Pos33VoteMsg // 我收到的 maker vote
 	bvs    map[string][]*pt.Pos33VoteMsg // 我收到的 block vote
-	makeok bool                          // 区块是否制作完成
-	ok     bool                          // 区块是否写入链，表示本轮完成
+	vr     int
+	makeok bool // 区块是否制作完成
+	ok     bool // 区块是否写入链，表示本轮完成
 }
 
 type node struct {
@@ -464,7 +465,9 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 			if !ok {
 				continue
 			}
-			maker.bvs[string(m.Hash)] = append(maker.bvs[string(m.Hash)], m)
+			if maker.vr == int(m.Round) {
+				maker.bvs[string(m.Hash)] = append(maker.bvs[string(m.Hash)], m)
+			}
 		} else if ty == int(pt.Pos33Msg_MV) {
 			_, ok := maker.mvss[string(m.Sort.SortHash.Hash)]
 			if !ok {
@@ -534,10 +537,15 @@ func (n *node) trySetBlock(height int64, round int) bool {
 
 	nvss := len(maker.bvss)
 	plog.Info("try set block", "height", height, "round", round, "nbss", nvss, "sum", sum, "max", max)
-	if sum < nvss*2/3+1 {
-		return false
-	}
+	// if sum < nvss*2/3+1 {
+	// 	return false
+	// }
 	if max < nvss/2+1 {
+		if sum == nvss {
+			maker.bvs = make(map[string][]*pt.Pos33VoteMsg)
+			maker.vr++
+			n.reVoteBlock(height, round, maker.vr)
+		}
 		return false
 	}
 
@@ -592,7 +600,7 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	plog.Info("handleBlock", "height", height, "round", round, "bh", common.HashHex(hash)[:16])
 	if miner.Sort.SortHash.Num == 0 {
 		v.ab.ok = true
-		n.voteBlock(hash, height, round)
+		n.voteBlock(hash, height, round, n.getMaker(height, round).vr)
 	}
 }
 
@@ -638,7 +646,25 @@ func (n *node) sendVote(vs []*pt.Pos33VoteMsg, ty int) {
 	n.gss.gossip(pos33Topic, types.Encode(pm))
 }
 
-func (n *node) voteBlock(blockHash []byte, height int64, round int) {
+func (n *node) reVoteBlock(height int64, round, vr int) {
+	voter := n.getVoter(height, round)
+	ab := voter.ab
+	for i := 0; i < 3; i++ {
+		for _, b := range ab.bs {
+			m, err := getMiner(b)
+			if err != nil {
+				continue
+			}
+			if int(m.Sort.SortHash.Num) == i {
+				bh := b.Hash(n.GetAPI().GetConfig())
+				n.voteBlock(bh, height, round, vr)
+				return
+			}
+		}
+	}
+}
+
+func (n *node) voteBlock(blockHash []byte, height int64, round, vr int) {
 	voter := n.getVoter(height, round)
 	if len(voter.mybvss) == 0 {
 		return
@@ -646,8 +672,9 @@ func (n *node) voteBlock(blockHash []byte, height int64, round int) {
 	var vs []*pt.Pos33VoteMsg
 	for _, mys := range voter.mybvss {
 		v := &pt.Pos33VoteMsg{
-			Hash: blockHash,
-			Sort: mys,
+			Hash:  blockHash,
+			Round: int32(vr),
+			Sort:  mys,
 		}
 		v.Sign(n.priv)
 		vs = append(vs, v)
@@ -903,7 +930,7 @@ func (n *node) handleAlterBlock(h int64, r int) bool {
 			panic("can't go here")
 		}
 		if ab.n >= int(m.Sort.SortHash.Num) {
-			n.voteBlock(b.Hash(n.GetAPI().GetConfig()), h, r)
+			n.voteBlock(b.Hash(n.GetAPI().GetConfig()), h, r, n.getMaker(h, r).vr)
 			ab.ok = true
 			return true
 		}

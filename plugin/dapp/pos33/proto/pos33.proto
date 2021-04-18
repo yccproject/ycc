@@ -103,6 +103,7 @@ message Pos33VoteMsg {
 message Pos33VoteMsg {
   Pos33SortMsg sort = 1;
   bytes hash = 2;
+  int32 round = 4;
   Signature sig = 3;
 }
 
