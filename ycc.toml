@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc-alterblock2"
+Title = "ycc-alterblock3"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -32,7 +32,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = false
+singleMode = true
 
 [p2p]
 dbCache = 4
@@ -53,7 +53,7 @@ useGithub = false
 #可以自定义设置连接节点
 channel = 9
 port = 13801
-seeds = ["/ip4/121.37.192.67/tcp/13801/p2p/16Uiu2HAmGhw4XN36RyyMzb1Kms5wb7Fiv8eDyAW6TuEnupPuakvz"]
+seeds = []
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -70,7 +70,7 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-bootPeers = ["/ip4/121.37.192.67/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+#bootPeers = ["/ip4/139.155.72.161/tcp/10901/p2p/16Uiu2HAkzokDk7ohaPtELChj4csnnZ7meQq7fWgNBu9PtNqvCjET"]
 listenPort = 10901
 onlyVoter = false
 
