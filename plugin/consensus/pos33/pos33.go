@@ -51,6 +51,7 @@ type subConfig struct {
 	GenesisBlockTime int64            `json:"genesisBlockTime"`
 	ListenPort       int              `json:"listenPort,omitempty"`
 	BootPeers        []string         `json:"bootPeers,omitempty"`
+	ForwardServers   []string         `json:"forwardServers,omitempty"`
 	// if true, you can't make block and only vote
 	OnlyVoter bool `json:"onlyVoter,omitempty"`
 	// only for test!!! if true, delay 5 second make block

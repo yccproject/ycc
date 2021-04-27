@@ -44,6 +44,27 @@ type maker struct {
 	ok     bool // 区块是否写入链，表示本轮完成
 }
 
+func (m *maker) findVm(key, pub string) bool {
+	return find(m.mvs, key, pub)
+}
+
+func (m *maker) findVb(key, pub string) bool {
+	return find(m.bvs, key, pub)
+}
+
+func find(vmp map[string][]*pt.Pos33VoteMsg, key, pub string) bool {
+	vs, ok := vmp[key]
+	if !ok {
+		return false
+	}
+	for _, v := range vs {
+		if string(v.Sig.Pubkey) == pub {
+			return true
+		}
+	}
+	return false
+}
+
 type node struct {
 	*Client
 	gss *gossip2
@@ -443,9 +464,23 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	height := m0.Sort.Proof.Input.Height
 	round := int(m0.Sort.Proof.Input.Round)
 
+	if n.lastBlock().Height >= height {
+		return
+	}
+
 	maker := n.getMaker(height, round)
 	if maker.ok {
 		return
+	}
+	// repeat msg
+	if ty == int(pt.Pos33Msg_BV) {
+		if maker.findVb(string(m0.Hash), string(m0.Sig.Pubkey)) {
+			return
+		}
+	} else if ty == int(pt.Pos33Msg_MV) {
+		if maker.findVb(string(m0.Hash), string(m0.Sig.Pubkey)) {
+			return
+		}
 	}
 
 	plog.Info("handleVoteMsg", "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
@@ -455,6 +490,9 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 			return
 		}
 		if m.Sort.Proof.Input.Height != height || int(m.Sort.Proof.Input.Round) != round {
+			return
+		}
+		if string(m.Hash) != string(m0.Hash) {
 			return
 		}
 
@@ -526,6 +564,9 @@ func (n *node) tryMakeBlock(height int64, round int) {
 
 func (n *node) trySetBlock(height int64, round int, must bool) bool {
 	maker := n.getMaker(height, round)
+	if maker.ok {
+		return true
+	}
 
 	// 收集到足够的block投票
 	bh := ""
@@ -713,7 +754,7 @@ func (n *node) reVoteBlock(height int64, round, vr int) {
 	}
 }
 */
-const voteBlockWait = time.Millisecond * 100
+const voteBlockWait = time.Millisecond * 20
 const voteBlockDeadline = time.Millisecond * 300
 
 func (n *node) voteBlock(height int64, round int) {
@@ -919,7 +960,7 @@ func (n *node) runLoop() {
 	title := n.GetAPI().GetConfig().GetTitle()
 	n.topic = title + pos33Topic
 	ns := fmt.Sprintf("%s-%d", title, n.conf.ListenPort)
-	n.gss = newGossip2(priv, n.conf.ListenPort, ns, n.topic)
+	n.gss = newGossip2(priv, n.conf.ListenPort, ns, n.conf.ForwardServers, n.topic)
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
 		go n.gss.bootstrap(n.conf.BootPeers...)

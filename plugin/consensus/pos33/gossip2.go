@@ -3,9 +3,11 @@ package pos33
 import (
 	"bufio"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"time"
 
 	ccrypto "github.com/33cn/chain33/common/crypto"
@@ -26,6 +28,7 @@ import (
 	disc "github.com/libp2p/go-libp2p/p2p/discovery"
 	pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/smallnest/goframe"
 )
 
 // var _ = libp2pquic.NewTransport
@@ -51,6 +54,7 @@ type gossip2 struct {
 	streams   map[peer.ID]*stream
 	incoming  chan *pt.Pos33Msg
 	outgoing  chan *smsg
+	fsCh      chan []byte
 }
 
 const remoteAddrID = "ycc-pos33-addr"
@@ -98,7 +102,7 @@ type stream struct {
 
 const defaultMaxSize = 1024 * 1024
 
-func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *gossip2 {
+func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, topics ...string) *gossip2 {
 	ctx := context.Background()
 	pr, err := crypto.UnmarshalSecp256k1PrivateKey(priv.Bytes())
 	if err != nil {
@@ -118,9 +122,10 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, topics ...string) *go
 		incoming: make(chan *pt.Pos33Msg, 16),
 		outgoing: make(chan *smsg, 16),
 		C:        make(chan []byte, 16),
+		fsCh:     make(chan []byte, 16),
 	}
 	g.setHandler()
-	go g.run(ps, topics)
+	go g.run(ps, topics, fs)
 	return g
 }
 
@@ -137,7 +142,7 @@ func (g *gossip2) setHandler() {
 	h.SetStreamHandler(pos33MsgID, g.handleIncoming)
 }
 
-func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
+func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
 	for _, t := range topics {
 		tp, err := ps.Join(t)
 		if err != nil {
@@ -166,21 +171,104 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics []string) {
 			g.bootstrap(g.bootPeers...)
 		}
 	}()
+	go g.fsLoop(fs)
+}
+
+func fsConnect(fs string) (goframe.FrameConn, error) {
+	conn, err := net.Dial("tcp", fs)
+	if err != nil {
+		return nil, err
+	}
+	encoderConfig := goframe.EncoderConfig{
+		ByteOrder:                       binary.BigEndian,
+		LengthFieldLength:               4,
+		LengthAdjustment:                0,
+		LengthIncludesLengthFieldLength: false,
+	}
+	decoderConfig := goframe.DecoderConfig{
+		ByteOrder:           binary.BigEndian,
+		LengthFieldOffset:   0,
+		LengthFieldLength:   4,
+		LengthAdjustment:    0,
+		InitialBytesToStrip: 4,
+	}
+	fc := goframe.NewLengthFieldBasedFrameConn(encoderConfig, decoderConfig, conn)
+	return fc, nil
+}
+
+type frc struct {
+	ok bool
+	goframe.FrameConn
+	ch chan []byte
+}
+
+func (g *gossip2) fsLoop(fs []string) error {
+	send := func(fc *frc) {
+		if !fc.ok {
+			return
+		}
+		for data := range fc.ch {
+			err := fc.FrameConn.WriteFrame(data)
+			if err != nil {
+				plog.Error("writeFrame error", "err", err)
+				fc.ok = false
+				return
+			}
+		}
+	}
+	recv := func(fc *frc) {
+		if !fc.ok {
+			return
+		}
+		for {
+			data, err := fc.FrameConn.ReadFrame()
+			if err != nil {
+				plog.Error("readFrame error", "err", err)
+				fc.ok = false
+				return
+			}
+			g.C <- data
+		}
+	}
+	mp := make(map[string]*frc)
+	go func() {
+		for data := range g.fsCh {
+			for _, fc := range mp {
+				if fc.ok {
+					fc.ch <- data
+				}
+			}
+		}
+	}()
+	for range time.Tick(time.Second * 30) {
+		for _, s := range fs {
+			fc, ok := mp[s]
+			if !ok {
+				mp[s] = &frc{ok: false, FrameConn: nil, ch: make(chan []byte, 16)}
+			}
+			if fc.ok {
+				continue
+			}
+			c, err := fsConnect(s)
+			if err != nil {
+				plog.Error("fs connect error", "err", err)
+				continue
+			}
+			fc.ok = true
+			fc.FrameConn = c
+			go send(fc)
+			go recv(fc)
+		}
+	}
+	return nil
 }
 
 func (g *gossip2) gossip(topic string, data []byte) error {
+	g.fsCh <- data
 	t, ok := g.tmap[topic]
 	if !ok {
 		return fmt.Errorf("%s topic NOT match", topic)
 	}
-	/*
-		if slow {
-			time.AfterFunc(time.Millisecond*700*time.Duration(rand.Intn(9)), func() {
-				t.Publish(g.ctx, data)
-			})
-			return nil
-		}
-	*/
 	return t.Publish(g.ctx, data)
 }
 

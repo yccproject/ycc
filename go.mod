@@ -38,7 +38,9 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0 // indirect
 	github.com/onsi/ginkgo v1.12.1 // indirect
+	github.com/panjf2000/gnet v1.4.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/smallnest/goframe v0.0.0-20191101094441-1fbd8e51db18 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/tjfoc/gmsm v1.3.1 // indirect
@@ -49,10 +51,10 @@ require (
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
-	golang.org/x/sys v0.0.0-20201027140754-0fcbb8f4928c // indirect
 	golang.org/x/tools v0.0.0-20200615222825-6aa8f57aacd9 // indirect
 	google.golang.org/grpc v1.31.1
 	mvdan.cc/sh v2.6.4+incompatible // indirect
+	github.com/smallnest/goframe v1.0.0
 )
 
 // replace github.com/33cn/chain33 => github.com/wchh/chain33 v0.0.0-20210207044307-568d0cc1fc97
