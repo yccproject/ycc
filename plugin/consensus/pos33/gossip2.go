@@ -3,7 +3,7 @@ package pos33
 import (
 	"bufio"
 	"context"
-	"encoding/binary"
+	"encoding/gob"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,7 +28,7 @@ import (
 	disc "github.com/libp2p/go-libp2p/p2p/discovery"
 	pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/smallnest/goframe"
+	// "github.com/smallnest/goframe"
 )
 
 // var _ = libp2pquic.NewTransport
@@ -174,32 +174,23 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
 	go g.fsLoop(fs)
 }
 
-func fsConnect(fs string) (goframe.FrameConn, error) {
-	conn, err := net.Dial("tcp", fs)
-	if err != nil {
-		return nil, err
-	}
-	encoderConfig := goframe.EncoderConfig{
-		ByteOrder:                       binary.BigEndian,
-		LengthFieldLength:               4,
-		LengthAdjustment:                0,
-		LengthIncludesLengthFieldLength: false,
-	}
-	decoderConfig := goframe.DecoderConfig{
-		ByteOrder:           binary.BigEndian,
-		LengthFieldOffset:   0,
-		LengthFieldLength:   4,
-		LengthAdjustment:    0,
-		InitialBytesToStrip: 4,
-	}
-	fc := goframe.NewLengthFieldBasedFrameConn(encoderConfig, decoderConfig, conn)
-	return fc, nil
+type frc struct {
+	ok  bool
+	enc *gob.Encoder
+	dec *gob.Decoder
+	ch  chan []byte
 }
 
-type frc struct {
-	ok bool
-	goframe.FrameConn
-	ch chan []byte
+func (f *frc) connect(fs string) error {
+	conn, err := net.Dial("tcp", fs)
+	if err != nil {
+		return err
+	}
+	plog.Info("connect forward server", "addr", conn.RemoteAddr().String())
+	f.enc = gob.NewEncoder(conn)
+	f.dec = gob.NewDecoder(conn)
+	f.ok = true
+	return nil
 }
 
 func (g *gossip2) fsLoop(fs []string) error {
@@ -208,9 +199,9 @@ func (g *gossip2) fsLoop(fs []string) error {
 			return
 		}
 		for data := range fc.ch {
-			err := fc.FrameConn.WriteFrame(data)
+			err := fc.enc.Encode(data)
 			if err != nil {
-				plog.Error("writeFrame error", "err", err)
+				plog.Error("encode error", "err", err)
 				fc.ok = false
 				return
 			}
@@ -221,9 +212,10 @@ func (g *gossip2) fsLoop(fs []string) error {
 			return
 		}
 		for {
-			data, err := fc.FrameConn.ReadFrame()
+			var data []byte
+			err := fc.dec.Decode(&data)
 			if err != nil {
-				plog.Error("readFrame error", "err", err)
+				plog.Error("decode error", "err", err)
 				fc.ok = false
 				return
 			}
@@ -240,22 +232,21 @@ func (g *gossip2) fsLoop(fs []string) error {
 			}
 		}
 	}()
-	for range time.Tick(time.Second * 30) {
+	for range time.Tick(time.Second * 3) {
 		for _, s := range fs {
 			fc, ok := mp[s]
 			if !ok {
-				mp[s] = &frc{ok: false, FrameConn: nil, ch: make(chan []byte, 16)}
+				fc = &frc{ch: make(chan []byte, 16)}
+				mp[s] = fc
 			}
 			if fc.ok {
 				continue
 			}
-			c, err := fsConnect(s)
+			err := fc.connect(s)
 			if err != nil {
 				plog.Error("fs connect error", "err", err)
 				continue
 			}
-			fc.ok = true
-			fc.FrameConn = c
 			go send(fc)
 			go recv(fc)
 		}
@@ -269,6 +260,7 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 	if !ok {
 		return fmt.Errorf("%s topic NOT match", topic)
 	}
+	plog.Info("gossip data", "len", len(data))
 	return t.Publish(g.ctx, data)
 }
 
