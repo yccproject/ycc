@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -879,43 +880,89 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 	return true
 }
 
+type crp struct {
+	m  sync.Mutex
+	mp map[string]struct{}
+	s  []string
+}
+
+func newCrp(n int) *crp {
+	return &crp{
+		mp: make(map[string]struct{}, n*2),
+		s:  make([]string, n*2),
+	}
+}
+
+func (c *crp) add(k string) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.mp[k] = struct{}{}
+	c.s = append(c.s, k)
+}
+
+func (c *crp) find(k string) bool {
+	c.m.Lock()
+	defer c.m.Unlock()
+	_, ok := c.mp[k]
+	return ok
+}
+
+func (c *crp) findNadd(k string) bool {
+	c.m.Lock()
+	defer c.m.Unlock()
+	_, ok := c.mp[k]
+	if ok {
+		return false
+	}
+	c.mp[k] = struct{}{}
+	c.s = append(c.s, k)
+	return true
+}
+
+func (c *crp) rm(l int) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	r := len(c.s) - l
+	plog.Info("delete some cache", "len", r)
+	if l <= 0 {
+		return
+	}
+	for i, k := range c.s {
+		if i >= r {
+			break
+		}
+		delete(c.mp, k)
+	}
+	c.s = c.s[r:]
+}
+
 // handleGossipMsg multi-goroutine verify pos33 message
 func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
-	mp := make(map[string]int)
 	num := 4
-	N := 0
+	cr := newCrp(2048)
 	ch := make(chan *pt.Pos33Msg, num*16)
 	for i := 0; i < num; i++ {
 		go func() {
 			for {
-				select {
-				case <-time.Tick(time.Second * 10):
-					if len(mp) < 2000 {
-						continue
-					}
-					for k, v := range mp {
-						if N-v > 2000 {
-							delete(mp, k)
-						}
-					}
-				case data := <-n.gss.C:
-					hash := crypto.Sha256(data)
-					_, ok := mp[string(hash)]
-					if ok {
-						continue
-					}
-					N++
-					mp[string(hash)] = N
-					pm, err := unmarshal(data)
-					if err != nil {
-						plog.Error(err.Error())
-						continue
-					}
-					ch <- pm
+				data := <-n.gss.C
+				hash := crypto.Sha256(data)
+				if !cr.findNadd(string(hash)) {
+					continue
 				}
+				pm, err := unmarshal(data)
+				if err != nil {
+					plog.Error(err.Error())
+					continue
+				}
+				ch <- pm
 			}
 		}()
 	}
+	go func() {
+		for range time.Tick(time.Second * 10) {
+			cr.rm(2048)
+		}
+	}()
 	return ch
 }
 

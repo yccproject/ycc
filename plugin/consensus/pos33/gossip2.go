@@ -2,8 +2,10 @@ package pos33
 
 import (
 	"bufio"
+	"bytes"
 	"context"
-	"encoding/gob"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,7 +30,6 @@ import (
 	disc "github.com/libp2p/go-libp2p/p2p/discovery"
 	pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
-	// "github.com/smallnest/goframe"
 )
 
 // var _ = libp2pquic.NewTransport
@@ -175,10 +176,55 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
 }
 
 type frc struct {
-	ok  bool
-	enc *gob.Encoder
-	dec *gob.Decoder
-	ch  chan []byte
+	fs string
+	c  net.Conn
+	ch chan []byte
+}
+
+func encode(buf []byte, c net.Conn) error {
+	result := make([]byte, 0)
+	buffer := bytes.NewBuffer(result)
+
+	dataLen := uint16(len(buf))
+	if err := binary.Write(buffer, binary.BigEndian, dataLen); err != nil {
+		s := fmt.Sprintf("Pack datalength error , %v", err)
+		return errors.New(s)
+	}
+	if dataLen > 0 {
+		if err := binary.Write(buffer, binary.BigEndian, buf); err != nil {
+			s := fmt.Sprintf("Pack data error , %v", err)
+			return errors.New(s)
+		}
+	}
+
+	n := 0
+	buf = buffer.Bytes()
+	for n < len(buf) {
+		w, err := c.Write(buf)
+		if err != nil {
+			return err
+		}
+		n += w
+		buf = buf[w:]
+	}
+	return nil
+}
+
+func decode(c net.Conn) ([]byte, error) {
+	buf := make([]byte, 2)
+	n, err := io.ReadFull(c, buf)
+	if n != 2 {
+		return nil, err
+	}
+	byteBuffer := bytes.NewBuffer(buf)
+	var dl uint16
+	_ = binary.Read(byteBuffer, binary.BigEndian, &dl)
+	buf = make([]byte, int(dl))
+	n, err = io.ReadFull(c, buf)
+	if n != int(dl) {
+		return nil, err
+	}
+	return buf, nil
 }
 
 func (f *frc) connect(fs string) error {
@@ -187,37 +233,31 @@ func (f *frc) connect(fs string) error {
 		return err
 	}
 	plog.Info("connect forward server", "addr", conn.RemoteAddr().String())
-	f.enc = gob.NewEncoder(conn)
-	f.dec = gob.NewDecoder(conn)
-	f.ok = true
+	f.c = conn
+	f.fs = fs
 	return nil
 }
 
 func (g *gossip2) fsLoop(fs []string) error {
 	send := func(fc *frc) {
-		if !fc.ok {
-			return
-		}
 		for data := range fc.ch {
-			err := fc.enc.Encode(data)
+			err := encode(data, fc.c)
 			if err != nil {
 				plog.Error("encode error", "err", err)
-				fc.ok = false
-				return
+				fc.c.Close()
+				fc.connect(fc.fs)
 			}
 		}
 	}
 	recv := func(fc *frc) {
-		if !fc.ok {
-			return
-		}
 		for {
 			var data []byte
-			err := fc.dec.Decode(&data)
+			data, err := decode(fc.c)
 			if err != nil {
 				plog.Error("decode error", "err", err)
-				fc.ok = false
-				return
+				fc.c.Close()
+				fc.connect(fc.fs)
+				continue
 			}
 			g.C <- data
 		}
@@ -226,30 +266,23 @@ func (g *gossip2) fsLoop(fs []string) error {
 	go func() {
 		for data := range g.fsCh {
 			for _, fc := range mp {
-				if fc.ok {
-					fc.ch <- data
-				}
+				fc.ch <- data
 			}
 		}
 	}()
-	for range time.Tick(time.Second * 3) {
-		for _, s := range fs {
-			fc, ok := mp[s]
-			if !ok {
-				fc = &frc{ch: make(chan []byte, 16)}
-				mp[s] = fc
-			}
-			if fc.ok {
-				continue
-			}
-			err := fc.connect(s)
-			if err != nil {
-				plog.Error("fs connect error", "err", err)
-				continue
-			}
-			go send(fc)
-			go recv(fc)
+	for _, s := range fs {
+		fc, ok := mp[s]
+		if !ok {
+			fc = &frc{ch: make(chan []byte, 16)}
+			mp[s] = fc
 		}
+		err := fc.connect(s)
+		if err != nil {
+			plog.Error("fs connect error", "err", err)
+			continue
+		}
+		go send(fc)
+		go recv(fc)
 	}
 	return nil
 }
