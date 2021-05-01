@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/panjf2000/gnet"
 )
@@ -49,11 +53,20 @@ func (s *server) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 // }
 
 func (s *server) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Action) {
-	data := make([]byte, len(frame))
-	copy(data, frame)
-	addr := c.RemoteAddr().String()
-	s.ch <- rd{data, addr}
-	log.Printf("recv from %s data \n", addr)
+	// s.connectedSockets.Range(func(key, value interface{}) bool {
+	// 	addr := key.(string)
+	// 	raddr := c.RemoteAddr().String()
+	// 	if addr == raddr {
+	// 		return true
+	// 	}
+	// 	c := value.(gnet.Conn)
+	// 	dt := append([]byte{}, frame...)
+	// 	log.Printf("forward data, from=%s==>to=%s, len=%d \n", raddr, addr, len(dt))
+	// 	c.AsyncWrite(dt)
+	// 	return true
+	// })
+	data := append([]byte{}, frame...)
+	s.ch <- rd{data, c.RemoteAddr().String()}
 	return
 }
 
@@ -66,8 +79,9 @@ func (s *server) forward() {
 				return true
 			}
 			c := value.(gnet.Conn)
-			log.Printf("forward data, from=%s==>to=%s \n", r.addr, c.RemoteAddr().String())
-			c.AsyncWrite(r.data)
+			data := append([]byte{}, r.data...)
+			log.Printf("forward data, from=%s==>to=%s, len=%d \n", r.addr, addr, len(data))
+			c.AsyncWrite(data)
 			return true
 		})
 	}
@@ -82,5 +96,45 @@ func main() {
 	flag.Parse()
 	s := &server{ch: make(chan rd, 16)}
 	go s.forward()
-	log.Fatal(gnet.Serve(s, fmt.Sprintf("tcp://:%d", port), gnet.WithMulticore(multicore)))
+	log.Fatal(gnet.Serve(s, fmt.Sprintf("tcp://:%d", port), gnet.WithMulticore(multicore), gnet.WithTCPKeepAlive(time.Second*30), gnet.WithCodec(&codec{})))
+}
+
+type codec struct {
+}
+
+func (co *codec) Encode(conn gnet.Conn, buf []byte) ([]byte, error) {
+	result := make([]byte, 0)
+	buffer := bytes.NewBuffer(result)
+
+	dataLen := uint16(len(buf))
+	if err := binary.Write(buffer, binary.BigEndian, dataLen); err != nil {
+		s := fmt.Sprintf("Pack datalength error , %v", err)
+		return nil, errors.New(s)
+	}
+	if dataLen > 0 {
+		if err := binary.Write(buffer, binary.BigEndian, buf); err != nil {
+			s := fmt.Sprintf("Pack data error , %v", err)
+			return nil, errors.New(s)
+		}
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (co *codec) Decode(c gnet.Conn) ([]byte, error) {
+	size, header := c.ReadN(2)
+	if size == 2 {
+		byteBuffer := bytes.NewBuffer(header)
+		var dataLength uint16
+		_ = binary.Read(byteBuffer, binary.BigEndian, &dataLength)
+		dataLen := int(dataLength)
+		protocolLen := 2 + dataLen
+		if dataSize, data := c.ReadN(protocolLen); dataSize == protocolLen {
+			c.ShiftN(protocolLen)
+			// return the payload of the data
+			return data[2:], nil
+		}
+		return nil, errors.New("not enough payload data")
+	}
+	return nil, errors.New("not enough header data")
 }
