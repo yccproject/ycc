@@ -25,6 +25,17 @@ type alterBlock struct {
 	n  int
 	bs []*types.Block
 }
+
+func (ab *alterBlock) add(nb *types.Block) bool {
+	for _, b := range ab.bs {
+		if string(b.TxHash) == string(nb.TxHash) {
+			return false
+		}
+	}
+	ab.bs = append(ab.bs, nb)
+	return true
+}
+
 type voter struct {
 	mymvss []*pt.Pos33SortMsg          // 我作为 maker voter 的抽签
 	mybvss []*pt.Pos33SortMsg          // 我作为 block voter 的抽签
@@ -544,16 +555,6 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	if len(vs) < len(maker.mvss)/2+1 {
 		return
 	}
-	// var vs []*pt.Pos33VoteMsg
-	// for _, v := range vs {
-	// 	_, ok := maker.mvss[string(v.Sort.SortHash.Hash)]
-	// 	if ok {
-	// 		vs = append(vs, v)
-	// 	}
-	// }
-	// if len(vs) < len(maker.mvss)/2+1 {
-	// 	return
-	// }
 	err := n.makeBlock(height, round, maker.my, vs)
 	if err != nil {
 		plog.Error("make block err", "err", err, "height", height, "round", round)
@@ -584,6 +585,9 @@ func (n *node) trySetBlock(height int64, round int, must bool) bool {
 	nvss := len(maker.bvss)
 	if must {
 		nvss = sum
+	}
+	if max == 0 {
+		return false
 	}
 	plog.Info("try set block", "height", height, "round", round, "nbss", nvss, "sum", sum, "max", max, "bh", common.HashHex([]byte(bh))[:16], "must", must)
 	if max < nvss/2+1 {
@@ -667,22 +671,18 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	round := int(miner.Sort.Proof.Input.Round)
 
 	v := n.getVoter(height, round)
-	v.ab.bs = append(v.ab.bs, m.B)
+	if !v.ab.add(m.B) {
+		return
+	}
 
 	hash := m.B.Hash(n.GetAPI().GetConfig())
 	num := miner.Sort.SortHash.Num
 	plog.Info("handleBlock", "height", height, "round", round, "num", num, "bh", common.HashHex(hash)[:16], "time", time.Now().String())
-	// if num == 0 {
 	if !v.ab.ok {
 		time.AfterFunc(voteBlockWait, func() {
 			n.vch <- hr{height, round}
 		})
 	}
-	// if v.ab.ok {
-	// 	return
-	// }
-	// v.ab.ok = true
-	// n.voteBlock(hash, height, round, n.getMaker(height, round).vr)
 }
 
 func (n *node) voteMaker(height int64, round int) {
@@ -728,37 +728,10 @@ func (n *node) sendVote(vs []*pt.Pos33VoteMsg, ty int) {
 	n.gss.gossip(n.topic, types.Encode(pm))
 }
 
-/*
-func (n *node) reVoteBlock(height int64, round, vr int) {
-	voter := n.getVoter(height, round)
-	ab := voter.ab
-	minHash := ""
-	var bh []byte
-	for _, b := range ab.bs {
-		m, err := getMiner(b)
-		if err != nil {
-			continue
-		}
-		if minHash == "" {
-			minHash = string(m.Sort.SortHash.Hash)
-			bh = b.Hash(n.GetAPI().GetConfig())
-		}
-		if minHash > string(m.Sort.SortHash.Hash) {
-			minHash = string(m.Sort.SortHash.Hash)
-			bh = b.Hash(n.GetAPI().GetConfig())
-		}
-	}
-	plog.Info("reVoteBlock", "height", height, "round", round, "ok", bh != nil)
-	if bh != nil {
-		n.voteBlock(bh, height, round, vr)
-	}
-}
-*/
-const voteBlockWait = time.Millisecond * 20
-const voteBlockDeadline = time.Millisecond * 300
+const voteBlockWait = time.Millisecond * 100
+const voteBlockDeadline = time.Millisecond * 700
 
 func (n *node) voteBlock(height int64, round int) {
-	// func (n *node) voteBlock(blockHash []byte, height int64, round, vr int) {
 	voter := n.getVoter(height, round)
 	if len(voter.mybvss) == 0 {
 		return
@@ -802,7 +775,6 @@ func (n *node) voteBlock(height int64, round int) {
 	for _, mys := range voter.mybvss {
 		v := &pt.Pos33VoteMsg{
 			Hash: bh,
-			// Round: int32(vr),
 			Sort: mys,
 		}
 		v.Sign(n.priv)
@@ -909,17 +881,38 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 
 // handleGossipMsg multi-goroutine verify pos33 message
 func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
+	mp := make(map[string]int)
 	num := 4
+	N := 0
 	ch := make(chan *pt.Pos33Msg, num*16)
 	for i := 0; i < num; i++ {
 		go func() {
 			for {
-				pm, err := unmarshal(<-n.gss.C)
-				if err != nil {
-					plog.Error(err.Error())
-					continue
+				select {
+				case <-time.Tick(time.Second * 10):
+					if len(mp) < 2000 {
+						continue
+					}
+					for k, v := range mp {
+						if N-v > 2000 {
+							delete(mp, k)
+						}
+					}
+				case data := <-n.gss.C:
+					hash := crypto.Sha256(data)
+					_, ok := mp[string(hash)]
+					if ok {
+						continue
+					}
+					N++
+					mp[string(hash)] = N
+					pm, err := unmarshal(data)
+					if err != nil {
+						plog.Error(err.Error())
+						continue
+					}
+					ch <- pm
 				}
-				ch <- pm
 			}
 		}()
 	}
