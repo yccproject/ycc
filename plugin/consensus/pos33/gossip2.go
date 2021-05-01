@@ -238,14 +238,25 @@ func (f *frc) connect(fs string) error {
 	return nil
 }
 
+func (f *frc) reConnect() error {
+	f.c.Close()
+	for {
+		time.Sleep(time.Second * 10)
+		err := f.connect(f.fs)
+		if err != nil {
+			plog.Error("connect forward server error:", "err", err)
+			continue
+		}
+	}
+}
+
 func (g *gossip2) fsLoop(fs []string) error {
 	send := func(fc *frc) {
 		for data := range fc.ch {
 			err := encode(data, fc.c)
 			if err != nil {
 				plog.Error("encode error", "err", err)
-				fc.c.Close()
-				fc.connect(fc.fs)
+				fc.reConnect()
 			}
 		}
 	}
@@ -255,8 +266,7 @@ func (g *gossip2) fsLoop(fs []string) error {
 			data, err := decode(fc.c)
 			if err != nil {
 				plog.Error("decode error", "err", err)
-				fc.c.Close()
-				fc.connect(fc.fs)
+				fc.reConnect()
 				continue
 			}
 			g.C <- data
