@@ -79,9 +79,9 @@ func (s *server) forward() {
 				return true
 			}
 			c := value.(gnet.Conn)
-			data := append([]byte{}, r.data...)
-			log.Printf("forward data, from=%s==>to=%s, len=%d \n", r.addr, addr, len(data))
-			c.AsyncWrite(data)
+			// data := append([]byte{}, r.data...)
+			log.Printf("forward data, from=%s==>to=%s, len=%d \n", r.addr, addr, len(r.data))
+			c.AsyncWrite(r.data)
 			return true
 		})
 	}
@@ -96,7 +96,7 @@ func main() {
 	flag.Parse()
 	s := &server{ch: make(chan rd, 16)}
 	go s.forward()
-	log.Fatal(gnet.Serve(s, fmt.Sprintf("tcp://:%d", port), gnet.WithMulticore(multicore), gnet.WithTCPKeepAlive(time.Second*30) /*, gnet.WithCodec(&codec{})*/))
+	log.Fatal(gnet.Serve(s, fmt.Sprintf("tcp://:%d", port), gnet.WithMulticore(multicore), gnet.WithTCPKeepAlive(time.Second*30), gnet.WithCodec(&codec{})))
 }
 
 type codec struct {
