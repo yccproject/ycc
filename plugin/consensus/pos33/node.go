@@ -607,23 +607,27 @@ func (n *node) trySetBlock(height int64, round int, must bool) bool {
 				}
 				if r+len(v) == max {
 					bhs = append(bhs, h)
+					if r != 0 {
+						failed = true
+					}
 				}
 			}
 		}
 
-		if r == 0 {
-			for _, h := range bhs {
-				if h < bh {
-					bh = h
-				}
-			}
-		} else if failed {
+		if failed {
 			if r <= nvss/3+1 && !must {
 				time.AfterFunc(voteBlockDeadline, func() {
 					n.sch <- hr{height, round}
 				})
 			}
 			return false
+		}
+		if r == 0 {
+			for _, h := range bhs {
+				if h < bh {
+					bh = h
+				}
+			}
 		}
 	}
 
