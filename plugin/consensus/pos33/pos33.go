@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/consensus"
 	driver "github.com/33cn/chain33/system/dapp"
@@ -67,7 +66,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
-	plog.Debug("subcfg", "cfg", string(sub))
+	// plog.Debug("subcfg", "cfg", string(sub))
 
 	n := newNode(&subcfg)
 	client := &Client{BaseClient: c, n: n, conf: &subcfg, acMap: make(map[int64]int), done: make(chan struct{})}
@@ -86,33 +85,6 @@ func (client *Client) Close() {
 // ProcEvent do nothing?
 func (client *Client) ProcEvent(msg *queue.Message) bool {
 	return false
-}
-
-func (client *Client) newBlock(lastBlock *types.Block, txs []*types.Transaction, height int64) (*types.Block, error) {
-	if lastBlock.Height+1 != height {
-		plog.Error("newBlock height error", "lastHeight", lastBlock.Height, "height", height)
-		return nil, fmt.Errorf("the last block too low")
-	}
-
-	bt := time.Now().Unix()
-	if bt < lastBlock.GetBlockTime() {
-		bt = lastBlock.GetBlockTime()
-	}
-
-	cfg := client.GetAPI().GetConfig()
-	nb := &types.Block{
-		ParentHash: lastBlock.Hash(cfg),
-		Height:     lastBlock.Height + 1,
-		BlockTime:  bt,
-	}
-
-	maxTxs := int(cfg.GetP(height).MaxTxNumber)
-	txs = append(txs, client.RequestTx(maxTxs, nil)...)
-	txs = client.AddTxsToBlock(nb, txs)
-
-	nb.Txs = txs
-	nb.TxHash = merkle.CalcMerkleRoot(cfg, lastBlock.Height, txs)
-	return nb, nil
 }
 
 // CheckBlock check block callback

@@ -3,60 +3,36 @@ module github.com/yccproject/ycc
 go 1.15
 
 require (
-	github.com/33cn/chain33 v1.65.1-0.20201022110501-fde367b8c955
-	github.com/33cn/plugin v1.65.1
-	github.com/NebulousLabs/entropy-mnemonics v0.0.0-20170316012907-7b01a644a636 // indirect
-	github.com/alangpierce/go-forceexport v0.0.0-20160317203124-8f1d6941cd75 // indirect
-	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/btcsuite/btcd v0.20.1-beta
-	github.com/coreos/bbolt v1.3.0 // indirect
-	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
-	github.com/dchest/blake256 v1.0.0 // indirect
-	github.com/decred/base58 v1.0.2 // indirect
-	github.com/dgraph-io/badger v1.6.1 // indirect
-	github.com/ethereum/go-ethereum v1.9.9
+	github.com/33cn/chain33 v1.65.2
+	github.com/33cn/plugin v1.65.2
+	github.com/btcsuite/btcd v0.21.0-beta
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/golang/protobuf v1.3.4
-	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/google/go-cmp v0.5.0 // indirect
-	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6 // indirect
+	github.com/ipfs/go-datastore v0.4.5 // indirect
 	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-autonat v0.3.2
-	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
 	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.2
-	github.com/libp2p/go-libp2p-mplex v0.2.4
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
-	github.com/libp2p/go-libp2p-quic-transport v0.4.0
 	github.com/libp2p/go-libp2p-routing v0.1.0
-	github.com/libp2p/go-libp2p-secio v0.2.2
-	github.com/libp2p/go-libp2p-yamux v0.2.8
 	github.com/libp2p/go-msgio v0.0.6
-	github.com/libp2p/go-sockaddr v0.1.0 // indirect
-	github.com/miekg/dns v1.1.35 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
-	github.com/multiformats/go-multiaddr-dns v0.2.0 // indirect
+	github.com/multiformats/go-multistream v0.2.1 // indirect
 	github.com/onsi/ginkgo v1.12.1 // indirect
-	github.com/panjf2000/gnet v1.4.3 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
-	github.com/smallnest/goframe v0.0.0-20191101094441-1fbd8e51db18 // indirect
+	github.com/onsi/gomega v1.10.0 // indirect
+	github.com/panjf2000/gnet v1.4.3
 	github.com/spf13/cobra v0.0.5
-	github.com/stretchr/testify v1.6.1
-	github.com/tjfoc/gmsm v1.3.1 // indirect
-	github.com/whyrusleeping/go-logging v0.0.1 // indirect
-	github.com/whyrusleeping/go-notifier v0.0.0-20170827234753-097c5d47330f // indirect
-	go.uber.org/goleak v1.0.0 // indirect
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
-	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
-	golang.org/x/tools v0.0.0-20200615222825-6aa8f57aacd9 // indirect
-	google.golang.org/grpc v1.31.1
-	mvdan.cc/sh v2.6.4+incompatible // indirect
-	github.com/smallnest/goframe v1.0.0
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
+	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
+	google.golang.org/grpc v1.33.1
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
 
 // replace github.com/33cn/chain33 => github.com/wchh/chain33 v0.0.0-20210207044307-568d0cc1fc97
 
-replace github.com/33cn/chain33 => github.com/wchh/chain33 v0.0.0-20210207135206-2de2112e9654
+// replace github.com/33cn/chain33 => github.com/wchh/chain33 v0.0.0-20210207135206-2de2112e9654
