@@ -166,13 +166,13 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
 	}
 	go g.handleOutgoing()
 	go func() {
-		for range time.NewTicker(time.Minute).C {
+		for range time.NewTicker(time.Second * 10).C {
 			np := ps.ListPeers(topics[0])
 			plog.Info("pos33 peers ", "len", len(np), "peers", np)
 			g.bootstrap(g.bootPeers...)
 		}
 	}()
-	go g.fsLoop(fs)
+	// go g.fsLoop(fs)
 }
 
 type frc struct {
@@ -298,12 +298,12 @@ func (g *gossip2) fsLoop(fs []string) error {
 }
 
 func (g *gossip2) gossip(topic string, data []byte) error {
-	g.fsCh <- data
+	// g.fsCh <- data
 	t, ok := g.tmap[topic]
 	if !ok {
 		return fmt.Errorf("%s topic NOT match", topic)
 	}
-	plog.Info("gossip data", "len", len(data))
+	plog.Debug("gossip data", "len", len(data))
 	return t.Publish(g.ctx, data)
 }
 
