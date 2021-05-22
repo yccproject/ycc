@@ -40,31 +40,7 @@ func (s *server) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	return
 }
 
-// func (s *server) Tick() (delay time.Duration, action gnet.Action) {
-// 	log.Println("It's time to push data to clients!!!")
-// 	s.connectedSockets.Range(func(key, value interface{}) bool {
-// 		addr := key.(string)
-// 		c := value.(gnet.Conn)
-// 		c.AsyncWrite([]byte(fmt.Sprintf("heart beating to %s\n", addr)))
-// 		return true
-// 	})
-// 	delay = s.tick
-// 	return
-// }
-
 func (s *server) React(frame []byte, c gnet.Conn) (out []byte, action gnet.Action) {
-	// s.connectedSockets.Range(func(key, value interface{}) bool {
-	// 	addr := key.(string)
-	// 	raddr := c.RemoteAddr().String()
-	// 	if addr == raddr {
-	// 		return true
-	// 	}
-	// 	c := value.(gnet.Conn)
-	// 	dt := append([]byte{}, frame...)
-	// 	log.Printf("forward data, from=%s==>to=%s, len=%d \n", raddr, addr, len(dt))
-	// 	c.AsyncWrite(dt)
-	// 	return true
-	// })
 	data := append([]byte{}, frame...)
 	s.ch <- rd{data, c.RemoteAddr().String()}
 	return
@@ -79,7 +55,6 @@ func (s *server) forward() {
 				return true
 			}
 			c := value.(gnet.Conn)
-			// data := append([]byte{}, r.data...)
 			log.Printf("forward data, from=%s==>to=%s, len=%d \n", r.addr, addr, len(r.data))
 			c.AsyncWrite(r.data)
 			return true

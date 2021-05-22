@@ -110,32 +110,32 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 	}
 
 	var minSort *pt.Pos33SortMsg
-	for j := 0; j < 3; j++ {
-		for i := 0; i < count; i++ {
-			data := fmt.Sprintf("%x+%d+%d", vrfHash, i, j)
-			hash := hash2([]byte(data))
+	// for j := 0; j < 3; j++ {
+	for i := 0; i < count; i++ {
+		data := fmt.Sprintf("%x+%d", vrfHash, i)
+		hash := hash2([]byte(data))
 
-			// 转为big.Float计算，比较难度diff
-			y := new(big.Int).SetBytes(hash)
-			z := new(big.Float).SetInt(y)
-			if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-				continue
-			}
+		// 转为big.Float计算，比较难度diff
+		y := new(big.Int).SetBytes(hash)
+		z := new(big.Float).SetInt(y)
+		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+			continue
+		}
 
-			// 符合，表示抽中了
-			m := &pt.Pos33SortMsg{
-				SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: int32(j)},
-				Proof:    proof,
-			}
-			if minSort == nil {
-				minSort = m
-			}
-			// minHash use string compare, define a rule for which one is min
-			if string(minSort.SortHash.Hash) > string(hash) {
-				minSort = m
-			}
+		// 符合，表示抽中了
+		m := &pt.Pos33SortMsg{
+			SortHash: &pt.SortHash{Hash: hash, Index: int64(i)},
+			Proof:    proof,
+		}
+		if minSort == nil {
+			minSort = m
+		}
+		// minHash use string compare, define a rule for which one is min
+		if string(minSort.SortHash.Hash) > string(hash) {
+			minSort = m
 		}
 	}
+	// }
 	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16], "sortHash", minSort != nil)
 	return minSort
 }
@@ -210,7 +210,7 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "ty", ty, "who", addr[:16])
 		return err
 	}
-	data := fmt.Sprintf("%x+%d+%d", m.Proof.VrfHash, m.SortHash.Index, m.SortHash.Num)
+	data := fmt.Sprintf("%x+%d", m.Proof.VrfHash, m.SortHash.Index)
 	hash := hash2([]byte(data))
 	if string(hash) != string(m.SortHash.Hash) {
 		return fmt.Errorf("sort hash error")
