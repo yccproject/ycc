@@ -278,6 +278,17 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	return ret
 }
 
+func (client *Client) setOthersBlock(b *types.Block, pid string) error {
+	bp := &types.BlockPid{Pid: pid, Block: b}
+	qc := client.GetQueueClient()
+	err := qc.Send(qc.NewMessage("blockchain", types.EventBroadcastAddBlock, bp), true)
+	if err != nil {
+		plog.Error("BreadcastAddBlock error", "err", err)
+		return err
+	}
+	return nil
+}
+
 // write block to chain
 func (client *Client) setBlock(b *types.Block) error {
 	cb := client.GetCurrentBlock()
