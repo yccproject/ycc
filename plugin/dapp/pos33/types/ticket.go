@@ -197,9 +197,9 @@ const (
 	// Pos33MakerReward 每ticket区块bp奖励
 	Pos33MakerReward = types.Coin * 2 / Pos33RewardVotes
 	// Pos33MakeerSize 候选区块maker数量
-	Pos33MakerSize = 10
+	Pos33MakerSize = 11
 	// Pos33VoterSize  候选区块voter数量
-	Pos33VoterSize = 30
+	Pos33VoterSize = 33
 	// Pos33RewardVotes 奖励的票数
 	Pos33RewardVotes = 20
 	// Pos33MustVotes 必须达到的票数
