@@ -41,12 +41,12 @@ message Pos33TicketAction {
 message Pos33Msg {
   bytes data = 1;
   enum Ty {
-    MV = 0;  // maker vote msg
-    BV = 1;  // block vote msg
-    B = 2;   // block msg
-    MS = 3;  // maker sort msg
-    BVS = 4; // block voter sort msg
-    MVS = 5; // maker voter sort msg
+    MV = 0; // maker vote msg
+    BV = 1; // block vote msg
+    B = 2;  // block msg
+    MS = 3; // maker sort msg
+    VS = 4; // block voter sort msg
+    // MVS = 5; // maker voter sort msg
   }
   Ty ty = 2;
 }
@@ -120,6 +120,7 @@ message Pos33Votes { repeated Pos33VoteMsg vs = 1; }
 message Pos33TicketMiner {
   repeated Pos33VoteMsg votes = 1;
   Pos33SortMsg sort = 2;
+  int64 block_time = 3; // the number of millisecond since January 1, 1970 UTC
 }
 
 message Pos33MinerFlag {

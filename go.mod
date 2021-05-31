@@ -22,8 +22,6 @@ require (
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multistream v0.2.1 // indirect
-	github.com/onsi/ginkgo v1.12.1 // indirect
-	github.com/onsi/gomega v1.10.0 // indirect
 	github.com/panjf2000/gnet v1.4.3
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.7.0

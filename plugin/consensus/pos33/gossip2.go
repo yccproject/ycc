@@ -106,7 +106,7 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, topics .
 		panic(err)
 	}
 	h := newHost(ctx, pr, port, ns)
-	ps, err := pubsub.NewGossipSub(ctx, h)
+	ps, err := pubsub.NewGossipSub(ctx, h, pubsub.WithMessageSigning(false), pubsub.WithStrictSignatureVerification(false))
 	if err != nil {
 		panic(err)
 	}
@@ -118,10 +118,10 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, topics .
 		streams:  make(map[peer.ID]*stream),
 		incoming: make(chan *pt.Pos33Msg, 16),
 		outgoing: make(chan *smsg, 16),
-		C:        make(chan []byte, 16),
+		C:        make(chan []byte, 1024),
 		fsCh:     make(chan []byte, 16),
 	}
-	g.setHandler()
+	// g.setHandler()
 	go g.run(ps, topics, fs)
 	return g
 }
@@ -160,15 +160,15 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
 			}
 		}(sb)
 	}
-	go g.handleOutgoing()
+	// go g.handleOutgoing()
 	go func() {
-		for range time.NewTicker(time.Second * 10).C {
+		for range time.NewTicker(time.Second * 60).C {
 			np := ps.ListPeers(topics[0])
 			plog.Info("pos33 peers ", "len", len(np), "peers", np)
 			g.bootstrap(g.bootPeers...)
 		}
 	}()
-	go g.fsLoop(fs)
+	// go g.fsLoop(fs)
 }
 
 func (g *gossip2) gossip(topic string, data []byte) error {
@@ -176,7 +176,7 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 	if !ok {
 		return fmt.Errorf("%s topic NOT match", topic)
 	}
-	plog.Debug("gossip data", "len", len(data))
+	// plog.Debug("gossip data", "len", len(data))
 	return t.Publish(g.ctx, data)
 }
 
@@ -280,14 +280,16 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
 		libp2p.EnableNATService(),
-		libp2p.DefaultTransports,
+		// libp2p.DefaultTransports,
+		// libp2p.Transport(libp2pquic.NewTransport),
 		libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 			dht, err := dht.New(ctx, h)
 			idht = dht
 			return idht, err
 		}),
-		// libp2p.EnableRelay(relay.OptHop),
+		// libp2p.EnableRelay(circuit.OptHop),
+		libp2p.Ping(false),
 		libp2p.EnableAutoRelay(),
 	)
 
