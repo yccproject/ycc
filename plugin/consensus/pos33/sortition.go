@@ -48,7 +48,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33So
 		return nil
 	}
 
-	diff := n.getDiff(height, round) * 3.0
+	diff := n.getDiff(height, round, false)
 
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(ty)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
@@ -98,7 +98,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		return nil
 	}
 
-	diff := n.getDiff(height, round)
+	diff := n.getDiff(height, round, true)
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(0)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{

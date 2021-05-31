@@ -269,13 +269,13 @@ func (n *node) pushBlock(b *types.Block) {
 // delete old data
 func (n *node) clear(height int64) {
 	for h := range n.mmp {
-		if h <= height-10 {
+		if h < height-10 {
 			delete(n.mmp, h)
 		}
 	}
 
 	for h := range n.vmp {
-		if h <= height-10 {
+		if h < height-10 {
 			delete(n.vmp, h)
 		}
 	}
@@ -375,14 +375,16 @@ func (n *node) sortition(b *types.Block, round int) {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return
 	}
-	n.sortMaker(seed, height, round)
+	if height > 10 && len(n.mmp) > 10 {
+		n.sortMaker(seed, height, round)
+	}
 	n.sortVoter(seed, height, round)
 }
 
 func (n *node) firstSortition() {
 	seed := zeroHash[:]
-	for i := 0; i < pt.Pos33SortBlocks; i++ {
-		height := int64(i + 1)
+	for i := 0; i <= pt.Pos33SortBlocks; i++ {
+		height := int64(i)
 		n.sortMaker(seed, height, 0)
 		n.sortVoter(seed, height, 0)
 	}
@@ -473,10 +475,14 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 	return getMinerSeed(sb)
 }
 
-func (n *node) getDiff(height int64, round int) float64 {
+func (n *node) getDiff(height int64, round int, isMaker bool) float64 {
 	height -= pt.Pos33SortBlocks
 	w := n.allCount(height)
-	diff := float64(pt.Pos33MakerSize) / float64(w)
+	size := pt.Pos33MakerSize
+	if !isMaker {
+		size = pt.Pos33VoterSize
+	}
+	diff := float64(size) / float64(w)
 	diff *= math.Pow(1.1, float64(round))
 	return diff
 }
@@ -536,7 +542,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	height := m0.Sort.Proof.Input.Height
 	round := int(m0.Sort.Proof.Input.Round)
 
-	if n.lastBlock().Height >= height {
+	if n.lastBlock().Height > height {
 		return
 	}
 
@@ -638,10 +644,6 @@ func (n *node) delForkBlocks(lb *types.Block) {
 */
 
 func (n *node) tryMakeBlock(height int64, round int) {
-	// if n.lastBlock().Height >= height {
-	// 	return
-	// }
-
 	maker := n.getMaker(height, round)
 	if maker.my == nil {
 		return
@@ -652,7 +654,7 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	mh := string(maker.my.SortHash.Hash)
 	vs := maker.mvs[mh]
 
-	plog.Info("try make block", "height", height, "round", round, "mvss", len(maker.vss), "nvs", len(vs))
+	plog.Info("try make block", "height", height, "round", round, "vss", len(maker.vss), "nvs", len(vs))
 	if len(vs) < 11 {
 		plog.Debug("tryMakeBlock nvs < 11", "height", height, "round", round, "vss", len(maker.vss), "nvs", len(vs))
 		return
@@ -680,8 +682,12 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	}
 	lmk := n.getMaker(height-1, lr)
 	lvs := lmk.bvs[string(lb.Hash(n.GetAPI().GetConfig()))]
+	if len(lvs) < 11 {
+		plog.Info("tryMakeBlock lvs < 11", "height", height, "round", round, "vss", len(lmk.vss), "nvs", len(lvs))
+		return
+	}
 	if len(lvs)*3 < len(lmk.vss)*2 {
-		plog.Debug("tryMakeBlock nvs < 2/3", "height", height, "round", round, "vss", len(maker.vss), "nvs", len(lvs))
+		plog.Info("tryMakeBlock nvs < 2/3", "height", height, "round", round, "vss", len(lmk.vss), "nvs", len(lvs))
 		return
 	}
 
@@ -718,11 +724,11 @@ func (n *node) trySetBlock(height int64, round int, must bool) bool {
 	if must {
 		nvss = sum
 	}
-	if max == 0 {
+	if max < 11 {
 		return false
 	}
 	plog.Info("try set block", "height", height, "round", round, "nbss", nvss, "sum", sum, "max", max, "bh", common.HashHex([]byte(bh))[:16], "must", must)
-	if max*3+1 < nvss*2 {
+	if max*3 < nvss*2 {
 		r := nvss - sum
 		if r >= max {
 			return false
