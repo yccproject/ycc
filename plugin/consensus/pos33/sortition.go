@@ -41,7 +41,7 @@ func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 	return hash, vrfProof
 }
 
-func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33SortMsg {
+func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Pos33SortMsg {
 	count := n.myCount()
 	priv := n.getPriv()
 	if priv == nil {
@@ -53,8 +53,8 @@ func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33So
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(ty)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
-		Input:    input,
-		Diff:     diff,
+		Input: input,
+		// Diff:     diff,
 		VrfHash:  vrfHash,
 		VrfProof: vrfProof,
 		Pubkey:   priv.PubKey().Bytes(),
@@ -62,7 +62,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33So
 
 	var msgs []*pt.Pos33SortMsg
 	for i := 0; i < count; i++ {
-		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, 0)
+		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, num)
 		hash := hash2([]byte(data))
 
 		// 转为big.Float计算，比较难度diff
@@ -74,7 +74,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33So
 
 		// 符合，表示抽中了
 		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(i)},
+			SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: int32(num)},
 			Proof:    proof,
 		}
 		msgs = append(msgs, m)
@@ -85,7 +85,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty int) []*pt.Pos33So
 	}
 	if len(msgs) > pt.Pos33RewardVotes {
 		sort.Sort(pt.Sorts(msgs))
-		msgs = msgs[:pt.Pos33RewardVotes]
+		msgs = msgs[:pt.Pos33RewardVotes+1]
 	}
 	plog.Info("voter sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	return msgs
@@ -102,8 +102,8 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: int32(round), Ty: int32(0)}
 	vrfHash, vrfProof := calcuVrfHash(input, priv)
 	proof := &pt.HashProof{
-		Input:    input,
-		Diff:     diff,
+		Input: input,
+		// Diff:     diff,
 		VrfHash:  vrfHash,
 		VrfProof: vrfProof,
 		Pubkey:   priv.PubKey().Bytes(),
@@ -112,7 +112,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 	var minSort *pt.Pos33SortMsg
 	// for j := 0; j < 3; j++ {
 	for i := 0; i < count; i++ {
-		data := fmt.Sprintf("%x+%d", vrfHash, i)
+		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, 0)
 		hash := hash2([]byte(data))
 
 		// 转为big.Float计算，比较难度diff
@@ -124,7 +124,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 
 		// 符合，表示抽中了
 		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(i)},
+			SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: 0},
 			Proof:    proof,
 		}
 		if minSort == nil {
@@ -210,16 +210,18 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "ty", ty, "who", addr[:16])
 		return err
 	}
-	data := fmt.Sprintf("%x+%d", m.Proof.VrfHash, m.SortHash.Index)
+	data := fmt.Sprintf("%x+%d+%d", m.Proof.VrfHash, m.SortHash.Index, m.SortHash.Num)
 	hash := hash2([]byte(data))
 	if string(hash) != string(m.SortHash.Hash) {
 		return fmt.Errorf("sort hash error")
 	}
 
+	diff := n.getDiff(height, int(round), ty == 0)
+
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
-	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(m.Proof.Diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", m.Proof.Diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
 		return errDiff
 	}
 
