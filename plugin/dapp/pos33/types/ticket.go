@@ -189,13 +189,13 @@ const Pos33AllTicketCountKeyPrefix = "LODB-pos33-all:"
 
 const (
 	// Pos33BlockReward 区块奖励
-	Pos33BlockReward = types.Coin * 15
+	Pos33BlockReward = types.Coin * 30
 	// Pos33SortBlocks 多少区块做一次抽签
 	Pos33SortBlocks = 10
 	// Pos33VoteReward 每ticket区块voter奖励
-	Pos33VoteReward = types.Coin * 7 / Pos33RewardVotes
+	Pos33VoteReward = types.Coin * 15 / Pos33RewardVotes
 	// Pos33MakerReward 每ticket区块bp奖励
-	Pos33MakerReward = types.Coin * 2 / Pos33RewardVotes
+	Pos33MakerReward = types.Coin * 5 / Pos33RewardVotes
 	// Pos33MakeerSize 候选区块maker数量
 	Pos33MakerSize = 15
 	// Pos33VoterSize  候选区块voter数量
