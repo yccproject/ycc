@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc-alterblock2"
+Title = "ycc-test10"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -53,7 +53,7 @@ useGithub = false
 #可以自定义设置连接节点
 channel = 9
 port = 13801
-seeds = ["/ip4/124.71.10.240/tcp/13801/p2p/16Uiu2HAm3PkbqoeGbQ9qju9mq4epNEmFJnyhdvj6fvgLwVcHZ3ym"]
+seeds = ["/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAm5QeLWi747SLF2LMxMqTh7feYL6skEcNaaEq8t8ukemrj"]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -70,7 +70,8 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-bootPeers = ["/ip4/124.71.10.240/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+bootPeers = ["/ip4/42.159.83.68/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+forwardServers = ["124.71.10.240:10902"]
 listenPort = 10901
 onlyVoter = false
 
