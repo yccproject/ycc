@@ -190,7 +190,7 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		}
 		mact := pact.GetMiner()
 		n := int64(0)
-		for _, v := range mact.Votes {
+		for _, v := range mact.Lvs {
 			pubkey := v.Sig.Pubkey
 			addr := address.PubKeyToAddr(pubkey)
 			if len(addr) != 0 && policy.walletOperate.AddrInWallet(addr) {

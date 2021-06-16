@@ -217,7 +217,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		return nil, errors.New("address NOT match")
 	}
 	chain33Cfg := action.api.GetConfig()
-	sumw := len(miner.GetVotes())
+	sumw := len(miner.GetLvs())
 
 	var kvs []*types.KeyValue
 	var logs []*types.ReceiptLog
@@ -243,7 +243,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 	// 	sort.Sort(ty.Votes(vs))
 	// 	vs = vs[:ty.Pos33RewardVotes]
 	// }
-	for _, v := range miner.Votes {
+	for _, v := range miner.Lvs {
 		maddr := saddr(v.Sig)
 		receipt, err := action.coinsAccount.ExecDeposit(maddr, action.execaddr, ty.Pos33VoteReward)
 		if err != nil {

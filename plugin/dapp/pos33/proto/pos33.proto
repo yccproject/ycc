@@ -122,9 +122,10 @@ message Pos33Votes { repeated Pos33VoteMsg vs = 1; }
 message Pos33MakerVotes { repeated Pos33Votes mvs = 1; }
 
 message Pos33TicketMiner {
-  repeated Pos33VoteMsg votes = 1;
-  Pos33SortMsg sort = 2;
-  int64 block_time = 3; // the number of millisecond since January 1, 1970 UTC
+  Pos33SortMsg sort = 1;
+  repeated Pos33VoteMsg vs = 2;
+  repeated Pos33VoteMsg lvs = 3;
+  int64 block_time = 4; // the number of millisecond since January 1, 1970 UTC
 }
 
 message Pos33MinerFlag {
