@@ -130,7 +130,7 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 		if ticketMiner == nil {
 			return 0, nil
 		}
-		nvs := len(ticketMiner.Votes)
+		nvs := len(ticketMiner.Lvs)
 		bpr := Pos33MakerReward * int64(nvs)
 		return bpr, nil
 	}

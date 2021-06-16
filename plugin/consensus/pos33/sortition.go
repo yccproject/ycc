@@ -87,7 +87,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 		sort.Sort(pt.Sorts(msgs))
 		msgs = msgs[:pt.Pos33RewardVotes+1]
 	}
-	plog.Info("voter sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	plog.Info("voter sort", "height", height, "round", round, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	return msgs
 }
 
