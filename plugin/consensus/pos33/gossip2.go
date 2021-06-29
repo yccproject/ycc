@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	ccrypto "github.com/33cn/chain33/common/crypto"
@@ -331,12 +332,19 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 		panic(err)
 	}
 
-	// paddr := peerAddr(h)
-	// err = ioutil.WriteFile("yccpeeraddr.txt", []byte(paddr.String()+"\n"), 0644)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// plog.Info("host inited", "host", paddr)
+	addrInfo := peer.AddrInfo{
+		ID:    h.ID(),
+		Addrs: h.Addrs(),
+	}
+	paddr, err := peer.AddrInfoToP2pAddrs(&addrInfo)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile("yccpeeraddr.txt", []byte(paddr[0].String()+"\n"), 0644)
+	if err != nil {
+		panic(err)
+	}
+	plog.Info("host inited", "host", paddr)
 
 	discover(ctx, h, idht, ns)
 
@@ -399,7 +407,7 @@ func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
 }
 
 // func peerAddr(h host.Host) multiaddr.Multiaddr {
-// 	peerInfo := &peerstore.PeerInfo{
+// 	peerInfo := &{
 // 		ID:    h.ID(),
 // 		Addrs: h.Addrs(),
 // 	}
