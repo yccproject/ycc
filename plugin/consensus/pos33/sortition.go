@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"time"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -24,8 +25,7 @@ var fmax = big.NewFloat(0).SetInt(max) // 2^^256
 
 const (
 	Maker = iota
-	BlockVoter
-	MakerVoter
+	Voter
 )
 
 // 算法依据：
@@ -83,11 +83,11 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 	if len(msgs) == 0 {
 		return nil
 	}
-	if len(msgs) > pt.Pos33RewardVotes {
+	if len(msgs) > pt.Pos33RewardVotes+1 {
 		sort.Sort(pt.Sorts(msgs))
 		msgs = msgs[:pt.Pos33RewardVotes+1]
 	}
-	plog.Info("voter sort", "height", height, "round", round, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	return msgs
 }
 
@@ -124,7 +124,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 
 		// 符合，表示抽中了
 		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: 0},
+			SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: 0, Time: time.Now().UnixNano() / 1000000},
 			Proof:    proof,
 		}
 		if minSort == nil {

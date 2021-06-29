@@ -139,13 +139,13 @@ func (g *gossip2) setHandler() {
 		pid := s.Conn().RemotePeer()
 		plog.Info("remote peer", "peer", pid, "addr", maddr)
 		h.Peerstore().AddAddrs(pid, []multiaddr.Multiaddr{maddr}, peerstore.AddressTTL)
-		addrInfo := &peer.AddrInfo{Addrs: []multiaddr.Multiaddr{maddr}, ID: pid}
-		data, err := addrInfo.MarshalJSON()
-		if err != nil {
-			plog.Info("pid marshal error", "err", err)
-			return
-		}
-		g.gossip(g.raddrTopic, data)
+		// addrInfo := &peer.AddrInfo{Addrs: []multiaddr.Multiaddr{maddr}, ID: pid}
+		// data, err := addrInfo.MarshalJSON()
+		// if err != nil {
+		// 	plog.Info("pid marshal error", "err", err)
+		// 	return
+		// }
+		// g.gossip(g.raddrTopic, data)
 	})
 
 	// h.SetStreamHandler(pos33MsgID, g.handleIncoming)
@@ -346,9 +346,9 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 
 func printPeerstore(h host.Host) {
 	for range time.NewTicker(time.Second * 60).C {
-		pids := h.Peerstore().PeersWithAddrs()
-		plog.Info("peersstore len", "len", pids.Len(), "pids", pids)
-		for _, id := range pids {
+		peers := h.Peerstore().PeersWithAddrs()
+		plog.Info("peersstore len", "len", peers.Len(), "pids", peers)
+		for _, id := range peers {
 			plog.Info("peer:", "pid", id.String()[:16], "addr", h.Peerstore().Addrs(id))
 		}
 	}
