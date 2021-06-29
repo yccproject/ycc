@@ -53,7 +53,13 @@ useGithub = false
 #可以自定义设置连接节点
 channel = 9
 port = 13801
-seeds = ["/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAm1CQv1iiBnuWVBHEVRPyTdbkA8TiBoSLFw4fY4DmX7wPM"]
+seeds = [
+	 "/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAm1CQv1iiBnuWVBHEVRPyTdbkA8TiBoSLFw4fY4DmX7wPM",
+	 "/ip4/42.159.82.182/tcp/13801/p2p/16Uiu2HAmF4c5Vq4F6n2KDuSS2WxJH739UrS4G8DdLWu5xPZzA1Dv",
+	 "/ip4/40.73.244.123/tcp/13801/p2p/16Uiu2HAkuVVreF34dwmfw2GyNpzkMTfwUg3wJwjpDJL2qmZfxsbB",
+	 "/ip4/52.130.199.187/tcp/13801/p2p/16Uiu2HAkvaFYSXu1xhW4dBUL51sVyLFt4oheptdLycbRgLmwnXjK",
+	 "/ip4/52.130.197.218/tcp/13801/p2p/16Uiu2HAmTgCMJkPogcfmi7PVEYCFqfoMGqWo3nBdLaLUKxoxZpB5"
+	]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -70,7 +76,13 @@ keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
-bootPeers = ["/ip4/42.159.83.68/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
+bootPeers = [
+	     "/ip4/42.159.83.68/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
+	     "/ip4/42.159.82.182/tcp/10901/p2p/16Uiu2HAkui5bUjmW5qxmSu4db8i6BkuqKUpjzNuQG4KAkCqCMcD1",
+	     "/ip4/139.219.13.208/tcp/10901/p2p/16Uiu2HAmAjCwnUWSHyYGGUF8aP2FLTvi6e2wGQadf1bn7GshUkpm",
+	     "/ip4/42.159.83.25/tcp/10901/p2p/16Uiu2HAmQCYgvsaFuBF2ZrdxjSYHnbroMx2FHTgvH3DvVtocXu4Y",
+	     "/ip4/42.159.82.116/tcp/10901/p2p/16Uiu2HAmQyxTKKTiUCkZEtZoDkf4cgX2MMuXLKGm1VAJfkwQtUfF"
+	    ]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10901
 onlyVoter = false
