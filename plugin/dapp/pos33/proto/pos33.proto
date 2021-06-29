@@ -56,6 +56,7 @@ message SortHash {
   int64 index = 1;
   bytes hash = 2;
   int32 num = 3;
+  int64 time = 4;
 }
 
 message VrfInput {
@@ -125,7 +126,7 @@ message Pos33TicketMiner {
   Pos33SortMsg sort = 1;
   repeated Pos33VoteMsg vs = 2;
   repeated Pos33VoteMsg lvs = 3;
-  int64 block_time = 4; // the number of millisecond since January 1, 1970 UTC
+  int64 blockTime = 4;
 }
 
 message Pos33MinerFlag {
