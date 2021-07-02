@@ -45,8 +45,8 @@ message Pos33Msg {
     BV = 1; // block vote msg
     B = 2;  // block msg
     MS = 3; // maker sort msg
-    VS = 4; // block voter sort msg
-    // MVS = 5; // maker voter sort msg
+    VS = 4; // voter sort msg
+    SV = 5; // sorts vote msg
   }
   Ty ty = 2;
 }
@@ -118,6 +118,16 @@ message Pos33DepositMsg {
   int64 close_height = 6;
   int64 reward = 3;
 }
+
+message Pos33SortsVote {
+  repeated Pos33SortMsg my_sorts = 1;
+  repeated string select_sorts = 2;
+  int64 height = 3;
+  int32 round = 4;
+  Signature sig = 5;
+}
+
+message Pos33SortMap { map<string, Pos33SortMsg> sort_map = 1; }
 
 message Pos33Votes { repeated Pos33VoteMsg vs = 1; }
 message Pos33MakerVotes { repeated Pos33Votes mvs = 1; }
