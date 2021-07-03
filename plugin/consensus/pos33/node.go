@@ -944,7 +944,7 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 
 func checkTime(t int64) bool {
 	mt := time.Now().UnixNano() / 1000000
-	if mt-t > 2000 || t-mt > 2000 {
+	if mt-t > 3000 || t-mt > 2000 {
 		plog.Info("checkTime false", "t", t, "mt", mt, "mt-t", mt-t)
 		return false
 	}
