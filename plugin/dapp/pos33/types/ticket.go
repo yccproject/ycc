@@ -130,7 +130,7 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 		if ticketMiner == nil {
 			return 0, nil
 		}
-		nvs := len(ticketMiner.Lvs)
+		nvs := len(ticketMiner.Vs)
 		bpr := Pos33MakerReward * int64(nvs)
 		return bpr, nil
 	}
@@ -193,17 +193,15 @@ const (
 	// Pos33SortBlocks 多少区块做一次抽签
 	Pos33SortBlocks = 10
 	// Pos33VoteReward 每ticket区块voter奖励
-	Pos33VoteReward = types.Coin * 15 / Pos33RewardVotes
+	Pos33VoteReward = types.Coin / 2 // 0.5 ycc
 	// Pos33MakerReward 每ticket区块bp奖励
-	Pos33MakerReward = types.Coin * 5 / Pos33RewardVotes
+	Pos33MakerReward = types.Coin * 22 / 100 // 0.22 ycc
 	// Pos33MakeerSize 候选区块maker数量
 	Pos33MakerSize = 15
 	// Pos33VoterSize  候选区块voter数量
-	Pos33VoterSize = 30
-	// Pos33RewardVotes 奖励的票数
-	Pos33RewardVotes = 20
+	Pos33VoterSize = 25
 	// Pos33MustVotes 必须达到的票数
-	Pos33MustVotes = 11
+	Pos33MustVotes = 17
 )
 
 // Verify is verify msg
@@ -263,6 +261,9 @@ type Votes []*Pos33VoteMsg
 
 func (m Votes) Len() int { return len(m) }
 func (m Votes) Less(i, j int) bool {
+	if m[i].Sort.SortHash.Num < m[j].Sort.SortHash.Num {
+		return true
+	}
 	return string(m[i].Sort.SortHash.Hash) < string(m[j].Sort.SortHash.Hash)
 }
 func (m Votes) Swap(i, j int) { m[i], m[j] = m[j], m[i] }

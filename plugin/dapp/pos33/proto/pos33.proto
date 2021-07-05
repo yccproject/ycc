@@ -135,7 +135,6 @@ message Pos33MakerVotes { repeated Pos33Votes mvs = 1; }
 message Pos33TicketMiner {
   Pos33SortMsg sort = 1;
   repeated Pos33VoteMsg vs = 2;
-  repeated Pos33VoteMsg lvs = 3;
   int64 blockTime = 4;
 }
 

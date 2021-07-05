@@ -83,9 +83,9 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 	if len(msgs) == 0 {
 		return nil
 	}
-	if len(msgs) > pt.Pos33RewardVotes+1 {
+	if len(msgs) > pt.Pos33VoterSize {
 		sort.Sort(pt.Sorts(msgs))
-		msgs = msgs[:pt.Pos33RewardVotes+1]
+		msgs = msgs[:pt.Pos33VoterSize]
 	}
 	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	return msgs
