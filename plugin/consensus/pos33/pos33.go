@@ -368,7 +368,7 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 		return false
 	}
 
-	plog.Info("block cmp", "nv1", len(m1.Lvs), "nv2", len(m2.Lvs))
+	plog.Info("block cmp", "nv1", len(m1.Vs), "nv2", len(m2.Vs))
 	return true
 
 	// vw1 := voteWeight(m1.Votes)
@@ -417,9 +417,9 @@ func (client *Client) Query_GetPos33Reward(req *pt.Pos33TicketReward) (types.Mes
 		addr = saddr(b.Signature)
 	}
 	if saddr(b.Signature) == addr {
-		br = pt.Pos33MakerReward * int64(len(m.Lvs))
+		br = pt.Pos33MakerReward * int64(len(m.Vs))
 	}
-	for _, v := range m.Lvs {
+	for _, v := range m.Vs {
 		if saddr(v.Sig) == addr {
 			vr += pt.Pos33VoteReward
 		}
