@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc-test11"
+Title = "ycc-test12"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -54,11 +54,11 @@ useGithub = false
 channel = 9
 port = 13801
 seeds = [
-	 "/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAm1CQv1iiBnuWVBHEVRPyTdbkA8TiBoSLFw4fY4DmX7wPM",
-	 "/ip4/42.159.82.182/tcp/13801/p2p/16Uiu2HAmF4c5Vq4F6n2KDuSS2WxJH739UrS4G8DdLWu5xPZzA1Dv",
-	 "/ip4/40.73.244.123/tcp/13801/p2p/16Uiu2HAkuVVreF34dwmfw2GyNpzkMTfwUg3wJwjpDJL2qmZfxsbB",
-	 "/ip4/52.130.199.187/tcp/13801/p2p/16Uiu2HAkvaFYSXu1xhW4dBUL51sVyLFt4oheptdLycbRgLmwnXjK",
-	 "/ip4/52.130.197.218/tcp/13801/p2p/16Uiu2HAmTgCMJkPogcfmi7PVEYCFqfoMGqWo3nBdLaLUKxoxZpB5"
+	 "/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAmMQVuCHpNXjayMaiYz2LWGzqp9aCLxHFS8W8m2UKz2yKB",
+	 "/ip4/40.73.244.123/tcp/13801/p2p/16Uiu2HAmPvU4StUPkuSK9Td7g2xF41BBSdsRaQ6KmuvpnBJebAiw",
+	 "/ip4/139.217.232.4/tcp/13801/p2p/16Uiu2HAmV2AWeFqq8byHbJUpNGxLyXNtwQRkwADxiEqXRxoGCEn1",
+	 "/ip4/52.130.198.4/tcp/13801/p2p/16Uiu2HAm9GG1TFCsv54PwGUzdRPTihEu8X7p8EJzBhwNgCm7ktn5",
+	 "/ip4/52.130.197.108/tcp/13801/p2p/16Uiu2HAmMoKLKB1VBCCn7DTaPqDtg38EfUYBqsE4HWvogD6czjRX"
 	]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
@@ -78,10 +78,10 @@ whitelist = ["127.0.0.1"]
 [consensus.sub.pos33]
 bootPeers = [
 	     "/ip4/42.159.83.68/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
-	     "/ip4/42.159.82.182/tcp/10901/p2p/16Uiu2HAkui5bUjmW5qxmSu4db8i6BkuqKUpjzNuQG4KAkCqCMcD1",
-	     "/ip4/139.219.13.208/tcp/10901/p2p/16Uiu2HAmAjCwnUWSHyYGGUF8aP2FLTvi6e2wGQadf1bn7GshUkpm",
-	     "/ip4/42.159.83.25/tcp/10901/p2p/16Uiu2HAmQCYgvsaFuBF2ZrdxjSYHnbroMx2FHTgvH3DvVtocXu4Y",
-	     "/ip4/42.159.82.116/tcp/10901/p2p/16Uiu2HAmQyxTKKTiUCkZEtZoDkf4cgX2MMuXLKGm1VAJfkwQtUfF"
+	     "/ip4/52.130.197.108/tcp/10901/p2p/16Uiu2HAkv6Qmr3JoFCNxQF8PHndwkBbm4sKvBRnm4Acx5tx5wScQ",
+	     "/ip4/52.130.198.4/tcp/10901/p2p/16Uiu2HAkxKD5BZZ7JUdSHqozNb2oVfQBMHx7Lc7w6ZjjDBmiHXq1",
+	     "/ip4/139.217.232.4/tcp/10901/p2p/16Uiu2HAmDxexHSNZvvgXCe5kV1Qq7E4tQbETb68xww2fBe3HQdLg",
+	     "/ip4/40.73.244.123/tcp/10901/p2p/16Uiu2HAm1nj2pAWwk7KimhZLYB9GBXf2eCGGbroLyCoQRGv7bsEm"
 	    ]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10901
