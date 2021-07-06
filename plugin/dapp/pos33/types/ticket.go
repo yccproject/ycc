@@ -210,7 +210,7 @@ func (v *Pos33SortsVote) Verify() bool {
 	v.Sig = nil
 	b := crypto.Sha256(types.Encode(v))
 	v.Sig = s
-	return types.CheckSign(b, "", s)
+	return types.CheckSign(b, "", s, v.Height)
 }
 
 // Sign is sign msg
@@ -227,7 +227,7 @@ func (v *Pos33VoteMsg) Verify() bool {
 	v.Sig = nil
 	b := crypto.Sha256(types.Encode(v))
 	v.Sig = s
-	return types.CheckSign(b, "", s)
+	return types.CheckSign(b, "", s, v.Sort.Proof.Input.Height)
 }
 
 // Sign is sign vote msg

@@ -159,6 +159,11 @@ Enable=0
 [fork.sub.pos33]
 Enable=0
 
+[fork.sub.ticket]
+Enable=0
+ForkTicketId = 0 
+ForkTicketVrf = 0
+
 [fork.sub.retrieve]
 Enable=0
 ForkRetrive=0
@@ -189,13 +194,15 @@ ForkTradeFixAssetDB=0
 ForkTradePrice=0
 
 [fork.sub.paracross]
-Enable=0
-ForkParacrossWithdrawFromParachain=0
-ForkParacrossCommitTx=0
-ForkLoopCheckCommitTxDone=0
+Enable=1600000
+ForkParacrossWithdrawFromParachain=1600000
+ForkParacrossCommitTx=2270000
+ForkLoopCheckCommitTxDone=4320000
 #fork for 6.4
-ForkParaAssetTransferRbk=0    
-ForkParaSelfConsStages=0
+ForkParaAssetTransferRbk=7200000    
+ForkParaSelfConsStages=7200000
+#仅平行链适用
+ForkParaFullMinerHeight=-1
 
 [fork.sub.multisig]
 Enable=0

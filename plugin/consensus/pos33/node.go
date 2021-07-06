@@ -48,14 +48,15 @@ type voter struct {
 
 // 区块制作人
 type maker struct {
-	my     *pt.Pos33SortMsg                    // 我的抽签
-	vss    map[int]map[string]*pt.Pos33SortMsg // 我收到 voter 的抽签
-	mvs    map[string][]*pt.Pos33VoteMsg       // 我收到的 maker vote
-	bvs    map[string][]*pt.Pos33VoteMsg       // 我收到的 block vote
-	ssmp   map[string]*pt.Pos33SortMsg
-	svmp   map[string]int
-	status int
-	n      *node
+	my       *pt.Pos33SortMsg                    // 我的抽签
+	vss      map[int]map[string]*pt.Pos33SortMsg // 我收到 voter 的抽签
+	mvs      map[string][]*pt.Pos33VoteMsg       // 我收到的 maker vote
+	bvs      map[string][]*pt.Pos33VoteMsg       // 我收到的 block vote
+	ssmp     map[string]*pt.Pos33SortMsg
+	svmp     map[string]int
+	status   int
+	n        *node
+	selected bool
 }
 
 const (
@@ -764,11 +765,40 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 	if ty == int(pt.Pos33Msg_BV) {
 		n.trySetBlock(height, round)
+		// 如果下一个高度被选中出块，但是没有收集到这个高度足够的投票，那么会尝试制作下一个区块
+		n.tryMakeNextBlock(height + 1)
 	} else if ty == int(pt.Pos33Msg_MV) {
 		if round > 0 {
 			n.tryMakeBlock(height, round)
 		}
 	}
+}
+
+func (n *node) tryMakeNextBlock(height int64) {
+	maker := n.getMaker(height, 0)
+	if maker.status != sortOk {
+		return
+	}
+	if !maker.selected {
+		return
+	}
+	plog.Info("tryMakeNextBlock", "height", height)
+	lb, err := n.RequestBlock(height - 1)
+	if err != nil {
+		plog.Error("requestBlock error", "err", err, "height", height-1)
+		return
+	}
+	lvs := maker.bvs[string(lb.Hash(n.GetAPI().GetConfig()))]
+	if len(lvs) < pt.Pos33MustVotes {
+		return
+	}
+	nb, err := n.makeBlock(height, 0, maker.my, lvs)
+	if err != nil {
+		plog.Error("makeBlock error", "err", err, "height", height)
+		return
+	}
+	n.broadcastBlock(nb)
+	maker.status = makeBlockOk
 }
 
 func (n *node) tryMakeBlock(height int64, round int) {
@@ -790,6 +820,8 @@ func (n *node) tryMakeBlock(height int64, round int) {
 		plog.Error("tryMakerBlock checkVotes error", "err", err, "height", height, "round", round)
 		return
 	}
+
+	maker.selected = true
 
 	lb, err := n.RequestBlock(height - 1)
 	if err != nil {
@@ -847,10 +879,10 @@ func (n *node) trySetBlock(height int64, round int) bool {
 		}
 	}
 
-	plog.Info("try set block", "height", height, "round", round, "max", max, "bh", common.HashHex([]byte(bh))[:16])
+	plog.Debug("try set block", "height", height, "round", round, "max", max, "bh", common.HashHex([]byte(bh))[:16])
 	_, err := maker.checkVotes(maker.bvs[bh])
 	if err != nil {
-		plog.Error("trySetBlock error", "err", err, "height", height, "round", round)
+		// plog.Error("trySetBlock error", "err", err, "height", height, "round", round)
 		if sum >= pt.Pos33MustVotes {
 			n.revoteBlock([]byte(bh), height, round)
 		}

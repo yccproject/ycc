@@ -54,16 +54,30 @@ useGithub = false
 channel = 9
 port = 13801
 seeds = [
-	 "/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAmMQVuCHpNXjayMaiYz2LWGzqp9aCLxHFS8W8m2UKz2yKB",
-	 "/ip4/40.73.244.123/tcp/13801/p2p/16Uiu2HAmPvU4StUPkuSK9Td7g2xF41BBSdsRaQ6KmuvpnBJebAiw",
-	 "/ip4/139.217.232.4/tcp/13801/p2p/16Uiu2HAmV2AWeFqq8byHbJUpNGxLyXNtwQRkwADxiEqXRxoGCEn1",
-	 "/ip4/52.130.198.4/tcp/13801/p2p/16Uiu2HAm9GG1TFCsv54PwGUzdRPTihEu8X7p8EJzBhwNgCm7ktn5",
-	 "/ip4/52.130.197.108/tcp/13801/p2p/16Uiu2HAmMoKLKB1VBCCn7DTaPqDtg38EfUYBqsE4HWvogD6czjRX"
-	]
+  "/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAmMQVuCHpNXjayMaiYz2LWGzqp9aCLxHFS8W8m2UKz2yKB",
+  "/ip4/40.73.244.123/tcp/13801/p2p/16Uiu2HAmPvU4StUPkuSK9Td7g2xF41BBSdsRaQ6KmuvpnBJebAiw",
+  "/ip4/139.217.232.4/tcp/13801/p2p/16Uiu2HAmV2AWeFqq8byHbJUpNGxLyXNtwQRkwADxiEqXRxoGCEn1",
+  "/ip4/52.130.198.4/tcp/13801/p2p/16Uiu2HAm9GG1TFCsv54PwGUzdRPTihEu8X7p8EJzBhwNgCm7ktn5",
+  "/ip4/52.130.197.108/tcp/13801/p2p/16Uiu2HAmMoKLKB1VBCCn7DTaPqDtg38EfUYBqsE4HWvogD6czjRX",
+]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
 minLtBlockSize = 1
+# 是否配置为全节点模式，全节点保存所有分片数据，种子节点应配置为true
+# 全节点可以切换为分片节点，暂不支持分片节点切换为全节点
+isFullNode = false
+# 兼容老版本广播节点数，目前比特元网络已基本全面升级6.5.3，新版本不再支持广播发送至老版本
+# 设为1为屏蔽默认设置5
+maxBroadcastPeers = 1
+
+[p2p.sub.dht.pubsub]
+gossipSubD = 10
+gossipSubDhi = 20
+gossipSubDlo = 7
+gossipSubHeartbeatInterval = 900
+gossipSubHistoryGossip = 2
+gossipSubHistoryLength = 7
 
 [rpc]
 certFile = "cert.pem"
@@ -77,12 +91,12 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 bootPeers = [
-	     "/ip4/42.159.83.68/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
-	     "/ip4/52.130.197.108/tcp/10901/p2p/16Uiu2HAkv6Qmr3JoFCNxQF8PHndwkBbm4sKvBRnm4Acx5tx5wScQ",
-	     "/ip4/52.130.198.4/tcp/10901/p2p/16Uiu2HAkxKD5BZZ7JUdSHqozNb2oVfQBMHx7Lc7w6ZjjDBmiHXq1",
-	     "/ip4/139.217.232.4/tcp/10901/p2p/16Uiu2HAmDxexHSNZvvgXCe5kV1Qq7E4tQbETb68xww2fBe3HQdLg",
-	     "/ip4/40.73.244.123/tcp/10901/p2p/16Uiu2HAm1nj2pAWwk7KimhZLYB9GBXf2eCGGbroLyCoQRGv7bsEm"
-	    ]
+  "/ip4/42.159.83.68/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
+  "/ip4/52.130.197.108/tcp/10901/p2p/16Uiu2HAkv6Qmr3JoFCNxQF8PHndwkBbm4sKvBRnm4Acx5tx5wScQ",
+  "/ip4/52.130.198.4/tcp/10901/p2p/16Uiu2HAkxKD5BZZ7JUdSHqozNb2oVfQBMHx7Lc7w6ZjjDBmiHXq1",
+  "/ip4/139.217.232.4/tcp/10901/p2p/16Uiu2HAmDxexHSNZvvgXCe5kV1Qq7E4tQbETb68xww2fBe3HQdLg",
+  "/ip4/40.73.244.123/tcp/10901/p2p/16Uiu2HAm1nj2pAWwk7KimhZLYB9GBXf2eCGGbroLyCoQRGv7bsEm",
+]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10901
 onlyVoter = false
