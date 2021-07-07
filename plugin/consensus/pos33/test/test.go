@@ -37,14 +37,14 @@ func init() {
 	rootKey = HexToPrivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 }
 
-var rpcURL = flag.String("u", "http://localhost:8801", "rpc url")
+var rpcURL = flag.String("u", "http://localhost:9901", "rpc url")
 var grpcURL = flag.String("g", "127.0.0.1", "grpc url")
 var pnodes = flag.Bool("n", false, "only print node private keys")
 var ini = flag.Bool("i", false, "send init tx")
-var maxacc = flag.Int("a", 1000, "max account")
-var maxaccF = flag.Int("m", 10000000, "max account in a file")
+var maxacc = flag.Int("a", 10000, "max account")
+var maxaccF = flag.Int("m", 1000000, "max account in a file")
 var rn = flag.Int("r", 3000, "sleep in Microsecond")
-var conf = flag.String("c", "chain33.toml", "chain33 config file")
+var conf = flag.String("c", "ycc.toml", "chain33 config file")
 var useGrpc = flag.Bool("G", false, "if use grpc")
 var accFile = flag.String("f", "acc.dat", "acc file")
 
@@ -53,8 +53,9 @@ var jClient *jrpc.JSONClient
 var config *types.Chain33Config
 
 func main() {
+	flag.Parse()
 	config = types.NewChain33Config(types.MergeCfg(types.ReadFile(*conf), ""))
-	config.EnableCheckFork(false)
+	// config.EnableCheckFork(false)
 
 	privCh := runLoadAccounts(*accFile, *maxacc)
 	if *pnodes {
@@ -218,7 +219,7 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	if err != nil {
 		panic(err)
 	}
-	//tx.Fee *= 10
+	tx.Fee = config.GetMaxTxFee()
 	tx.To = to
 	tx.Expire = height + 20 + types.TxHeightFlag
 	tx.Sign(types.SECP256K1, priv)
@@ -232,7 +233,7 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	if err != nil {
 		panic(err)
 	}
-	// tx.Fee *= 10
+	tx.Fee = config.GetMaxTxFee()
 	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
 	return tx
@@ -262,7 +263,7 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 			close(ch)
 			return
 		}
-		m := 10 * types.Coin
+		m := 100 * types.Coin
 		ch <- newTx(rootKey, m, address.PubKeyToAddress(priv.PubKey().Bytes()).String())
 	}
 }
@@ -274,7 +275,7 @@ func generateInitTxs(n int, privs []crypto.PrivKey, ch chan *Tx, done chan struc
 		default:
 		}
 
-		m := 10 * types.Coin
+		m := 100 * types.Coin
 		ch <- newTx(rootKey, m, address.PubKeyToAddress(priv.PubKey().Bytes()).String())
 	}
 	log.Println(n, len(privs))
@@ -311,7 +312,7 @@ func runGenerateAccounts(max int, pksCh chan []crypto.PrivKey) {
 		l := len(pks)
 		if l%1000 == 0 && l > 0 {
 			all += 1000
-			log.Println("generate acc:", all)
+			log.Println("generate acc:", all, *maxaccF, l)
 			if l%(*maxaccF) == 0 {
 				pksCh <- pks
 				log.Println(time.Since(t))
@@ -398,7 +399,7 @@ func runLoadAccounts(filename string, max int) chan crypto.PrivKey {
 		log.Println(err)
 		i := 0
 		ss := strings.Split(filename, ".")
-		pksCh := make(chan []crypto.PrivKey, 10)
+		pksCh := make(chan []crypto.PrivKey, 1)
 
 		go runGenerateAccounts(max, pksCh)
 		for {
