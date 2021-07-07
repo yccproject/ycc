@@ -102,7 +102,7 @@ listenPort = 10901
 onlyVoter = false
 
 [mempool]
-maxTxNumPerAccount = 100
+maxTxNumPerAccount = 10000
 
 [store]
 dbCache = 128
