@@ -3,6 +3,7 @@ package pos33
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,10 +20,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	routing "github.com/libp2p/go-libp2p-routing"
 	disc "github.com/libp2p/go-libp2p/p2p/discovery"
@@ -55,10 +56,11 @@ type gossip2 struct {
 	outgoing   chan *smsg
 	fsCh       chan []byte
 	raddrPid   string
-	raddrTopic string
+	peersTopic string
 }
 
 const remoteAddrID = "ycc-pos33-addr"
+const pos33Peerstore = "ycc-pos33-peerstore"
 const sendtoID = "ycc-pos33-sendto"
 const pos33MsgID = "ycc-pos33-msg"
 
@@ -103,14 +105,21 @@ type stream struct {
 
 const defaultMaxSize = 1024 * 1024
 
-func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, topics ...string) *gossip2 {
+func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, forwardPeers bool, topics ...string) *gossip2 {
 	ctx := context.Background()
 	pr, err := crypto.UnmarshalSecp256k1PrivateKey(priv.Bytes())
 	if err != nil {
 		panic(err)
 	}
 	h := newHost(ctx, pr, port, ns)
-	ps, err := pubsub.NewGossipSub(ctx, h) // pubsub.WithPeerOutboundQueueSize(128), pubsub.WithMessageSigning(false), pubsub.WithStrictSignatureVerification(false))
+	ps, err := pubsub.NewGossipSub(
+		ctx,
+		h,
+		pubsub.WithPeerOutboundQueueSize(128),
+		pubsub.WithMaxMessageSize(pubsub.DefaultMaxMessageSize*10),
+		pubsub.WithMessageSigning(false),
+		pubsub.WithStrictSignatureVerification(false),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -125,11 +134,11 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, topics .
 		C:          make(chan []byte, 1024),
 		fsCh:       make(chan []byte, 16),
 		raddrPid:   ns + "/" + remoteAddrID,
-		raddrTopic: ns + "-" + remoteAddrID,
+		peersTopic: ns + "-" + pos33Peerstore,
 	}
 	g.setHandler()
-	topics = append(topics, g.raddrTopic)
-	go g.run(ps, topics, fs)
+	topics = append(topics, g.peersTopic)
+	go g.run(ps, topics, fs, forwardPeers)
 	return g
 }
 
@@ -140,36 +149,31 @@ func (g *gossip2) setHandler() {
 		pid := s.Conn().RemotePeer()
 		plog.Info("remote peer", "peer", pid, "addr", maddr)
 		h.Peerstore().AddAddrs(pid, []multiaddr.Multiaddr{maddr}, peerstore.AddressTTL)
-		// addrInfo := &peer.AddrInfo{Addrs: []multiaddr.Multiaddr{maddr}, ID: pid}
-		// data, err := addrInfo.MarshalJSON()
-		// if err != nil {
-		// 	plog.Info("pid marshal error", "err", err)
-		// 	return
-		// }
-		// g.gossip(g.raddrTopic, data)
 	})
 
 	// h.SetStreamHandler(pos33MsgID, g.handleIncoming)
 }
 
-func (g *gossip2) handleRAddr(data []byte) {
-	var addrInfo peer.AddrInfo
-	err := addrInfo.UnmarshalJSON(data)
+func (g *gossip2) handlePeers(data []byte) {
+	var ais []peer.AddrInfo
+	err := json.Unmarshal(data, &ais)
 	if err != nil {
 		plog.Error("pid unmarshal error", "err", err)
 		return
 	}
-	if addrInfo.ID != g.h.ID() {
-		plog.Info("add remote peer", "addr", addrInfo.String())
-		g.h.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.AddressTTL)
-		err = g.h.Connect(g.ctx, addrInfo)
-		if err != nil {
-			plog.Error("connect error", "err", err)
+	for _, ai := range ais {
+		if ai.ID != g.h.ID() {
+			plog.Info("add remote peer", "addr", ai.String())
+			g.h.Peerstore().AddAddrs(ai.ID, ai.Addrs, peerstore.AddressTTL)
+			err = g.h.Connect(g.ctx, ai)
+			if err != nil {
+				plog.Error("connect error", "err", err)
+			}
 		}
 	}
 }
 
-func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
+func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool) {
 	for _, t := range topics {
 		t := t
 		tp, err := ps.Join(t)
@@ -187,8 +191,8 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
 				if g.h.ID() == m.ReceivedFrom {
 					continue
 				}
-				if t == g.raddrTopic {
-					g.handleRAddr(m.Data)
+				if t == g.peersTopic {
+					g.handlePeers(m.Data)
 				} else {
 					g.C <- m.Data
 				}
@@ -205,6 +209,9 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string) {
 			}
 		}
 	}()
+	if forwardPeers {
+		go g.sendPeerstore(g.h)
+	}
 	// go g.fsLoop(fs)
 }
 
@@ -350,8 +357,26 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 
 	discover(ctx, h, idht, ns)
 
-	go printPeerstore(h)
 	return h
+}
+
+func (g *gossip2) sendPeerstore(h host.Host) {
+	for range time.NewTicker(time.Second * 60 * 10).C {
+		peers := h.Peerstore().PeersWithAddrs()
+		var ais []*peer.AddrInfo
+		for _, id := range peers {
+			maddr := h.Peerstore().Addrs(id)
+			ai := &peer.AddrInfo{Addrs: maddr, ID: id}
+			ais = append(ais, ai)
+			plog.Info("peer:", "pid", id.String()[:16], "addr", maddr)
+		}
+		data, err := json.Marshal(ais)
+		if err != nil {
+			plog.Info("pid marshal error", "err", err)
+			return
+		}
+		g.gossip(g.peersTopic, data)
+	}
 }
 
 func printPeerstore(h host.Host) {

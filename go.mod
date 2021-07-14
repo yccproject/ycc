@@ -13,6 +13,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-kad-dht v0.12.1
+	github.com/libp2p/go-libp2p-peerstore v0.2.7 // indirect
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
 	github.com/libp2p/go-libp2p-routing v0.1.0
 	github.com/libp2p/go-msgio v0.0.6
@@ -23,3 +24,5 @@ require (
 	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
 	google.golang.org/grpc v1.33.2
 )
+
+// replace github.com/33cn/chain33 v1.65.3-0.20210701072221-e36c055c9424 => /Users/w/pos33/chain33
