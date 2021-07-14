@@ -268,7 +268,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 	// fund reward
 	fundReward := ty.Pos33BlockReward - (ty.Pos33VoteReward+ty.Pos33MakerReward)*int64(sumw)
-	tlog.Debug("fund rerward", "height", action.height, "reward", fundReward)
+	tlog.Info("fund rerward", "height", action.height, "reward", fundReward)
 
 	return &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}, nil
 }

@@ -758,15 +758,22 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	}
 
 	if ty == int(pt.Pos33Msg_BV) {
-		plog.Debug("handleVoteMsg", "allbvs", len(maker.bvs[string(m0.Hash)]), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
+		vs := maker.bvs[string(m0.Hash)]
+		if len(vs) >= pt.Pos33MustVotes {
+			plog.Info("handleVoteMsg", "hash", common.HashHex(m0.Hash)[:16], "allbvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
+		}
 	} else {
-		plog.Debug("handleVoteMsg", "allmvs", len(maker.mvs[string(m0.Hash)]), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
+		vs := maker.mvs[string(m0.Hash)]
+		if len(vs) >= pt.Pos33MustVotes {
+			plog.Debug("handleVoteMsg", "hash", common.HashHex(m0.Hash)[:16], "allmvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
+		}
 	}
 
 	if ty == int(pt.Pos33Msg_BV) {
 		n.trySetBlock(height, round)
 		// 如果下一个高度被选中出块，但是没有收集到这个高度足够的投票，那么会尝试制作下一个区块
-		n.tryMakeNextBlock(height + 1)
+		lvs := maker.bvs[string(m0.Hash)]
+		n.tryMakeNextBlock(height+1, lvs)
 	} else if ty == int(pt.Pos33Msg_MV) {
 		if round > 0 {
 			n.tryMakeBlock(height, round)
@@ -774,7 +781,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	}
 }
 
-func (n *node) tryMakeNextBlock(height int64) {
+func (n *node) tryMakeNextBlock(height int64, lvs []*pt.Pos33VoteMsg) {
 	maker := n.getMaker(height, 0)
 	if maker.status != sortOk {
 		return
@@ -782,13 +789,7 @@ func (n *node) tryMakeNextBlock(height int64) {
 	if !maker.selected {
 		return
 	}
-	plog.Info("tryMakeNextBlock", "height", height)
-	lb, err := n.RequestBlock(height - 1)
-	if err != nil {
-		plog.Error("requestBlock error", "err", err, "height", height-1)
-		return
-	}
-	lvs := maker.bvs[string(lb.Hash(n.GetAPI().GetConfig()))]
+	plog.Info("tryMakeNextBlock", "height", height, "nlvs", len(lvs))
 	if len(lvs) < pt.Pos33MustVotes {
 		return
 	}
@@ -839,11 +840,12 @@ func (n *node) tryMakeBlock(height int64, round int) {
 		lr = int(lm.Sort.Proof.Input.Round)
 	}
 	lmk := n.getMaker(height-1, lr)
-	lvs := lmk.bvs[string(lb.Hash(n.GetAPI().GetConfig()))]
+	lh := lb.Hash(n.GetAPI().GetConfig())
+	lvs := lmk.bvs[string(lh)]
 	if round <= 10 {
 		_, err := lmk.checkVotes(lvs)
 		if err != nil {
-			plog.Error("tryMakerBlock checklastVotes error", "err", err, "height", height-1, "round", lr)
+			plog.Error("tryMakerBlock checklastVotes error", "err", err, "phash", common.HashHex(lh)[:16], "height", height, "round", round, "lnvs", len(lvs))
 			return
 		}
 	}
@@ -1425,7 +1427,7 @@ func (n *node) runLoop() {
 	title := n.GetAPI().GetConfig().GetTitle()
 	n.topic = title + pos33Topic
 	ns := fmt.Sprintf("%s-%d", title, n.conf.ListenPort)
-	n.gss = newGossip2(priv, n.conf.ListenPort, ns, n.conf.ForwardServers, n.topic+"/makersorts", n.topic+"/votersorts", n.topic+"/makervotes", n.topic+"/blockvotes", n.topic+"/block", n.topic+"/sortsvote")
+	n.gss = newGossip2(priv, n.conf.ListenPort, ns, n.conf.ForwardServers, n.conf.ForwardPeers, n.topic+"/makersorts", n.topic+"/votersorts", n.topic+"/makervotes", n.topic+"/blockvotes", n.topic+"/block", n.topic+"/sortsvote")
 	msgch := n.handleGossipMsg()
 	if len(n.conf.BootPeers) > 0 {
 		n.gss.bootstrap(n.conf.BootPeers...)
@@ -1440,7 +1442,7 @@ func (n *node) runLoop() {
 		})
 	}
 
-	plog.Info("pos33 running...", "last block height", lb.Height)
+	plog.Info("pos33 running... 07131918", "last block height", lb.Height)
 
 	isSync := false
 	syncTick := time.NewTicker(time.Second)
