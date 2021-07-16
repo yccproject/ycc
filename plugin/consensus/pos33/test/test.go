@@ -38,7 +38,7 @@ func init() {
 }
 
 var rpcURL = flag.String("u", "http://localhost:9901", "rpc url")
-var grpcURL = flag.String("g", "127.0.0.1", "grpc url")
+var grpcURL = flag.String("g", "127.0.0.1:9902", "grpc url")
 var pnodes = flag.Bool("n", false, "only print node private keys")
 var ini = flag.Bool("i", false, "send init tx")
 var maxacc = flag.Int("a", 10000, "max account")
@@ -46,6 +46,7 @@ var maxaccF = flag.Int("m", 1000000, "max account in a file")
 var rn = flag.Int("r", 3000, "sleep in Microsecond")
 var conf = flag.String("c", "ycc.toml", "chain33 config file")
 var useGrpc = flag.Bool("G", false, "if use grpc")
+var sign = flag.Bool("s", true, "signature tx")
 var accFile = flag.String("f", "acc.dat", "acc file")
 
 var gClient types.Chain33Client
@@ -131,7 +132,8 @@ func run(privs []crypto.PrivKey) {
 		select {
 		case <-tch:
 			if *useGrpc {
-				h, err := gClient.GetLastHeader(context.Background(), nil)
+				data := &types.ReqNil{}
+				h, err := gClient.GetLastHeader(context.Background(), data)
 				if err != nil {
 					panic(err)
 				}
@@ -222,7 +224,9 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	tx.Fee = config.GetMaxTxFee()
 	tx.To = to
 	tx.Expire = height + 20 + types.TxHeightFlag
-	tx.Sign(types.SECP256K1, priv)
+	if *sign {
+		tx.Sign(types.SECP256K1, priv)
+	}
 	return tx
 }
 
@@ -235,7 +239,9 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	}
 	tx.Fee = config.GetMaxTxFee()
 	tx.To = to
-	tx.Sign(types.SECP256K1, priv)
+	if *sign {
+		tx.Sign(types.SECP256K1, priv)
+	}
 	return tx
 }
 

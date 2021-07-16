@@ -7,7 +7,6 @@ version="6.4.2"
 CoinSymbol="YCC"
 
 [blockchain]
-defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
@@ -29,8 +28,6 @@ serverStart=true
 
 [mempool]
 name="price"
-poolCacheSize=102400
-minTxFeeRate=100000
 maxTxFee=1000000000
 isLevelFee=true
 
@@ -90,9 +87,7 @@ targetTimespan=2160
 targetTimePerBlock=15
 
 [store]
-name="kvmvccmavl"
-driver="leveldb"
-storedbVersion="2.0.0"
+
 
 [wallet]
 minFee=100000

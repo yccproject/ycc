@@ -9,6 +9,8 @@ dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
 github.com/33cn/chain33 v1.65.3-0.20210701072221-e36c055c9424 h1:UabMKI0FDTQxHyoW3W0acKyXUpdVef82Kc6sMVPUo5Y=
 github.com/33cn/chain33 v1.65.3-0.20210701072221-e36c055c9424/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
+github.com/33cn/chain33 v1.65.3-0.20210713093513-d871b309c029 h1:b50qVRydQzN0gCBnwwLKxLlJCUP/Fgw81yUFhZ30sJM=
+github.com/33cn/chain33 v1.65.3-0.20210713093513-d871b309c029/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf h1:rpmgPE7rhWHOptkOS0dim4RPpvaWRdBLsJrMHLEtnwc=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf/go.mod h1:P2FkOBnxEeKANuP81IT/yUUeFsTmUCnf53NNAvS2SG0=
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
