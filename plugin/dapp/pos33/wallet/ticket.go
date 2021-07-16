@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
@@ -435,7 +436,9 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 				if err != nil {
 					return nil, 0, err
 				}
+				bizlog.Info("buyticket tx hash", "hash", common.HashHex(hash.Hash))
 				operater.WaitTx(hash.Hash)
+				bizlog.Info("buyticket send ok")
 			}
 		}
 
@@ -444,6 +447,7 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 			return nil, 0, err
 		}
 		count := acc.Balance / cfg.Pos33TicketPrice
+		bizlog.Debug("go here", "acc.balance", acc.Balance, "count", count)
 		if count > 0 {
 			txhash, err := policy.openticket(addr, addr, priv, int32(count))
 			return txhash, int(count), err

@@ -24,9 +24,7 @@ var plog = log15.New("module", "pos33")
 const pos33Topic = "ycc-pos33"
 
 type alterBlock struct {
-	t  int
 	n  int
-	f  bool
 	bs []*pt.Pos33BlockMsg
 }
 
@@ -326,6 +324,7 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	if nb == nil {
 		return nil, errors.New("PreExccBlock error")
 	}
+	plog.Info("block make2", "height", height)
 	return nb, nil
 }
 
@@ -842,7 +841,7 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	lmk := n.getMaker(height-1, lr)
 	lh := lb.Hash(n.GetAPI().GetConfig())
 	lvs := lmk.bvs[string(lh)]
-	if round <= 10 {
+	if round <= 1 {
 		_, err := lmk.checkVotes(lvs)
 		if err != nil {
 			plog.Error("tryMakerBlock checklastVotes error", "err", err, "phash", common.HashHex(lh)[:16], "height", height, "round", round, "lnvs", len(lvs))
@@ -947,8 +946,8 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 
 	hash := m.B.Hash(n.GetAPI().GetConfig())
 	plog.Info("handleBlock", "height", height, "round", round, "bh", common.HashHex(hash)[:16], "addr", address.PubKeyToAddr(miner.Sort.Proof.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
-	if !v.ab.f {
-		v.ab.f = true
+	if v.ab.n == 0 {
+		v.ab.n = 1
 		time.AfterFunc(voteBlockWait, func() {
 			n.vch <- hr{height, round}
 		})
@@ -1139,10 +1138,6 @@ func (n *node) revoteBlock(bh []byte, height int64, round int) {
 		return
 	}
 
-	voter := n.getVoter(height, round)
-	if voter.ab.t == 0 {
-		return
-	}
 	plog.Info("revoteBlock", "height", height, "round", round, "bh", common.HashHex(bh)[:16])
 	n.voteBlockHash(bh, height, round)
 }
@@ -1154,19 +1149,16 @@ func (n *node) voteBlockHash(bh []byte, height int64, round int) {
 		return
 	}
 
-	voter := n.getVoter(height, round)
-	voter.ab.t++
 	var vs []*pt.Pos33VoteMsg
 	for _, mys := range myss {
 		v := &pt.Pos33VoteMsg{
-			Hash:  bh,
-			Sort:  mys,
-			Round: int32(voter.ab.t),
+			Hash: bh,
+			Sort: mys,
 		}
 		v.Sign(n.priv)
 		vs = append(vs, v)
 	}
-	plog.Info("vote block hash", "height", height, "round", round, "t", voter.ab.t, "bh", common.HashHex(bh)[:16], "nvs", len(vs))
+	plog.Info("vote block hash", "height", height, "round", round, "bh", common.HashHex(bh)[:16], "nvs", len(vs))
 	if len(vs) == 0 {
 		return
 	}
@@ -1499,10 +1491,14 @@ func (n *node) runLoop() {
 					panic("can't go here")
 				}
 				d = time.Millisecond * time.Duration(m.BlockTime+2000-time.Now().UnixNano()/1000000)
-				if d > blockD || d < 0 {
+				if d < 0 {
+					d = 0
+				}
+				if d > blockD {
 					d = time.Millisecond * 1500
 				}
 			}
+			plog.Info("after ms make next block", "d", d, "height", b.Height)
 			time.AfterFunc(d, func() {
 				nch <- b.Height + 1
 			})
