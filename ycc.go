@@ -27,9 +27,7 @@ serverStart=true
 #bootstraps是内置不能修改的引导节点
 
 [mempool]
-name="price"
-maxTxFee=1000000000
-isLevelFee=true
+
 
 [mempool.sub.score]
 poolCacheSize=102400
@@ -63,10 +61,10 @@ count=10000
 [mver.consensus]
 fundKeyAddr="1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
 powLimitBits="0x1f00ffff"
-maxTxNumber=10000
+maxTxNumber=6000
 
 [mver.consensus.ForkChainParamV1]
-maxTxNumber=10000
+maxTxNumber=6000
 
 [mver.consensus.ForkChainParamV2]
 powLimitBits="0x1f2fffff"
@@ -89,10 +87,7 @@ targetTimePerBlock=15
 [store]
 
 
-[wallet]
-minFee=100000
-driver="leveldb"
-signType="secp256k1"
+
 
 [exec]
 [exec.sub.pos33]
