@@ -7,10 +7,9 @@ dmitri.shuralyov.com/html/belt v0.0.0-20180602232347-f7d459c86be0/go.mod h1:JLBr
 dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1:a1inKt/atXimZ4Mv927x+r7UpyzRUf4emIoiiSC2TN4=
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
-github.com/33cn/chain33 v1.65.3-0.20210701072221-e36c055c9424 h1:UabMKI0FDTQxHyoW3W0acKyXUpdVef82Kc6sMVPUo5Y=
 github.com/33cn/chain33 v1.65.3-0.20210701072221-e36c055c9424/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
-github.com/33cn/chain33 v1.65.3-0.20210713093513-d871b309c029 h1:b50qVRydQzN0gCBnwwLKxLlJCUP/Fgw81yUFhZ30sJM=
-github.com/33cn/chain33 v1.65.3-0.20210713093513-d871b309c029/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
+github.com/33cn/chain33 v1.65.3-0.20210719090726-1a04719302d2 h1:VK1K/XFISl1hR3eguLf6IIu5HIwFAP46Ee8W9rUtjSo=
+github.com/33cn/chain33 v1.65.3-0.20210719090726-1a04719302d2/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf h1:rpmgPE7rhWHOptkOS0dim4RPpvaWRdBLsJrMHLEtnwc=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf/go.mod h1:P2FkOBnxEeKANuP81IT/yUUeFsTmUCnf53NNAvS2SG0=
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
@@ -89,6 +88,8 @@ github.com/btcsuite/snappy-go v1.0.0/go.mod h1:8woku9dyThutzjeg+3xrA5iCpBRH8XEEg
 github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
+github.com/bysomeone/chain33 v0.0.0-20210719080413-2fcd5fde9a7e h1:2rbfAGpOOb2fpvrXPilhMJI2wTAvLoW7YsiihTAk3Jw=
+github.com/bysomeone/chain33 v0.0.0-20210719080413-2fcd5fde9a7e/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
 github.com/campoy/embedmd v1.0.0/go.mod h1:oxyr9RCiSXg0M3VJ3ks0UGfp98BpSSGr0kpiX3MzVl8=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/cp v0.1.0/go.mod h1:SOGHArjBr4JWaSDEVpWpo/hNg6RoKrls6Oh40hiwW+s=
