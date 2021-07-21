@@ -24,9 +24,9 @@ callerFunction = false
 
 [blockchain]
 batchsync = false
-defCacheSize=512
 dbCache = 512
 dbPath = "datadir"
+defCacheSize = 512
 enableTxQuickIndex = true
 isRecordBlockSequence = false
 # 升级storedb是否重新执行localdb，bityuan主链升级不需要开启，平行链升级需要开启
@@ -36,14 +36,14 @@ enableReduceLocaldb = true
 singleMode = true
 
 [mempool]
-poolCacheSize=102400
-minTxFeeRate=0
+minTxFeeRate = 0
+poolCacheSize = 102400
 #minTxFeeRate=100000
-disableExecCheck=true
+disableExecCheck = true
+isLevelFee = true
+maxTxFee = 0
 maxTxNumPerAccount = 10000
-name="price"
-maxTxFee=0
-isLevelFee=true
+name = "price"
 
 [p2p]
 dbCache = 4
@@ -65,6 +65,11 @@ useGithub = false
 channel = 9
 port = 13801
 seeds = [
+  "/ip4/42.159.83.68/tcp/13801/p2p/16Uiu2HAmMQVuCHpNXjayMaiYz2LWGzqp9aCLxHFS8W8m2UKz2yKB",
+  "/ip4/40.73.244.123/tcp/13801/p2p/16Uiu2HAmPvU4StUPkuSK9Td7g2xF41BBSdsRaQ6KmuvpnBJebAiw",
+  "/ip4/139.217.232.4/tcp/13801/p2p/16Uiu2HAmV2AWeFqq8byHbJUpNGxLyXNtwQRkwADxiEqXRxoGCEn1",
+  "/ip4/52.130.198.4/tcp/13801/p2p/16Uiu2HAm9GG1TFCsv54PwGUzdRPTihEu8X7p8EJzBhwNgCm7ktn5",
+  "/ip4/52.130.197.108/tcp/13801/p2p/16Uiu2HAmMoKLKB1VBCCn7DTaPqDtg38EfUYBqsE4HWvogD6czjRX",
 ]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
@@ -76,7 +81,6 @@ isFullNode = false
 # 兼容老版本广播节点数，目前比特元网络已基本全面升级6.5.3，新版本不再支持广播发送至老版本
 # 设为1为屏蔽默认设置5
 maxBroadcastPeers = 1
-psk="4ea6f2c3d924ff5882f840aba0230c4fa422c33a061af002654f076ed25f86d4"
 
 [p2p.sub.dht.pubsub]
 gossipSubD = 10
@@ -98,18 +102,22 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 bootPeers = [
+  "/ip4/42.159.83.68/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
+  "/ip4/52.130.197.108/tcp/10901/p2p/16Uiu2HAkv6Qmr3JoFCNxQF8PHndwkBbm4sKvBRnm4Acx5tx5wScQ",
+  "/ip4/52.130.198.4/tcp/10901/p2p/16Uiu2HAkxKD5BZZ7JUdSHqozNb2oVfQBMHx7Lc7w6ZjjDBmiHXq1",
+  "/ip4/139.217.232.4/tcp/10901/p2p/16Uiu2HAmDxexHSNZvvgXCe5kV1Qq7E4tQbETb68xww2fBe3HQdLg",
+  "/ip4/40.73.244.123/tcp/10901/p2p/16Uiu2HAm1nj2pAWwk7KimhZLYB9GBXf2eCGGbroLyCoQRGv7bsEm",
 ]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10901
 onlyVoter = false
 
-
 [store]
 dbCache = 512
 dbPath = "datadir/mavltree"
-name="kvmvccmavl"
-driver="leveldb"
-storedbVersion="2.0.0"
+driver = "leveldb"
+name = "kvmvccmavl"
+storedbVersion = "2.0.0"
 
 [store.sub.mavl]
 enableMVCC = false
@@ -137,14 +145,14 @@ tkCloseCacheLen = 200000
 [wallet]
 dbCache = 16
 dbPath = "wallet"
-minFee=100000
-driver="leveldb"
-signType="secp256k1"
+driver = "leveldb"
+minFee = 100000
+signType = "secp256k1"
 
 [exec]
+disableAddrIndex = true
 enableMVCC = false
 enableStat = false
-disableAddrIndex=true
 
 [exec.sub.token]
 saveTokenTxList = false
