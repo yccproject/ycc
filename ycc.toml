@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc-test14"
+Title = "ycc-test12"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -33,17 +33,16 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = true
+singleMode = false
 
 [mempool]
-minTxFeeRate = 0
-poolCacheSize = 102400
-#minTxFeeRate=100000
 disableExecCheck = true
 isLevelFee = true
-maxTxFee = 0
+maxTxFee = 1000000000
 maxTxNumPerAccount = 10000
+minTxFeeRate = 100000
 name = "price"
+poolCacheSize = 102400
 
 [p2p]
 dbCache = 4
