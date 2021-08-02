@@ -110,7 +110,6 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int6
 		}
 		d.Reward += newReward
 	}
-	// tlog.Debug("setDeposit", "maddr", maddr, "count", d.Count, "precount", d.PreCount, "closeheight", d.CloseHeight, "reward", d.Reward)
 	return &types.KeyValue{Key: Key(maddr), Value: types.Encode(d)}
 }
 
@@ -279,7 +278,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	price := cfg.Pos33TicketPrice
 
-	d, err := getDeposit(action.db, action.fromaddr)
+	d, err := getDeposit(action.db, tclose.MinerAddress)
 	if err != nil {
 		return nil, err
 	}

@@ -537,7 +537,7 @@ func (n *node) sortition(b *types.Block, round int) {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return
 	}
-	if height > 10 && len(n.mmp) > 10 {
+	if height > 10 && len(n.mmp) > 10 || n.GetAPI().GetConfig().GetModuleConfig().BlockChain.SingleMode {
 		n.sortMaker(seed, height, round)
 		n.sortVoter(seed, height, round)
 	}
