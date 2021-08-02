@@ -83,13 +83,13 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 		err = g.h.Connect(g.ctx, *targetInfo)
 		if err != nil {
 			plog.Error("bootstrap error", "err", err)
-			return err
+			continue
 		}
 		plog.Info("connect boot peer", "bootpeer", targetAddr.String())
 		s, err := g.h.NewStream(g.ctx, targetInfo.ID, protocol.ID(g.raddrPid))
 		if err != nil {
 			plog.Error("bootstrap error", "err", err)
-			return err
+			continue
 		}
 		s.Write([]byte(g.h.ID()))
 		s.Close()

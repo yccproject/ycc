@@ -10,6 +10,8 @@ git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGy
 github.com/33cn/chain33 v1.65.3-0.20210701072221-e36c055c9424/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
 github.com/33cn/chain33 v1.65.3-0.20210719090726-1a04719302d2 h1:VK1K/XFISl1hR3eguLf6IIu5HIwFAP46Ee8W9rUtjSo=
 github.com/33cn/chain33 v1.65.3-0.20210719090726-1a04719302d2/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
+github.com/33cn/chain33 v1.65.3-0.20210720093539-f1883621ab01 h1:CmjpseZUFVUHQ5AR8Ba6FQ2JwxIZwQzHTsJW9YlWWLY=
+github.com/33cn/chain33 v1.65.3-0.20210720093539-f1883621ab01/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf h1:rpmgPE7rhWHOptkOS0dim4RPpvaWRdBLsJrMHLEtnwc=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf/go.mod h1:P2FkOBnxEeKANuP81IT/yUUeFsTmUCnf53NNAvS2SG0=
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
