@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/33cn/chain33 v1.65.3-0.20210720093539-f1883621ab01
-	github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf
+	github.com/33cn/plugin v1.65.3-0.20210723114256-55c88b1db89a
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/golang/protobuf v1.4.3
 	github.com/libp2p/go-libp2p v0.14.2
