@@ -58,13 +58,6 @@ minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 count=10000
 
-[mver.consensus]
-fundKeyAddr="1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
-powLimitBits="0x1f00ffff"
-maxTxNumber=10000
-
-[mver.consensus.ForkChainParamV1]
-maxTxNumber=10000
 
 [mver.consensus.ForkChainParamV2]
 powLimitBits="0x1f2fffff"
