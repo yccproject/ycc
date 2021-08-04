@@ -731,7 +731,10 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 	// repeat msg
 	if ty == int(pt.Pos33Msg_BV) {
-		maker.rmBvByPub(string(m0.Sig.Pubkey), int(m0.Round))
+		// maker.rmBvByPub(string(m0.Sig.Pubkey), int(m0.Round))
+		if maker.findVb(string(m0.Hash), string(m0.Sig.Pubkey)) {
+			return
+		}
 	} else if ty == int(pt.Pos33Msg_MV) {
 		if maker.findVm(string(m0.Hash), string(m0.Sig.Pubkey)) {
 			return
@@ -746,6 +749,9 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 	for _, m := range ms {
 		if m.Round != m0.Round {
+			return
+		}
+		if string(m.Hash) != string(m0.Hash) {
 			return
 		}
 
@@ -884,9 +890,9 @@ func (n *node) trySetBlock(height int64, round int) bool {
 	_, err := maker.checkVotes(maker.bvs[bh])
 	if err != nil {
 		// plog.Error("trySetBlock error", "err", err, "height", height, "round", round)
-		if sum >= pt.Pos33MustVotes {
-			n.revoteBlock([]byte(bh), height, round)
-		}
+		// if sum >= pt.Pos33MustVotes {
+		// 	n.revoteBlock([]byte(bh), height, round)
+		// }
 		return false
 	}
 

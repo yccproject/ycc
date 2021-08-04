@@ -111,6 +111,14 @@ forwardServers = ["124.71.10.240:10902"]
 listenPort = 10901
 onlyVoter = false
 
+[mver.consensus]
+fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
+maxTxNumber = 5000
+powLimitBits = "0x1f00ffff"
+
+[mver.consensus.ForkChainParamV1]
+maxTxNumber = 5000
+
 [store]
 dbCache = 128
 dbPath = "datadir/mavltree"
