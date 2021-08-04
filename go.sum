@@ -12,6 +12,8 @@ github.com/33cn/chain33 v1.65.3-0.20210719090726-1a04719302d2 h1:VK1K/XFISl1hR3e
 github.com/33cn/chain33 v1.65.3-0.20210719090726-1a04719302d2/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
 github.com/33cn/chain33 v1.65.3-0.20210720093539-f1883621ab01 h1:CmjpseZUFVUHQ5AR8Ba6FQ2JwxIZwQzHTsJW9YlWWLY=
 github.com/33cn/chain33 v1.65.3-0.20210720093539-f1883621ab01/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
+github.com/33cn/chain33 v1.65.3-0.20210803094350-8a745164df6c h1:nEB/Z0vp9ChFEqfrvONkz56i9HlqswyFpBkHHhk4Fvs=
+github.com/33cn/chain33 v1.65.3-0.20210803094350-8a745164df6c/go.mod h1:dLHHc1HwIy1YKmluXIJYGbv/Bet7yR2fyjinXWqLgV4=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf h1:rpmgPE7rhWHOptkOS0dim4RPpvaWRdBLsJrMHLEtnwc=
 github.com/33cn/plugin v1.65.3-0.20210701082520-612a211c44cf/go.mod h1:P2FkOBnxEeKANuP81IT/yUUeFsTmUCnf53NNAvS2SG0=
 github.com/33cn/plugin v1.65.3-0.20210723114256-55c88b1db89a h1:U/lKS5NrdPTkEa2e1HlcYS72fg5dE6o6ab3RBIbL3vQ=
