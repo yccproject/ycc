@@ -278,7 +278,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	price := cfg.Pos33TicketPrice
 
-	d, err := getDeposit(action.db, tclose.MinerAddress)
+	d, err := getDeposit(action.db, action.fromaddr)
 	if err != nil {
 		return nil, err
 	}

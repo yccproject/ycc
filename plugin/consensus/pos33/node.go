@@ -329,19 +329,19 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 }
 
 func (n *node) broadcastBlock(b *types.Block) {
+	txs := b.Txs
+	b.Txs = nil
+	nb := b.Clone()
+	b.Txs = txs
+	nb.Txs = txs[:1]
 	m := &pt.Pos33BlockMsg{B: b, Pid: n.pid}
-	// if n.conf.TrubleMaker {
-	// 	time.AfterFunc(time.Millisecond*3000, func() {
-	// 		n.handleBlockMsg(m, true)
-	// 	})
-	// } else {
-	// 	n.handleBlockMsg(m, true)
-	// }
-	pm := &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_B}
+	n.handleBlockMsg(m, true)
+
+	nm := &pt.Pos33BlockMsg{B: nb, Pid: n.pid}
+	pm := &pt.Pos33Msg{Data: types.Encode(nm), Ty: pt.Pos33Msg_B}
 	data := types.Encode(pm)
 	// n.gss.forwad(data)
 	n.gss.gossip(n.topic+"/block", data)
-	n.handleBlockMsg(m, true)
 }
 
 func (n *node) addBlock(b *types.Block) {
@@ -764,22 +764,21 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 	if ty == int(pt.Pos33Msg_BV) {
 		vs := maker.bvs[string(m0.Hash)]
-		if len(vs) >= pt.Pos33MustVotes {
+		if len(vs) >= 5 { //pt.Pos33MustVotes {
 			plog.Info("handleVoteMsg", "hash", common.HashHex(m0.Hash)[:16], "allbvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
 		}
+		if len(vs) < pt.Pos33VoterSize/2+1 {
+			return
+		}
+		n.trySetBlock(height, round, vs, string(m0.Hash))
+		// 如果下一个高度被选中出块，但是没有收集到这个高度足够的投票，那么会尝试制作下一个区块
+		lvs := maker.bvs[string(m0.Hash)]
+		n.tryMakeNextBlock(height+1, lvs)
 	} else {
 		vs := maker.mvs[string(m0.Hash)]
 		if len(vs) >= pt.Pos33MustVotes {
 			plog.Debug("handleVoteMsg", "hash", common.HashHex(m0.Hash)[:16], "allmvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
 		}
-	}
-
-	if ty == int(pt.Pos33Msg_BV) {
-		n.trySetBlock(height, round)
-		// 如果下一个高度被选中出块，但是没有收集到这个高度足够的投票，那么会尝试制作下一个区块
-		lvs := maker.bvs[string(m0.Hash)]
-		n.tryMakeNextBlock(height+1, lvs)
-	} else if ty == int(pt.Pos33Msg_MV) {
 		if round > 0 {
 			n.tryMakeBlock(height, round)
 		}
@@ -864,7 +863,7 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	maker.status = makeBlockOk
 }
 
-func (n *node) trySetBlock(height int64, round int) bool {
+func (n *node) trySetBlock(height int64, round int, vs []*pt.Pos33VoteMsg, bh string) bool {
 	if n.lastBlock().Height >= height {
 		return true
 	}
@@ -874,27 +873,31 @@ func (n *node) trySetBlock(height int64, round int) bool {
 		return true
 	}
 	// 收集到足够的block投票
-	bh := ""
-	sum := 0
-	max := 0
-	for h, v := range maker.bvs {
-		l := len(v)
-		sum += l
-		if l > max {
-			max = l
-			bh = h
-		}
-	}
+	// bh := ""
+	// sum := 0
+	// max := 0
+	// for h, v := range maker.bvs {
+	// 	l := len(v)
+	// 	sum += l
+	// 	if l > max {
+	// 		max = l
+	// 		bh = h
+	// 	}
+	// }
 
-	plog.Debug("try set block", "height", height, "round", round, "max", max, "bh", common.HashHex([]byte(bh))[:16])
-	_, err := maker.checkVotes(maker.bvs[bh])
-	if err != nil {
-		// plog.Error("trySetBlock error", "err", err, "height", height, "round", round)
-		// if sum >= pt.Pos33MustVotes {
-		// 	n.revoteBlock([]byte(bh), height, round)
-		// }
+	plog.Info("try set block", "height", height, "round", round, "nvs", len(vs), "bh", common.HashHex([]byte(bh))[:16])
+	// _, err := maker.checkVotes(maker.bvs[bh])
+	// if err != nil {
+	// 	// plog.Error("trySetBlock error", "err", err, "height", height, "round", round)
+	// 	// if sum >= pt.Pos33MustVotes {
+	// 	// 	n.revoteBlock([]byte(bh), height, round)
+	// 	// }
+	// 	return false
+	// }
+	if len(vs) < pt.Pos33VoterSize/2+1 {
 		return false
 	}
+	//plog.Info("try set block", "height", height, "round", round, "max", max, "bh", common.HashHex([]byte(bh))[:16])
 
 	voter := n.getVoter(height, round)
 	// 把相应的block写入链
@@ -902,7 +905,9 @@ func (n *node) trySetBlock(height int64, round int) bool {
 		h := string(b.B.Hash(n.GetAPI().GetConfig()))
 		if bh == h {
 			plog.Info("set block", "height", height, "round", round, "max", max, "bh", common.HashHex([]byte(h))[:16])
-			go n.setBlock(b.B)
+			if b.B.Txs[0].From() == address.PubKeyToAddr(n.priv.PubKey().Bytes()) {
+				go n.setBlock(b.B)
+			}
 			// } else {
 			// 	n.setOthersBlock(b.B, b.Pid)
 			// }
@@ -951,7 +956,7 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	}
 
 	hash := m.B.Hash(n.GetAPI().GetConfig())
-	plog.Info("handleBlock", "height", height, "round", round, "bh", common.HashHex(hash)[:16], "addr", address.PubKeyToAddr(miner.Sort.Proof.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
+	plog.Info("handleBlock", "height", height, "round", round, "ntx", len(m.B.Txs), "bh", common.HashHex(hash)[:16], "addr", address.PubKeyToAddr(miner.Sort.Proof.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
 	if v.ab.n == 0 {
 		v.ab.n = 1
 		time.AfterFunc(voteBlockWait, func() {
