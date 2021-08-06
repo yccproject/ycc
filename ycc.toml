@@ -113,11 +113,11 @@ onlyVoter = false
 
 [mver.consensus]
 fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
-maxTxNumber = 5000
+maxTxNumber = 10000
 powLimitBits = "0x1f00ffff"
 
 [mver.consensus.ForkChainParamV1]
-maxTxNumber = 5000
+maxTxNumber = 10000
 
 [store]
 dbCache = 128
