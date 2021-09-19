@@ -269,7 +269,7 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 			close(ch)
 			return
 		}
-		m := 100 * types.Coin
+		m := 100 * types.DefaultCoinPrecision
 		ch <- newTx(rootKey, m, address.PubKeyToAddress(priv.PubKey().Bytes()).String())
 	}
 }
@@ -281,7 +281,7 @@ func generateInitTxs(n int, privs []crypto.PrivKey, ch chan *Tx, done chan struc
 		default:
 		}
 
-		m := 100 * types.Coin
+		m := 100 * types.DefaultCoinPrecision
 		ch <- newTx(rootKey, m, address.PubKeyToAddress(priv.PubKey().Bytes()).String())
 	}
 	log.Println(n, len(privs))

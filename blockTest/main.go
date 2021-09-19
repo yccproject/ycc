@@ -66,7 +66,7 @@ func getRewardMap(height int64) (map[string]*rewardT, error) {
 
 	// 遍历投票
 	mp := make(map[string]*rewardT)
-	for _, v := range ma.Votes {
+	for _, v := range ma.Vs {
 		addr := address.PubKeyToAddr(v.Sig.Pubkey)
 		r, ok := mp[addr]
 		if !ok {
@@ -79,7 +79,7 @@ func getRewardMap(height int64) (map[string]*rewardT, error) {
 	}
 
 	// 解析出块证明
-	nv := len(ma.Votes)
+	nv := len(ma.Vs)
 	minerAddr := address.PubKeyToAddr(ma.Sort.Proof.Pubkey)
 	r, ok := mp[minerAddr]
 	if !ok {
@@ -87,7 +87,7 @@ func getRewardMap(height int64) (map[string]*rewardT, error) {
 		mp[minerAddr] = r
 	}
 	// 挖矿奖励
-	r.TotolValue += pt.Pos33BpReward * int64(nv)
+	r.TotolValue += pt.Pos33MakerReward * int64(nv)
 	r.IsMiner = true
 	return mp, nil
 }

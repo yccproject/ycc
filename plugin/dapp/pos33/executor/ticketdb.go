@@ -154,6 +154,10 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 	chain33Cfg := action.api.GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 
+	Coin := chain33Cfg.GetCoinPrecision()
+	// Pos33BlockReward 区块奖励
+	var Pos33BlockReward = Coin * 30
+
 	//冻结子账户资金
 	receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice*int64(genesis.Count))
 	if err != nil {
@@ -161,7 +165,7 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 		panic(err)
 	}
 
-	receipt1, err := action.coinsAccount.ExecIssueCoins(action.execaddr, ty.Pos33BlockReward)
+	receipt1, err := action.coinsAccount.ExecIssueCoins(action.execaddr, Pos33BlockReward)
 	if err != nil {
 		tlog.Error("Pos33TicketMiner.ExecIssueCoins fund to autonomy fund", "addr", action.execaddr, "error", err)
 		panic(err)
@@ -218,6 +222,14 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 	chain33Cfg := action.api.GetConfig()
 	sumw := len(miner.GetVs())
 
+	Coin := chain33Cfg.GetCoinPrecision()
+	// Pos33BlockReward 区块奖励
+	var Pos33BlockReward = Coin * 30
+	// Pos33VoteReward 每ticket区块voter奖励
+	var Pos33VoteReward = Coin / 2 // 0.5 ycc
+	// Pos33MakerReward 每ticket区块bp奖励
+	var Pos33MakerReward = Coin * 22 / 100 // 0.22 ycc
+
 	var kvs []*types.KeyValue
 	var logs []*types.ReceiptLog
 
@@ -227,7 +239,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 		var err error
 		// issue coins to exec addr
 		addr := chain33Cfg.MGStr("mver.consensus.fundKeyAddr", action.height)
-		receipt, err = action.coinsAccount.ExecIssueCoins(action.execaddr, ty.Pos33BlockReward)
+		receipt, err = action.coinsAccount.ExecIssueCoins(action.execaddr, Pos33BlockReward)
 		if err != nil {
 			tlog.Error("Pos33TicketMiner.ExecIssueCoins fund to autonomy fund", "addr", addr, "error", err)
 			return nil, err
@@ -239,7 +251,7 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 	// reward voters
 	for _, v := range miner.Vs {
 		maddr := saddr(v.Sig)
-		receipt, err := action.coinsAccount.ExecDeposit(maddr, action.execaddr, ty.Pos33VoteReward)
+		receipt, err := action.coinsAccount.ExecDeposit(maddr, action.execaddr, Pos33VoteReward)
 		if err != nil {
 			tlog.Error("Pos33TicketMiner.ExecDeposit error", "voter", maddr, "execaddr", action.execaddr)
 			return nil, err
@@ -247,11 +259,11 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
-		kvs = append(kvs, setDeposit(action.db, maddr, "", 0, ty.Pos33VoteReward, action.height))
+		kvs = append(kvs, setDeposit(action.db, maddr, "", 0, Pos33VoteReward, action.height))
 	}
 
 	// bp reward
-	bpReward := ty.Pos33MakerReward * int64(sumw)
+	bpReward := Pos33MakerReward * int64(sumw)
 	if bpReward > 0 {
 		receipt, err := action.coinsAccount.ExecDeposit(action.fromaddr, action.execaddr, bpReward)
 		if err != nil {
@@ -261,12 +273,12 @@ func (action *Action) Pos33TicketMiner(miner *ty.Pos33TicketMiner, index int) (*
 
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
-		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, ty.Pos33VoteReward, action.height))
+		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, Pos33VoteReward, action.height))
 		tlog.Info("block reward", "height", action.height, "reward", bpReward, "from", action.fromaddr[:16], "nv", sumw)
 	}
 
 	// fund reward
-	fundReward := ty.Pos33BlockReward - (ty.Pos33VoteReward+ty.Pos33MakerReward)*int64(sumw)
+	fundReward := Pos33BlockReward - (Pos33VoteReward+Pos33MakerReward)*int64(sumw)
 	tlog.Info("fund rerward", "height", action.height, "reward", fundReward)
 
 	return &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}, nil

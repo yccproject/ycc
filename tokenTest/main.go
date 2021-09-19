@@ -18,7 +18,8 @@ import (
 )
 
 var rpcURL = flag.String("u", "http://localhost:8801", "rpc url")
-var config = flag.String("f", "chain33.toml", "chain33 config file")
+
+// var config = flag.String("f", "chain33.toml", "chain33 config file")
 var count = flag.Int("c", 1000000, "token count")
 
 var jClient *jrpc.JSONClient
@@ -29,8 +30,8 @@ const ownerPriv = "2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6
 func main() {
 	flag.Parse()
 
-	config := types.NewChain33Config(types.MergeCfg(types.ReadFile(*config), ""))
-	config.EnableCheckFork(false)
+	// config := types.NewChain33Config(types.MergeCfg(types.ReadFile(*config), ""))
+	// config.EnableCheckFork(false)
 
 	jclient, err := jrpc.NewJSONClient(*rpcURL)
 	if err != nil {
