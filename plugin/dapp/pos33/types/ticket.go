@@ -125,13 +125,15 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 	if err != nil {
 		return 0, types.ErrDecode
 	}
+	cfg := ticket.GetConfig()
+	reward := cfg.GetCoinPrecision() * 22 / 100
 	if action.Ty == Pos33TicketActionMiner && action.GetMiner() != nil {
 		ticketMiner := action.GetMiner()
 		if ticketMiner == nil {
 			return 0, nil
 		}
 		nvs := len(ticketMiner.Vs)
-		bpr := Pos33MakerReward * int64(nvs)
+		bpr := reward * int64(nvs)
 		return bpr, nil
 	}
 	return 0, nil
@@ -171,10 +173,10 @@ type Pos33TicketMinerParam struct {
 func GetPos33TicketMinerParam(cfg *types.Chain33Config, height int64) *Pos33TicketMinerParam {
 	conf := types.Conf(cfg, "mver.consensus.pos33")
 	c := &Pos33TicketMinerParam{}
-	c.CoinDevFund = conf.MGInt("coinDevFund", height) * types.Coin
-	c.CoinReward = conf.MGInt("coinReward", height) * types.Coin
+	c.CoinDevFund = conf.MGInt("coinDevFund", height) * cfg.GetCoinPrecision()
+	c.CoinReward = conf.MGInt("coinReward", height) * cfg.GetCoinPrecision()
 	c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
-	c.Pos33TicketPrice = conf.MGInt("ticketPrice", height) * types.Coin
+	c.Pos33TicketPrice = conf.MGInt("ticketPrice", height) * cfg.GetCoinPrecision()
 	c.Pos33TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
 	c.Pos33TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
 	c.Pos33TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
@@ -188,14 +190,8 @@ func GetPos33TicketMinerParam(cfg *types.Chain33Config, height int64) *Pos33Tick
 const Pos33AllTicketCountKeyPrefix = "LODB-pos33-all:"
 
 const (
-	// Pos33BlockReward 区块奖励
-	Pos33BlockReward = types.Coin * 30
 	// Pos33SortBlocks 多少区块做一次抽签
 	Pos33SortBlocks = 10
-	// Pos33VoteReward 每ticket区块voter奖励
-	Pos33VoteReward = types.Coin / 2 // 0.5 ycc
-	// Pos33MakerReward 每ticket区块bp奖励
-	Pos33MakerReward = types.Coin * 22 / 100 // 0.22 ycc
 	// Pos33MakeerSize 候选区块maker数量
 	Pos33MakerSize = 15
 	// Pos33VoterSize  候选区块voter数量

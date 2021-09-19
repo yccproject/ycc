@@ -157,7 +157,7 @@ minFee = 100000
 signType = "secp256k1"
 
 [exec]
-disableAddrIndex = true
+#disableAddrIndex = true
 enableMVCC = false
 enableStat = false
 

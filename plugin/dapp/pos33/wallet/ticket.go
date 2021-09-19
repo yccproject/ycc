@@ -202,7 +202,9 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		if !isMaker {
 			wtxdetail.Amount = 0
 		}
-		wtxdetail.Amount += ty.Pos33VoteReward * n
+		cfg := policy.getAPI().GetConfig()
+		coin := cfg.GetCoinPrecision()
+		wtxdetail.Amount += coin / 2 * n
 	}
 
 	if policy.checkNeedFlushPos33Ticket(tx, receipt) {
@@ -346,9 +348,11 @@ func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 		return err
 	}
 	toaddr := address.ExecAddress(ty.Pos33TicketX)
+	cfg := policy.getWalletOperate().GetAPI().GetConfig()
+	coin := cfg.GetCoinPrecision()
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
-	if (acc1.Balance < (types.Coin)) && (acc2.Balance > types.Coin) {
-		_, err := operater.SendToAddress(priv, toaddr, -types.Coin, "pos33->coins", false, "")
+	if acc1.Balance < coin && acc2.Balance > coin {
+		_, err := operater.SendToAddress(priv, toaddr, -coin, "pos33->coins", false, "")
 		if err != nil {
 			return err
 		}
@@ -420,7 +424,7 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 	//判断手续费是否足够，如果不足要及时补充。
 	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
-	fee := types.Coin * 10
+	fee := chain33Cfg.GetCoinPrecision() * 10
 	if acc1.Balance+acc2.Balance-2*fee >= cfg.Pos33TicketPrice {
 		// 如果可用余额+冻结余额，可以凑成新票，则转币到冻结余额
 		if (acc1.Balance+acc2.Balance-2*fee)/cfg.Pos33TicketPrice > acc2.Balance/cfg.Pos33TicketPrice {

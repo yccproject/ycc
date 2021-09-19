@@ -93,6 +93,11 @@ message Pos33BlockMsg {
   string pid = 2;
 }
 
+message Pos33BlockMsg2 {
+  Block b = 1;
+  repeated Pos33VoteMsg vs = 2;
+}
+
 /*
 message Pos33VoteMsg {
   int64 height = 1;

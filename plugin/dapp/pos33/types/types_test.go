@@ -18,7 +18,7 @@ func init() {
 }
 
 func TestDecodeLogNewPos33Ticket(t *testing.T) {
-	var logTmp = &ReceiptPos33Ticket{}
+	var logTmp = &ReceiptPos33Deposit{}
 
 	dec := types.Encode(logTmp)
 
@@ -42,7 +42,7 @@ func TestDecodeLogNewPos33Ticket(t *testing.T) {
 }
 
 func TestDecodeLogClosePos33Ticket(t *testing.T) {
-	var logTmp = &ReceiptPos33Ticket{}
+	var logTmp = &ReceiptPos33Miner{}
 
 	dec := types.Encode(logTmp)
 

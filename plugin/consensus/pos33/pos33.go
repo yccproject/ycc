@@ -213,12 +213,12 @@ func (client *Client) CreateBlock() {
 			break
 		}
 		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.ForceMining) {
-			plog.Debug("createblock.ismining is disable or client is caughtup is false")
+			plog.Info("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue
 		}
 		if client.myCount() == 0 {
-			plog.Debug("createblock.myCount is 0")
+			plog.Info("createblock.myCount is 0")
 			time.Sleep(time.Second)
 			continue
 		}
@@ -266,12 +266,13 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	tx0.To = client.Cfg.Genesis
 	g := &ct.CoinsAction_Genesis{}
 	// 发行 100 亿
-	g.Genesis = &types.AssetsGenesis{Amount: types.MaxCoin * 10}
+	cfg := client.GetAPI().GetConfig()
+	coin := cfg.GetCoinPrecision()
+	g.Genesis = &types.AssetsGenesis{Amount: types.MaxCoin * 10 * coin}
 	tx0.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx0)
 
 	// 初始化挖矿
-	cfg := client.GetAPI().GetConfig()
 	for _, genesis := range client.conf.Genesis {
 		tx1 := createTicket(cfg, genesis.MinerAddr, genesis.ReturnAddr, genesis.Count, 0)
 		ret = append(ret, tx1...)
@@ -393,37 +394,37 @@ func (client *Client) Query_FlushPos33Ticket(req *types.ReqNil) (types.Message, 
 	return &types.Reply{IsOk: true, Msg: []byte("OK")}, nil
 }
 
-func (client *Client) Query_GetPos33Reward(req *pt.Pos33TicketReward) (types.Message, error) {
-	var b *types.Block
-	var err error
-	if req.Height <= 0 {
-		b, err = client.n.RequestLastBlock()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		b, err = client.RequestBlock(req.Height)
-		if err != nil {
-			return nil, err
-		}
-	}
-	m, err := getMiner(b)
-	if err != nil {
-		return nil, err
-	}
-	br := int64(0)
-	vr := int64(0)
-	addr := req.Addr
-	if addr == "" {
-		addr = saddr(b.Signature)
-	}
-	if saddr(b.Signature) == addr {
-		br = pt.Pos33MakerReward * int64(len(m.Vs))
-	}
-	for _, v := range m.Vs {
-		if saddr(v.Sig) == addr {
-			vr += pt.Pos33VoteReward
-		}
-	}
-	return &pt.ReplyPos33TicketReward{VoterReward: vr, MinerReward: br}, nil
-}
+// func (client *Client) Query_GetPos33Reward(req *pt.Pos33TicketReward) (types.Message, error) {
+// 	var b *types.Block
+// 	var err error
+// 	if req.Height <= 0 {
+// 		b, err = client.n.RequestLastBlock()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	} else {
+// 		b, err = client.RequestBlock(req.Height)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	}
+// 	m, err := getMiner(b)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	br := int64(0)
+// 	vr := int64(0)
+// 	addr := req.Addr
+// 	if addr == "" {
+// 		addr = saddr(b.Signature)
+// 	}
+// 	if saddr(b.Signature) == addr {
+// 		br = pt.Pos33MakerReward * int64(len(m.Vs))
+// 	}
+// 	for _, v := range m.Vs {
+// 		if saddr(v.Sig) == addr {
+// 			vr += pt.Pos33VoteReward
+// 		}
+// 	}
+// 	return &pt.ReplyPos33TicketReward{VoterReward: vr, MinerReward: br}, nil
+// }

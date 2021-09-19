@@ -20,13 +20,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/routing"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	routing "github.com/libp2p/go-libp2p-routing"
-	disc "github.com/libp2p/go-libp2p/p2p/discovery"
+
+	// disc "github.com/libp2p/go-libp2p/p2p/discovery"
 	pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -182,6 +183,9 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool)
 		}
 		g.tmap[t] = tp
 		sb, err := tp.Subscribe()
+		if err != nil {
+			panic(err)
+		}
 		go func(s *pubsub.Subscription) {
 			for {
 				m, err := s.Next(g.ctx)
@@ -361,7 +365,7 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 }
 
 func (g *gossip2) sendPeerstore(h host.Host) {
-	for range time.NewTicker(time.Second * 60 * 10).C {
+	for range time.NewTicker(time.Second * 60).C {
 		peers := h.Peerstore().PeersWithAddrs()
 		var ais []*peer.AddrInfo
 		for _, id := range peers {
@@ -394,13 +398,13 @@ func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
 	if err != nil {
 		panic(err)
 	}
-	mdns, err := disc.NewMdnsService(ctx, h, time.Second*10, ns)
-	if err != nil {
-		panic(err)
-	}
+	// mdns, err := disc.NewMdnsService(ctx, h, time.Second*10, ns)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	mn := &mdnsNotifee{h: h, ctx: ctx}
-	mdns.RegisterNotifee(mn)
+	// mn := &mdnsNotifee{h: h, ctx: ctx}
+	// mdns.RegisterNotifee(mn)
 
 	err = idht.Bootstrap(ctx)
 	if err != nil {

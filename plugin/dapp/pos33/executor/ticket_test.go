@@ -1,9 +1,7 @@
 package executor_test
 
 import (
-	"encoding/hex"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/33cn/chain33/account"
@@ -11,7 +9,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 
@@ -110,12 +107,12 @@ func TestPos33Ticket(t *testing.T) {
 			if tx.ActionName == "topen" && tx.Receipt.Ty == 2 {
 				hastopen = true
 				fmt.Println(tx)
-				list := ticketList(t, mock33, &ty.Pos33TicketList{Addr: tx.Fromaddr, Status: 1})
-				for _, ti := range list.GetTickets() {
-					if strings.Contains(ti.TicketId, hex.EncodeToString(tx.Txhash)) {
-						assert.Equal(t, 3000*types.Coin, ti.Price)
-					}
-				}
+				// list := ticketList(t, mock33, &ty.Pos33TicketList{Addr: tx.Fromaddr, Status: 1})
+				// for _, ti := range list.GetTickets() {
+				// 	if strings.Contains(ti.TicketId, hex.EncodeToString(tx.Txhash)) {
+				// 		assert.Equal(t, 3000*types.Coin, ti.Price)
+				// 	}
+				// }
 			}
 		}
 		if hastclose && hastopen {
@@ -135,8 +132,8 @@ func createBindMiner(t *testing.T, cfg *types.Chain33Config, m, r string, priv c
 	return tx
 }
 
-func ticketList(t *testing.T, mock33 *testnode.Chain33Mock, req proto.Message) *ty.ReplyPos33TicketList {
-	data, err := mock33.GetAPI().Query("pos33", "Pos33TicketList", req)
-	assert.Nil(t, err)
-	return data.(*ty.ReplyPos33TicketList)
-}
+// func ticketList(t *testing.T, mock33 *testnode.Chain33Mock, req proto.Message) *ty.ReplyPos33TicketList {
+// 	data, err := mock33.GetAPI().Query("pos33", "Pos33TicketList", req)
+// 	assert.Nil(t, err)
+// 	return data.(*ty.ReplyPos33TicketList)
+// }
