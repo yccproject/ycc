@@ -49,14 +49,15 @@ type maker struct {
 
 // 验证委员会
 type committee struct {
-	myss [3][]*pt.Pos33SortMsg               // 我的抽签
-	mss  map[string]*pt.Pos33SortMsg         // 我接收到的maker 的抽签
-	css  map[int]map[string]*pt.Pos33SortMsg // 我收到committee的抽签
-	ssmp map[string]*pt.Pos33SortMsg
-	svmp map[string]int // 验证委员会的投票
-	ab   *alterBlock    // 我接收到所有备选block
-	bvs  map[string][]*pt.Pos33VoteMsg
-	ok   bool
+	myss   [3][]*pt.Pos33SortMsg               // 我的抽签
+	mss    map[string]*pt.Pos33SortMsg         // 我接收到的maker 的抽签
+	css    map[int]map[string]*pt.Pos33SortMsg // 我收到committee的抽签
+	ssmp   map[string]*pt.Pos33SortMsg
+	svmp   map[string]int // 验证委员会的投票
+	ab     *alterBlock    // 我接收到所有备选block
+	bvs    map[string][]*pt.Pos33VoteMsg
+	ok     bool // 表示区块已共识
+	voteOk bool // 表示已经投票
 }
 
 func (n *node) getmaker(height int64, round int) *maker {
@@ -1034,7 +1035,7 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	for _, h := range m.SelectSorts {
 		comm.svmp[string(h)] += len(m.MySorts)
 	}
-	plog.Info("handleCommittee", "height", height)
+	plog.Debug("handleCommittee", "height", height)
 }
 
 func (n *node) voteCommittee(height int64, round int) {
@@ -1142,7 +1143,9 @@ func (n *node) voteBlock(height int64, round int) {
 	// 	})
 	// 	return
 	// }
-	comm.setCommittee(height)
+	if comm.voteOk {
+		return
+	}
 
 	minHash := ""
 	for _, b := range comm.ab.bs {
@@ -1163,6 +1166,7 @@ func (n *node) voteBlock(height int64, round int) {
 	if minHash == "" {
 		return
 	}
+	comm.voteOk = true
 	n.voteBlockHash([]byte(minHash), height, round)
 }
 
@@ -1533,7 +1537,7 @@ func (n *node) runLoop() {
 				})
 			}
 		case height := <-nch:
-			// n.getCommittee(height, round).setCommittee(height)
+			n.getCommittee(height, round).setCommittee(height)
 			cb := n.GetCurrentBlock()
 			if cb.Height == height-1 {
 				n.makeNewBlock(height, round)
@@ -1603,11 +1607,11 @@ func (n *node) handleAlterBlock(h int64, r int) bool {
 }
 */
 
-const calcuDiffN = pt.Pos33SortBlocks * 1
+// const calcuDiffN = pt.Pos33SortBlocks * 1
 
 func (n *node) handleNewBlock(b *types.Block) {
 	round := 0
-	n.voteBlock(b.Height+1, round)
+	n.voteBlock(b.Height+1, round) // 区块 b 有可能晚到，这时重新投票
 	plog.Info("handleNewBlock", "height", b.Height, "round", round)
 	if b.Height == 0 {
 		n.firstSortition()
