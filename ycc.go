@@ -79,7 +79,8 @@ targetTimePerBlock=15
 
 [store]
 
-
+[crypto]
+enableTypes = ["secp256k1", "none", "bls"]
 
 
 [exec]
@@ -186,12 +187,15 @@ ForkParaAssetTransferRbk=7200000
 ForkParaSelfConsStages=7200000
 #仅平行链适用
 ForkParaFullMinerHeight=-1
+ForkParaRootHash=0
+ForkParaSupervision=0
 
 [fork.sub.multisig]
 Enable=0
 
 [fork.sub.autonomy]
 Enable=0
+ForkAutonomyDelRule=0
 
 [fork.sub.unfreeze]
 Enable=0

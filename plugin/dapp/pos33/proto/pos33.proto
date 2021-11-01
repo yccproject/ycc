@@ -46,7 +46,7 @@ message Pos33Msg {
     B = 2;  // block msg
     MS = 3; // maker sort msg
     VS = 4; // voter sort msg
-    SV = 5; // sorts vote msg
+    CV = 5; // comm vote msg
   }
   Ty ty = 2;
 }
@@ -126,7 +126,7 @@ message Pos33DepositMsg {
 
 message Pos33SortsVote {
   repeated Pos33SortMsg my_sorts = 1;
-  repeated string select_sorts = 2;
+  repeated bytes select_sorts = 2;
   int64 height = 3;
   int32 round = 4;
   Signature sig = 5;

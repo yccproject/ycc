@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -37,8 +38,8 @@ func init() {
 	rootKey = HexToPrivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 }
 
-var rpcURL = flag.String("u", "http://localhost:9901", "rpc url")
-var grpcURL = flag.String("g", "127.0.0.1:9902", "grpc url")
+var rpcURL = flag.String("u", "http://localhost:7901", "rpc url")
+var grpcURL = flag.String("g", "127.0.0.1:7902", "grpc url")
 var pnodes = flag.Bool("n", false, "only print node private keys")
 var ini = flag.Bool("i", false, "send init tx")
 var maxacc = flag.Int("a", 10000, "max account")
@@ -80,8 +81,8 @@ func main() {
 	jClient = jclient
 
 	if *ini {
-		runSendInitTxs(privCh)
 		log.Println("@@@@@@@ send init txs", *ini)
+		runSendInitTxs(privCh)
 	} else {
 		var privs []crypto.PrivKey
 		for {
@@ -128,6 +129,7 @@ func run(privs []crypto.PrivKey) {
 	tch := time.NewTicker(time.Second * 10).C
 	i := 0
 	height := int64(0)
+	txs := make([]*types.Transaction, 0, 200)
 	for {
 		select {
 		case <-tch:
@@ -147,11 +149,17 @@ func run(privs []crypto.PrivKey) {
 				height = res.Height
 			}
 		case tx := <-ch:
-			sendTx(tx)
-			hch <- height
-			time.Sleep(time.Microsecond * time.Duration(*rn))
-			i++
-			log.Println(i, "... txs sent")
+			txs = append(txs, tx)
+			if len(txs) == 200 {
+				sendTxs(txs)
+				txs = nil
+				hch <- height
+				//time.Sleep(time.Microsecond * time.Duration(*rn))
+				i++
+				if i%1000 == 0 {
+					log.Println(i, "... txs sent")
+				}
+			}
 		}
 	}
 }
@@ -173,6 +181,23 @@ func generateTxs(privs []crypto.PrivKey, hch <-chan int64) chan *Tx {
 	return ch
 }
 
+func sendTxs(txs []*Tx) error {
+	ts := &types.Transactions{Txs: txs}
+	var err error
+	if *useGrpc {
+		_, err = gClient.SendTransactions(context.Background(), ts)
+	} else {
+		return errors.New("not support grpc in batch send txs")
+		// err = jClient.Call("Chain33.SendTransaction", &rpctypes.RawParm{Data: common.ToHex(types.Encode(tx))}, &txHash)
+	}
+	if err != nil {
+		log.Println("@@@ rpc error: ", err)
+		return err
+	}
+	return nil
+}
+
+// _, ok := err.(*json.InvalidUnmarshalError)
 func sendTx(tx *Tx) error {
 	var err error
 	if *useGrpc {
@@ -200,18 +225,23 @@ func runSendInitTxs(privCh chan crypto.PrivKey) {
 	ch := make(chan *Tx, 16)
 	go runGenerateInitTxs(privCh, ch)
 	i := 0
+	txs := make([]*types.Transaction, 0)
 	for {
 		tx, ok := <-ch
 		if !ok {
+			log.Println("init txs finished:", i)
 			break
 		}
-		sendTx(tx)
 		i++
-		if i%1000 == 0 {
-			log.Println("send init txs:", i)
+		if i%100 == 0 {
+			log.Println("send init txs:", i, len(txs))
+		}
+		txs = append(txs, tx)
+		if len(txs) == 200 {
+			sendTxs(txs)
+			txs = make([]*types.Transaction, 0)
 		}
 	}
-	log.Println("init txs finished:", i)
 }
 
 func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int64) *Tx {
@@ -266,6 +296,7 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 	for {
 		priv, ok := <-privCh
 		if !ok {
+			log.Println("privCh is closed")
 			close(ch)
 			return
 		}

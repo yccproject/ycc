@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc-test12"
+Title = "ycc-test20"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -33,14 +33,14 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = false
+singleMode = true
 
 [mempool]
 disableExecCheck = true
 isLevelFee = true
-maxTxFee = 1000000000
+maxTxFee = 000000000
 maxTxNumPerAccount = 10000
-minTxFeeRate = 100000
+minTxFeeRate = 00000
 name = "price"
 poolCacheSize = 102400
 
@@ -56,20 +56,16 @@ waitPid = false
 innerBounds = 300
 innerSeedEnable = true
 isSeed = false
-port = 13902
+port = 13702
 useGithub = false
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
-channel = 9
-port = 13801
+channel = 7
+port = 13701
 seeds = [
-  "/ip4/121.37.128.13/tcp/13801/p2p/16Uiu2HAmTRsez2fBeztQMKJxUHghQ4svxfzWietrnkJDa5S1tZUZ",
-  "/ip4/123.60.90.52/tcp/13801/p2p/16Uiu2HAmJD3npQJtJ2m7yZLMdv7UCRkEUiS1xxC1jY12NbVtRzBr",
-  "/ip4/124.70.183.49/tcp/13801/p2p/16Uiu2HAmFWqBUM4kJt3xs5sfFmZNqGHiv1uY12Ea98ecFc42iLDk",
-  "/ip4/124.70.166.100/tcp/13801/p2p/16Uiu2HAkudfqB1HXyDYkwDhwU5obd1siZpmXymC748Kq3bQZbJau",
-  "/ip4/123.60.38.94/tcp/13801/p2p/16Uiu2HAmTvhqMB6ZiR8YdhRe5HSd1ikHEUeLnC4egrinWzWwcxjt",
 ]
+
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
 #区块轻广播最低区块大小，1k
@@ -92,32 +88,28 @@ gossipSubHistoryLength = 7
 [rpc]
 certFile = "cert.pem"
 enableTLS = false
-grpcBindAddr = "localhost:9902"
+grpcBindAddr = "localhost:7902"
 grpcFuncWhitelist = ["*"]
-jrpcBindAddr = "localhost:9901"
+jrpcBindAddr = "localhost:7901"
 jrpcFuncWhitelist = ["*"]
 keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 bootPeers = [
-  "/ip4/121.37.128.13/tcp/10901/p2p/16Uiu2HAky8mj1m7FZhQkfmh44sLmcBp7fH8KAUBvAtGnzEHmQ3Gb",
-  "/ip4/123.60.90.52/tcp/10901/p2p/16Uiu2HAmA6nnMsBkwanDk3oiTvJoFahJTqWWZnaHiSbHYS3mkhKR",
-  "/ip4/124.70.183.49/tcp/10901/p2p/16Uiu2HAmUnezjaiUHQDYFt6M7NoTj42seegKQ3cyhStfhVfy3am9",
-  "/ip4/124.70.166.100/tcp/10901/p2p/16Uiu2HAmCNA3AgEi5mpNfHTx4SbkMrQj2ij74D6CncJwszMy5QLF",
-  "/ip4/123.60.38.94/tcp/10901/p2p/16Uiu2HAm7PG971mY2wrnRuQJ6zMs1hHWVAeTK15RfNx4nSGD3KAy",
 ]
+
 forwardServers = ["124.71.10.240:10902"]
-listenPort = 10901
+listenPort = 10801
 onlyVoter = false
 
 [mver.consensus]
 fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
-maxTxNumber = 10000
+maxTxNumber = 30000
 powLimitBits = "0x1f00ffff"
 
 [mver.consensus.ForkChainParamV1]
-maxTxNumber = 10000
+maxTxNumber = 30000
 
 [store]
 dbCache = 128
