@@ -1,3 +1,4 @@
+//go:build go1.8
 // +build go1.8
 
 package main
@@ -14,7 +15,7 @@ import (
 
 func main() {
 	if buildflags.RPCAddr == "" {
-		buildflags.RPCAddr = "http://localhost:9901"
+		buildflags.RPCAddr = "http://localhost:7901"
 	}
 	cli.Run(buildflags.RPCAddr, buildflags.ParaName, "ycc")
 }
