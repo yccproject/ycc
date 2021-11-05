@@ -1,5 +1,5 @@
 FixTime = false
-Title = "ycc-test20"
+Title = "ycc-test21"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -33,7 +33,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = false
+singleMode = true
 
 [mempool]
 disableExecCheck = true
@@ -64,11 +64,11 @@ useGithub = false
 channel = 7
 port = 13701
 seeds = [
-"/ip4/123.60.72.92/tcp/13701/p2p/16Uiu2HAkwyMZhiHsm5iySrbNq85TKYWyyCbx6eh9s3fps7bxoecW",
-"/ip4/124.70.185.34/tcp/13701/p2p/16Uiu2HAmRvV8wszx7HxxMCWXhjpC3FscNSNEyQnbmFNMdHLTQnw7",
-"/ip4/124.71.142.233/tcp/13701/p2p/16Uiu2HAmNqjX56Q7zWywS6yeDvY9t56U7XcURzvMLBrEVCFs7RSS",
-"/ip4/123.60.23.154/tcp/13701/p2p/16Uiu2HAmKLs2WzLfixub8euo5VgJ412bYPtLMpPhyDNRUt8SxKFw",
-"/ip4/123.60.23.251/tcp/13701/p2p/16Uiu2HAm8gv75wsDG2Y5NgLKYUhfDwTRxwnQgQaLvqd2weyEREsa",
+  "/ip4/123.60.72.92/tcp/13701/p2p/16Uiu2HAkvszBZtsCQXG4FjYd9ZrKRLa4uvXJmmAyzjrsrBHQkzMs",
+  "/ip4/124.70.185.34/tcp/13701/p2p/16Uiu2HAm97CmZK5KwEitmcpHynKJqJ5PX5uvscBvuJzVdA4ah2yJ",
+  "/ip4/124.71.142.233/tcp/13701/p2p/16Uiu2HAmBZLLx5qJq1X9fPA1RfjRQT21Q3ffwJifbkCjJdxhHRtg",
+  "/ip4/123.60.23.154/tcp/13701/p2p/16Uiu2HAmGHyjiJh3dk9zhUh6Q7DpKDr5GKXUWxgLug2sk3r3Cr7X",
+  "/ip4/123.60.23.251/tcp/13701/p2p/16Uiu2HAmSEgiT3B19uu7FeoCK3FYktXwdGsWhTSUcczvhENwDmwc",
 ]
 
 #dht 版本还不稳定，暂时限定较小的连接数
@@ -102,15 +102,16 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 bootPeers = [
-"/ip4/123.60.72.92/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
-"/ip4/124.70.185.34/tcp/10801/p2p/16Uiu2HAmCF7ic2NmYX3T6PM2iuR8kkpiQU98VowGDHBfMb7AHKdu",
-"/ip4/124.71.142.233/tcp/10801/p2p/16Uiu2HAm1mmyEb5BRBLPnBaCBknXbeSsFhUKjE6gGE2xdHCV8iFv",
-"/ip4/123.60.23.154/tcp/10801/p2p/16Uiu2HAmSfjwKMaekt6pLxwFtNw6wN5bNzovGRBuZmopoe9VVtsN",
-"/ip4/123.60.23.251/tcp/10801/p2p/16Uiu2HAmLaHAD3ySPAhkFzxKxVJBURS33417zsdKmmQs71EZfGB8",
+  "/ip4/123.60.72.92/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
+  "/ip4/124.70.185.34/tcp/10801/p2p/16Uiu2HAmAnxQXmzke1Re9FXFhVkVonuyfFX2caEcwbyqACPpocP4",
+  "/ip4/124.71.142.233/tcp/10801/p2p/16Uiu2HAmCd5HAnwACvusLoefUpF17Fns4Z84Ycg9Ztpc8cgp4q13",
+  "/ip4/123.60.23.154/tcp/10801/p2p/16Uiu2HAmN4xBVp4HkC8NCrj4f4V8B1i6ihYfUvVCsaBcXQQJLiLB",
+  "/ip4/123.60.23.251/tcp/10801/p2p/16Uiu2HAmTAACC3a2jedwPS5cTrm7ityNMKb5swBS1J8rGZ9p8UXQ",
 ]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10801
 onlyVoter = false
+# forwardPeers = true
 
 [mver.consensus]
 fundKeyAddr = "1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"

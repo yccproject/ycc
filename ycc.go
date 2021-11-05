@@ -2,9 +2,10 @@ package main
 
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
-TestNet=false
-version="6.4.2.1"
-CoinSymbol="YCC"
+TestNet=true
+version="6.4.2.2"
+CoinSymbol="ycc"
+ChainID=999
 
 [blockchain]
 maxFetchBlockNum=128
@@ -206,7 +207,7 @@ ForkUnfreezeIDX=0
 ForkKvmvccmavl=0
 
 [health]
-listenAddr="localhost:8809"
+listenAddr="localhost:8709"
 checkInterval=1
 unSyncMaxTimes=2
 `
