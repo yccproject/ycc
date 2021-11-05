@@ -196,7 +196,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool)
 					continue
 				}
 				if t == g.peersTopic {
-					g.handlePeers(m.Data)
+					go g.handlePeers(m.Data)
 				} else {
 					g.C <- m.Data
 				}
@@ -376,7 +376,7 @@ func (g *gossip2) sendPeerstore(h host.Host) {
 		}
 		data, err := json.Marshal(ais)
 		if err != nil {
-			plog.Info("pid marshal error", "err", err)
+			plog.Error("pid marshal error", "err", err)
 			return
 		}
 		g.gossip(g.peersTopic, data)
