@@ -13,7 +13,6 @@ import (
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 	pt "github.com/yccproject/ycc/plugin/dapp/pos33/types"
@@ -366,7 +365,7 @@ func (n *node) newBlock(lastBlock *types.Block, txs []*types.Transaction, height
 	txs = n.AddTxsToBlock(nb, txs)
 
 	nb.Txs = txs
-	nb.TxHash = merkle.CalcMerkleRoot(cfg, lastBlock.Height, txs)
+	// nb.TxHash = merkle.CalcMerkleRoot(cfg, lastBlock.Height, txs)
 	return nb, nil
 }
 
