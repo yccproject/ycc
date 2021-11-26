@@ -33,7 +33,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = true
+singleMode = false
 
 [mempool]
 disableExecCheck = true
