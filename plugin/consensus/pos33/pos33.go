@@ -309,7 +309,7 @@ func (client *Client) setBlock(b *types.Block) error {
 	return nil
 }
 
-func getMiner(b *types.Block) (*pt.Pos33TicketMiner, error) {
+func getMiner(b *types.Block) (*pt.Pos33MinerMsg, error) {
 	if b == nil {
 		return nil, fmt.Errorf("b is nil")
 	}
@@ -370,7 +370,7 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 		return false
 	}
 
-	plog.Info("block cmp", "nv1", len(m1.Vs), "nv2", len(m2.Vs))
+	plog.Info("block cmp", "nv1", len(m1.BlsPkList), "nv2", len(m2.BlsPkList))
 	return true
 
 	// vw1 := voteWeight(m1.Votes)

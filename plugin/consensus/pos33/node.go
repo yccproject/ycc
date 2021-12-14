@@ -14,6 +14,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/plugin/plugin/crypto/bls"
 	"github.com/golang/protobuf/proto"
 	pt "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
@@ -310,17 +311,31 @@ func (n *node) lastBlock() *types.Block {
 	return b
 }
 
-func (n *node) minerTx(height int64, sm *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg, priv crypto.PrivKey) (*types.Transaction, error) {
+func (n *node) minerTx(height int64, sm *pt.Pos33SortMsg, hash []byte, vs []*pt.Pos33VoteMsg, priv crypto.PrivKey) (*types.Transaction, error) {
 	if len(vs) > pt.Pos33VoterSize {
 		sort.Sort(pt.Votes(vs))
 		vs = vs[:pt.Pos33VoterSize]
 	}
+	var pklist [][]byte
+	var sigs []crypto.Signature
+	for _, v := range vs {
+		pklist = append(pklist, v.Sig.Pubkey)
+		var sig [bls.BLSSignatureLength]byte
+		copy(sig[:], v.Sig.Signature)
+		sigs = append(sigs, bls.SignatureBLS(sig))
+	}
+
+	blsSig, err := bls.Driver{}.Aggregate(sigs)
+	if err != nil {
+		return nil, err
+	}
 	act := &pt.Pos33TicketAction{
 		Value: &pt.Pos33TicketAction_Miner{
-			Miner: &pt.Pos33TicketMiner{
-				Vs:        vs,
+			Miner: &pt.Pos33MinerMsg{
+				BlsPkList: pklist,
+				Hash:      hash,
+				BlsSig:    blsSig.Bytes(),
 				Sort:      sm,
-				BlockTime: time.Now().UnixNano() / 1000000,
 			},
 		},
 		Ty: pt.Pos33TicketActionMiner,
@@ -375,15 +390,15 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 		panic("can't go here")
 	}
 
-	tx, err := n.minerTx(height, sort, vs, priv)
-	if err != nil {
-		return nil, err
-	}
-
 	lb, err := n.RequestBlock(height - 1)
 	if err != nil {
 		return nil, err
 	}
+	tx, err := n.minerTx(height, sort, lb.Hash(n.GetAPI().GetConfig()), vs, priv)
+	if err != nil {
+		return nil, err
+	}
+
 	nb, err := n.newBlock(lb, []*Tx{tx}, height)
 	if err != nil {
 		return nil, err
@@ -572,11 +587,11 @@ func (n *node) blockCheck(b *types.Block) error {
 		return err
 	}
 
-	err = n.checkVotes(act.Vs, act.Sort.SortHash.Hash, b.Height, true, true)
-	if err != nil {
-		plog.Error("blockCheck check vs error", "err", err, "height", b.Height, "round", round)
-		return err
-	}
+	// err = n.checkVotes(act.Vs, act.Sort.SortHash.Hash, b.Height, true, true)
+	// if err != nil {
+	// 	plog.Error("blockCheck check vs error", "err", err, "height", b.Height, "round", round)
+	// 	return err
+	// }
 	return nil
 }
 

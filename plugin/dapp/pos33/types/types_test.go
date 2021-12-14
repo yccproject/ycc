@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/33cn/chain33/common/crypto"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -63,4 +64,18 @@ func TestDecodeLogClosePos33Ticket(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "LogClosePos33Ticket", result.Logs[0].TyName)
+}
+
+func TestHash2BlsSk(t *testing.T) {
+	h1 := crypto.Sha256([]byte("1"))
+	sk1 := Hash2BlsSk(h1)
+	sk2 := Hash2BlsSk(h1)
+	if !sk1.Equals(sk2) {
+		t.Error("same hash must same sk")
+	}
+	h2 := crypto.Sha256([]byte("2"))
+	sk3 := Hash2BlsSk(h2)
+	if sk1.Equals(sk3) {
+		t.Error("diffrent hash must diffrent sk")
+	}
 }

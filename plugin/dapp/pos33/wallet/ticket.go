@@ -191,11 +191,15 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		}
 		mact := pact.GetMiner()
 		n := int64(0)
-		for _, v := range mact.Vs {
-			pubkey := v.Sig.Pubkey
-			addr := address.PubKeyToAddr(pubkey)
-			if len(addr) != 0 && policy.walletOperate.AddrInWallet(addr) {
-				wtxdetail.Fromaddr = addr
+		for _, pk := range mact.BlsPkList {
+			addr := address.PubKeyToAddr(pk)
+			msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
+			if err != nil {
+				break
+			}
+			raddr := msg.(*types.ReplyString).Data
+			if len(addr) != 0 && policy.walletOperate.AddrInWallet(raddr) {
+				wtxdetail.Fromaddr = raddr
 				n++
 			}
 		}
@@ -394,15 +398,17 @@ func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]b
 	return nil, nil
 }
 
-func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
-	bizlog.Debug("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
+func (policy *ticketPolicy) openticket(mineraddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
+	bizlog.Debug("openticket", "mineraddr", mineraddr, "count", count)
 	if count > ty.Pos33TicketCountOpenOnce {
 		count = ty.Pos33TicketCountOpenOnce
 		bizlog.Debug("openticket", "Update count", "wait for another open")
 	}
 
+	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
+	raddr := address.PubKeyToAddr(blsPk.Bytes())
 	ta := &ty.Pos33TicketAction{}
-	topen := &ty.Pos33TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
+	topen := &ty.Pos33TicketOpen{MinerAddress: mineraddr, ReturnAddress: raddr, Count: count}
 	ta.Value = &ty.Pos33TicketAction_Topen{Topen: topen}
 	ta.Ty = ty.Pos33TicketActionOpen
 	return policy.walletOperate.SendTransaction(ta, []byte(ty.Pos33TicketX), priv, "")
@@ -453,7 +459,7 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 		count := acc.Balance / cfg.Pos33TicketPrice
 		bizlog.Debug("go here", "acc.balance", acc.Balance, "count", count)
 		if count > 0 {
-			txhash, err := policy.openticket(addr, addr, priv, int32(count))
+			txhash, err := policy.openticket(addr, priv, int32(count))
 			return txhash, int(count), err
 		}
 	}

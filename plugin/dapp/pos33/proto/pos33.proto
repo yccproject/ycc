@@ -1,7 +1,6 @@
 syntax = "proto3";
 package types;
-// option go_package =
-// "github.com/yccproject/ycc/plugin/dapp/pos33/types;types";
+option go_package = "../types";
 
 import "common.proto";
 import "transaction.proto";
@@ -33,7 +32,7 @@ message Pos33TicketAction {
     Pos33TicketOpen topen = 1;
     Pos33TicketGenesis genesis = 2;
     Pos33TicketClose tclose = 3;
-    Pos33TicketMiner miner = 6;
+    Pos33MinerMsg miner = 6;
   }
   int32 ty = 10;
 }
@@ -140,6 +139,14 @@ message Pos33MakerVotes { repeated Pos33Votes mvs = 1; }
 message Pos33TicketMiner {
   Pos33SortMsg sort = 1;
   repeated Pos33VoteMsg vs = 2;
+  int64 blockTime = 4;
+}
+
+message Pos33MinerMsg {
+  repeated bytes BlsPkList = 1;
+  bytes BlsSig = 2;
+  bytes Hash = 3;
+  Pos33SortMsg sort = 5;
   int64 blockTime = 4;
 }
 
