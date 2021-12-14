@@ -28,17 +28,30 @@ const (
 	Voter
 )
 
+// func hash2BlsSk(hash []byte) bls33.PrivKeyBLS {
+// 	var h [32]byte
+// 	copy(h[:], hash)
+// 	re := bls.HashSecretKey(h).ToRepr()
+// 	sk := g1pubs.KeyFromFQRepr(re)
+// 	return sk.Serialize()
+// }
+
 // 算法依据：
 // 1. 通过签名，然后hash，得出的Hash值是在[0，max]的范围内均匀分布并且随机的, 那么Hash/max实在[1/max, 1]之间均匀分布的
 // 2. 那么从N个选票中抽出M个选票，等价于计算N次Hash, 并且Hash/max < M/N
+
+func calcuVrfHash2(input proto.Message, blsSk crypto.PrivKey) ([]byte, []byte) {
+	in := types.Encode(input)
+	sig := blsSk.Sign(in)
+	return crypto.Sha256(sig.Bytes())[:], sig.Bytes()
+}
 
 func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 	privKey, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), priv.Bytes())
 	vrfPriv := &vrf.PrivateKey{PrivateKey: (*ecdsa.PrivateKey)(privKey)}
 	in := types.Encode(input)
 	vrfHash, vrfProof := vrfPriv.Evaluate(in)
-	hash := vrfHash[:]
-	return hash, vrfProof
+	return vrfHash[:], vrfProof
 }
 
 func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Pos33SortMsg {

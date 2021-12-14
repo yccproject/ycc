@@ -13,6 +13,9 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	bls33 "github.com/33cn/plugin/plugin/crypto/bls"
+	"github.com/phoreproject/bls"
+	"github.com/phoreproject/bls/g1pubs"
 )
 
 var tlog = log.New("module", "pos33.types")
@@ -132,7 +135,7 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 		if ticketMiner == nil {
 			return 0, nil
 		}
-		nvs := len(ticketMiner.Vs)
+		nvs := len(ticketMiner.BlsPkList)
 		bpr := reward * int64(nvs)
 		return bpr, nil
 	}
@@ -228,10 +231,11 @@ func (v *Pos33VoteMsg) Verify() bool {
 
 // Sign is sign vote msg
 func (v *Pos33VoteMsg) Sign(priv crypto.PrivKey) {
+	blsSk := Hash2BlsSk(crypto.Sha256(priv.Bytes()))
 	v.Sig = nil
 	b := crypto.Sha256(types.Encode(v))
-	sig := priv.Sign(b)
-	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: priv.PubKey().Bytes(), Signature: sig.Bytes()}
+	sig := blsSk.Sign(b)
+	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: blsSk.PubKey().Bytes(), Signature: sig.Bytes()}
 }
 
 // ToString is reword to string
@@ -263,3 +267,11 @@ func (m Votes) Less(i, j int) bool {
 	return string(m[i].Sort.SortHash.Hash) < string(m[j].Sort.SortHash.Hash)
 }
 func (m Votes) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+
+func Hash2BlsSk(hash []byte) crypto.PrivKey {
+	var h [32]byte
+	copy(h[:], hash)
+	re := bls.HashSecretKey(h).ToRepr()
+	sk := g1pubs.KeyFromFQRepr(re)
+	return bls33.PrivKeyBLS(sk.Serialize())
+}
