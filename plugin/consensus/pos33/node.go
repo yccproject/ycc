@@ -336,6 +336,7 @@ func (n *node) minerTx(height int64, sm *pt.Pos33SortMsg, hash []byte, vs []*pt.
 				Hash:      hash,
 				BlsSig:    blsSig.Bytes(),
 				Sort:      sm,
+				BlockTime: time.Now().UnixNano() / 1000000,
 			},
 		},
 		Ty: pt.Pos33TicketActionMiner,
@@ -816,11 +817,11 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 		return
 	}
 
-	err := n.checkVotes(ms, m0.Hash, height, false, false)
-	if err != nil {
-		plog.Error("checkVotes error", "err", err, "height", height)
-		return
-	}
+	// err := n.checkVotes(ms, m0.Hash, height, false, false)
+	// if err != nil {
+	// 	plog.Error("checkVotes error", "err", err, "height", height)
+	// 	return
+	// }
 
 	for _, m := range ms {
 		if m.Round != m0.Round {

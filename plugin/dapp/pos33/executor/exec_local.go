@@ -33,7 +33,7 @@ func (t *Pos33Ticket) ExecLocal_Tclose(payload *ty.Pos33TicketClose, tx *types.T
 }
 
 // ExecLocal_Miner exec local miner
-func (t *Pos33Ticket) ExecLocal_Miner(payload *ty.Pos33TicketMiner, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *Pos33Ticket) ExecLocal_Miner(payload *ty.Pos33MinerMsg, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	tlog.Debug("ExecLocal_Miner", "height", t.GetHeight())
 	dbSet, err := t.execLocal(receiptData)
 	if err != nil {

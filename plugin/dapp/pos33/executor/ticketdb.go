@@ -159,9 +159,9 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 	var Pos33BlockReward = Coin * 30
 
 	//冻结子账户资金
-	receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice*int64(genesis.Count))
+	receipt, err := action.coinsAccount.ExecFrozen(genesis.MinerAddress, action.execaddr, cfg.Pos33TicketPrice*int64(genesis.Count))
 	if err != nil {
-		tlog.Error("GenesisInit.Frozen", "addr", genesis.ReturnAddress, "execaddr", action.execaddr)
+		tlog.Error("GenesisInit.Frozen", "addr", genesis.MinerAddress, "execaddr", action.execaddr)
 		panic(err)
 	}
 
@@ -174,7 +174,7 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 	receipt.KV = append(receipt.KV, receipt1.KV...)
 	receipt.Logs = append(receipt.Logs, receipt1.Logs...)
 
-	tlog.Info("genesis init", "count", genesis.Count)
+	tlog.Info("genesis init", "count", genesis.Count, "bksAddr", genesis.ReturnAddress, "addr", genesis.MinerAddress)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, int(genesis.Count)))
 	receipt.KV = append(receipt.KV, &types.KeyValue{Key: BindKey(genesis.ReturnAddress), Value: []byte(genesis.MinerAddress)})
 	receipt.KV = append(receipt.KV, setDeposit(action.db, genesis.MinerAddress, genesis.ReturnAddress, int64(genesis.Count), 0, 0))
@@ -395,7 +395,7 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	if count <= 0 || count > int(d.Count) {
 		count = int(d.Count)
 	}
-	receipt, err := action.coinsAccount.ExecActive(d.Raddr, action.execaddr, price*int64(count))
+	receipt, err := action.coinsAccount.ExecActive(action.fromaddr, action.execaddr, price*int64(count))
 	if err != nil {
 		tlog.Error("close deposit error", "addr", d.Raddr, "execaddr", action.execaddr, "value", price*int64(count))
 		return nil, err

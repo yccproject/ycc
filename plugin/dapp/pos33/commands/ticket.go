@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
@@ -24,12 +26,38 @@ func Pos33TicketCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	cmd.AddCommand(
+		BlsAddrFromPrivKey(),
 		AutoMineCmd(),
 		CountPos33TicketCmd(),
 		ClosePos33TicketCmd(),
 	)
 
 	return cmd
+}
+
+func BlsAddrFromPrivKey() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bls_addr",
+		Short: "get blk address from privkey",
+		Run:   blsAddrFromPrivKey,
+	}
+	addBlsAddrFlags(cmd)
+	return cmd
+}
+
+func blsAddrFromPrivKey(cmd *cobra.Command, args []string) {
+	sk, _ := cmd.Flags().GetString("private")
+	pb, err := common.FromHex(sk)
+	if err != nil {
+		panic(err)
+	}
+	blsSk := ty.Hash2BlsSk(common.Sha256(pb))
+	fmt.Println(address.PubKeyToAddr(blsSk.PubKey().Bytes()))
+}
+
+func addBlsAddrFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("private", "s", "", `private key`)
+	cmd.MarkFlagRequired("private")
 }
 
 // AutoMineCmd  set auto mining
