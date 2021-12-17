@@ -56,7 +56,7 @@ checkFutureBlockHeight=1500000
 
 [[consensus.sub.pos33.genesis]]
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+returnAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
 count=10000
 
 
@@ -64,7 +64,7 @@ count=10000
 powLimitBits="0x1f2fffff"
 
 [mver.consensus.ForkTicketFundAddrV1]
-fundKeyAddr="1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq"
+fundKeyAddr="12HKLEn6g4FH39yUbHh4EVJWcFo5CXg22d"
 
 [mver.consensus.pos33]
 coinReward=18
@@ -161,6 +161,7 @@ ForkBadRepeatSecret=0
 [fork.sub.manage]
 Enable=0
 ForkManageExec=0
+ForkManageAutonomyEnable=-1
 
 [fork.sub.token]
 Enable=0
@@ -197,6 +198,7 @@ Enable=0
 [fork.sub.autonomy]
 Enable=0
 ForkAutonomyDelRule=0
+
 
 [fork.sub.unfreeze]
 Enable=0

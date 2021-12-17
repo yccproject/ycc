@@ -122,7 +122,7 @@ func (client *Client) allCount(height int64) int {
 }
 
 func privFromBytes(privkey []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	cr, err := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
 	if err != nil {
 		return nil, err
 	}
@@ -228,12 +228,12 @@ func (client *Client) CreateBlock() {
 }
 
 func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count int32, height int64) (ret []*types.Transaction) {
-	//给hotkey 10000 个币，作为miner的手续费
+	//给hotkey 1000 个币，作为miner的手续费
 	tx1 := types.Transaction{}
 	tx1.Execer = []byte("coins")
 	tx1.To = minerAddr
 	g := &ct.CoinsAction_Genesis{}
-	g.Genesis = &types.AssetsGenesis{Amount: pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice}
+	g.Genesis = &types.AssetsGenesis{Amount: cfg.GetCoinPrecision() * 1000}
 	tx1.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx1)
 
@@ -242,7 +242,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count 
 	tx2.Execer = []byte("coins")
 	tx2.To = driver.ExecAddress(pt.Pos33TicketX)
 	g = &ct.CoinsAction_Genesis{}
-	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice, ReturnAddress: returnAddr}
+	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice, ReturnAddress: minerAddr}
 	tx2.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 

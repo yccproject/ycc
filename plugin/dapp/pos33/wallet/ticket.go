@@ -193,7 +193,7 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		n := int64(0)
 		for _, pk := range mact.BlsPkList {
 			addr := address.PubKeyToAddr(pk)
-			msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
+			msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BindAddr", &types.ReqAddr{Addr: addr})
 			if err != nil {
 				break
 			}

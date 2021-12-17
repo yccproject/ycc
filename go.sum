@@ -48,11 +48,11 @@ dmitri.shuralyov.com/html/belt v0.0.0-20180602232347-f7d459c86be0/go.mod h1:JLBr
 dmitri.shuralyov.com/service/change v0.0.0-20181023043359-a85b471d5412/go.mod h1:a1inKt/atXimZ4Mv927x+r7UpyzRUf4emIoiiSC2TN4=
 dmitri.shuralyov.com/state v0.0.0-20180228185332-28bcc343414c/go.mod h1:0PRwlb0D6DFvNNtx+9ybjezNCa8XF0xaYcETyp6rHWU=
 git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999/go.mod h1:fPE2ZNJGynbRyZ4dJvy6G277gSllfV2HJqblrnkyeyg=
-github.com/33cn/chain33 v1.65.3-0.20211013024110-945de0b0c9c1/go.mod h1:GQ7e1DhP6y1H9mslP1Am1DplH2pYaOSlPDjgrloYnJo=
-github.com/33cn/chain33 v1.65.6-0.20211020073541-bfe0910b872e h1:VR5RsFF/XXzBTJ+d2SspGyx5jOy47UzZnrNAag+PZh8=
-github.com/33cn/chain33 v1.65.6-0.20211020073541-bfe0910b872e/go.mod h1:27Z1b54wJ6EhE1IGA3S5AxSQ/t8dktFVgPnkLNbMFoE=
-github.com/33cn/plugin v1.65.4-0.20211025083558-e014eeaa2e8d h1:6AAVxMasmKam/TxP9ZfGcfimH3jH+es8gqcBmVLcEU8=
-github.com/33cn/plugin v1.65.4-0.20211025083558-e014eeaa2e8d/go.mod h1:2V/Xij3wvyTjwwzOsYf3kFwwjpm4EchnfHLv6suEIPU=
+github.com/33cn/chain33 v1.65.6-0.20211025083411-82c4406c6701/go.mod h1:27Z1b54wJ6EhE1IGA3S5AxSQ/t8dktFVgPnkLNbMFoE=
+github.com/33cn/chain33 v1.65.6-0.20211210090022-58902cdf2b7c h1:GZmpKBf7N7mlLbAlOjLOzgANqIkPVKXM6/iM9lwEDrc=
+github.com/33cn/chain33 v1.65.6-0.20211210090022-58902cdf2b7c/go.mod h1:27Z1b54wJ6EhE1IGA3S5AxSQ/t8dktFVgPnkLNbMFoE=
+github.com/33cn/plugin v1.65.4 h1:W5jBdfTZDv3ta89K1vWZkW/UrBesxgXYdV/8HGHHVjU=
+github.com/33cn/plugin v1.65.4/go.mod h1:x6e544KqT8yk1A+Q8R53y4dkg0VZ/bpzAvLlcg8LcpY=
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 h1:cTp8I5+VIoKjsnZuH8vjyaysT/ses3EvZeaV/1UkF2M=
@@ -116,9 +116,8 @@ github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e h1:n+DcnTNkQ
 github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e/go.mod h1:Bdzq+51GR4/0DIhaICZEOm+OHvXGwwB2trKZ8B4Y6eQ=
 github.com/NebulousLabs/merkletree v0.0.0-20181203152040-08d5d54b07f5 h1:pk9SclNGplPbF6YDIDKMhHh9SaUWcoxPkMr7zdu1hfk=
 github.com/NebulousLabs/merkletree v0.0.0-20181203152040-08d5d54b07f5/go.mod h1:Cn056wBLKay+uIS9LJn7ymwhgC5mqbOtG6iOhEvyy4M=
+github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
-github.com/OneOfOne/xxhash v1.2.5 h1:zl/OfRA6nftbBK9qTohYBJ5xvw6C/oNKizR7cZGl3cI=
-github.com/OneOfOne/xxhash v1.2.5/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
 github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/purell v1.1.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
@@ -291,7 +290,6 @@ github.com/davidlazar/go-crypto v0.0.0-20170701192655-dcfb0a7ac018/go.mod h1:rQY
 github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c h1:pFUpOrbxDR6AkioZ1ySsx5yxlDQZ8stG2b88gTPxgJU=
 github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c/go.mod h1:6UhI8N9EjYm1c2odKpFpAYeR8dsBeM7PtzQhRgxRr9U=
 github.com/deckarep/golang-set v0.0.0-20180603214616-504e848d77ea/go.mod h1:93vsz/8Wt4joVM7c2AVqh+YRMiUSc14yDtF28KmMOgQ=
-github.com/decred/base58 v1.0.2/go.mod h1:pXP9cXCfM2sFLb2viz2FNIdeMWmZDBKG3ZBYbiSM78E=
 github.com/decred/base58 v1.0.3 h1:KGZuh8d1WEMIrK0leQRM47W85KqCAdl2N+uagbctdDI=
 github.com/decred/base58 v1.0.3/go.mod h1:pXP9cXCfM2sFLb2viz2FNIdeMWmZDBKG3ZBYbiSM78E=
 github.com/decred/dcrd/crypto/blake256 v1.0.0 h1:/8DMNYp9SGi5f0w7uCm6d6M4OU2rGFK09Y2A4Xv7EE0=
@@ -702,7 +700,6 @@ github.com/influxdata/flux v0.131.0 h1:b6vCQyJorkbUEv25eHbNL1XIjSQ4/XMNFW8p9Uytm
 github.com/influxdata/flux v0.131.0/go.mod h1:CKvnYe6FHpTj/E0YGI7TcOZdGiYHoToOPSnoa12RtKI=
 github.com/influxdata/httprouter v1.3.1-0.20191122104820-ee83e2772f69/go.mod h1:pwymjR6SrP3gD3pRj9RJwdl1j5s3doEEV8gS4X9qSzA=
 github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883/go.mod h1:qZna6X/4elxqT3yI9iZYdZrWWdeFOOprn86kgg4+IzY=
-github.com/influxdata/influxdb v1.7.9/go.mod h1:qZna6X/4elxqT3yI9iZYdZrWWdeFOOprn86kgg4+IzY=
 github.com/influxdata/influxdb v1.8.0/go.mod h1:SIzcnsjaHRFpmlxpJ4S3NT64qtEKYweNTUMb/vh0OMQ=
 github.com/influxdata/influxdb v1.8.3/go.mod h1:JugdFhsvvI8gadxOI6noqNeeBHvWNTbfYGtiAn+2jhI=
 github.com/influxdata/influxdb v1.9.5 h1:4O7AC5jOA9RoqtDuD2rysXbumcEwaqWlWXmwuyK+a2s=
