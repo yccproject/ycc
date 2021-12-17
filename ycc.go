@@ -63,8 +63,6 @@ count=10000
 [mver.consensus.ForkChainParamV2]
 powLimitBits="0x1f2fffff"
 
-[mver.consensus.ForkTicketFundAddrV1]
-fundKeyAddr="12HKLEn6g4FH39yUbHh4EVJWcFo5CXg22d"
 
 [mver.consensus.pos33]
 coinReward=18
