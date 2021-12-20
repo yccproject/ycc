@@ -184,15 +184,15 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 
 // Pos33TicketOpen ticket open
 func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt, error) {
-	if action.fromaddr != topen.MinerAddress || topen.MinerAddress != topen.ReturnAddress {
-		return nil, errors.New("address NOT match, for NOW, must mineraddr == returnaddr")
+	if action.fromaddr != topen.MinerAddress {
+		return nil, errors.New("address NOT match, from address must == miner address")
 	}
 
 	chain33Cfg := action.api.GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 
 	//冻结子账户资金
-	receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice*int64(topen.Count))
+	receipt, err := action.coinsAccount.ExecFrozen(topen.MinerAddress, action.execaddr, cfg.Pos33TicketPrice*int64(topen.Count))
 	if err != nil {
 		tlog.Error("Pos33TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr, "n", topen.Count)
 		return nil, err

@@ -497,15 +497,15 @@ func (n *node) checkBlock(b, pb *types.Block) error {
 	if len(b.Txs) == 0 {
 		return fmt.Errorf("nil block error")
 	}
-	// err := n.blockCheck(b)
-	// if err != nil {
-	// 	plog.Error("blockCheck error", "err", err, "height", b.Height)
-	// 	return err
-	// }
+	err := n.blockCheck(b)
+	if err != nil {
+		plog.Error("blockCheck error", "err", err, "height", b.Height)
+		return err
+	}
 	return nil
 }
 
-func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, hash []byte, h int64, checkEnough, checkCommittee bool) error {
+func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, ty int, hash []byte, h int64, checkEnough, checkCommittee bool) error {
 	v0 := vs[0]
 	height := v0.Sort.Proof.Input.Height
 	round := v0.Sort.Proof.Input.Round
@@ -516,35 +516,53 @@ func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, hash []byte, h int64, checkEnou
 		}
 	}
 
-	comm := n.getCommittee(height, int(round))
+	// comm := n.getCommittee(height, int(round))
 
+	// c := 0
 	for _, v := range vs {
 		ht := v.Sort.Proof.Input.Height
 		rd := v.Sort.Proof.Input.Round
 		if ht != height || rd != round {
 			return errors.New("checkVotes error: height, round or num NOT same")
 		}
-		if checkCommittee && len(comm.svmp) >= pt.Pos33MustVotes {
-			_, ok := comm.svmp[string(v.Sort.SortHash.Hash)]
-			if !ok {
-				return errors.New("checkvotes error: sort hash NOT in committee")
-			}
-		}
-		err := n.checkVote(v, hash)
+		err := n.checkVote(v, hash, ty)
 		if err != nil {
 			return err
 		}
+		// if checkCommittee && len(comm.svmp) >= pt.Pos33MustVotes {
+		// 	_, ok := comm.svmp[string(v.Sort.SortHash.Hash)]
+		// 	if ok {
+		// 		c++
+		// 	}
+		// }
 	}
+	// if h > 0 && checkCommittee && c < pt.Pos33MustVotes {
+	// 	return errors.New("checkVotes error: NOT enough votes in committee")
+	// }
 	return nil
 }
 
-func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte) error {
+func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte, ty int) error {
 	if !v.Verify() {
-		return errors.New("checkVote verify false")
+		return errors.New("votemsg verify false")
 	}
 	if string(v.Hash) != string(hash) {
 		return errors.New("vote hash NOT right")
 	}
+
+	if ty == int(pt.Pos33Msg_BV) {
+		blsAddr := address.PubKeyToAddr(v.Sig.Pubkey)
+		sortAddr := address.PubKeyToAddr(v.Sort.Proof.Pubkey)
+		msg, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33BindAddr", &types.ReqAddr{Addr: blsAddr})
+		if err != nil {
+			return err
+		}
+		addr := msg.(*types.ReplyString).Data
+		if addr != sortAddr {
+			return errors.New("Pos33BindAddr NOT match")
+		}
+	}
+
 	return n.checkSort(v.Sort, Voter)
 }
 
@@ -588,12 +606,7 @@ func (n *node) blockCheck(b *types.Block) error {
 		return err
 	}
 
-	// err = n.checkVotes(act.Vs, act.Sort.SortHash.Hash, b.Height, true, true)
-	// if err != nil {
-	// 	plog.Error("blockCheck check vs error", "err", err, "height", b.Height, "round", round)
-	// 	return err
-	// }
-	return nil
+	return act.Verify()
 }
 
 func getMinerSeed(b *types.Block) ([]byte, error) {
@@ -817,11 +830,11 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 		return
 	}
 
-	// err := n.checkVotes(ms, m0.Hash, height, false, false)
-	// if err != nil {
-	// 	plog.Error("checkVotes error", "err", err, "height", height)
-	// 	return
-	// }
+	err := n.checkVotes(ms, ty, m0.Hash, height, false, true)
+	if err != nil {
+		plog.Error("checkVotes error", "err", err, "height", height)
+		return
+	}
 
 	for _, m := range ms {
 		if m.Round != m0.Round {
