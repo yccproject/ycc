@@ -222,20 +222,16 @@ func (v *Pos33SortsVote) Sign(priv crypto.PrivKey) {
 
 // Verify is verify vote msg
 func (v *Pos33VoteMsg) Verify() bool {
-	s := v.Sig
-	v.Sig = nil
-	b := crypto.Sha256(types.Encode(v))
-	v.Sig = s
-	return types.CheckSign(b, "", s, v.Sort.Proof.Input.Height)
+	return types.CheckSign(v.Hash, Pos33TicketX, v.Sig, v.Sort.Proof.Input.Height)
 }
 
 // Sign is sign vote msg
 func (v *Pos33VoteMsg) Sign(priv crypto.PrivKey) {
 	blsSk := Hash2BlsSk(crypto.Sha256(priv.Bytes()))
-	v.Sig = nil
-	b := crypto.Sha256(types.Encode(v))
-	sig := blsSk.Sign(b)
-	v.Sig = &types.Signature{Ty: types.SECP256K1, Pubkey: blsSk.PubKey().Bytes(), Signature: sig.Bytes()}
+	// v.Sig = nil
+	// b := crypto.Sha256(types.Encode(v))
+	sig := blsSk.Sign(v.Hash)
+	v.Sig = &types.Signature{Ty: bls33.ID, Pubkey: blsSk.PubKey().Bytes(), Signature: sig.Bytes()}
 }
 
 // ToString is reword to string
@@ -274,4 +270,17 @@ func Hash2BlsSk(hash []byte) crypto.PrivKey {
 	re := bls.HashSecretKey(h).ToRepr()
 	sk := g1pubs.KeyFromFQRepr(re)
 	return bls33.PrivKeyBLS(sk.Serialize())
+}
+
+func (m *Pos33MinerMsg) Verify() error {
+	d := new(bls33.Driver)
+	var pks []crypto.PubKey
+	for _, b := range m.BlsPkList {
+		pk := bls33.PubKeyBLS{}
+		copy(pk[:], b)
+		pks = append(pks, pk)
+	}
+	var sig bls33.SignatureBLS
+	copy(sig[:], m.BlsSig)
+	return d.VerifyAggregatedOne(pks, m.Hash, sig)
 }
