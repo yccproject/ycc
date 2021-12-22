@@ -595,7 +595,7 @@ func (n *node) blockCheck(b *types.Block) error {
 			break
 		}
 	}
-	if ok {
+	if ok && comm.voteOk {
 		plog.Info("block already check", "height", b.Height, "from", b.Txs[0].From()[:16])
 		return nil
 	}
