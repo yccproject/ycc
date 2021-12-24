@@ -24,7 +24,6 @@ var plog = log15.New("module", "pos33")
 const pos33Topic = "ycc-pos33"
 
 type alterBlock struct {
-	n  int
 	bs []*pt.Pos33BlockMsg
 }
 
@@ -439,6 +438,7 @@ func (n *node) addBlock(b *types.Block) {
 		}
 		plog.Info("block add", "height", b.Height, "hash", common.ToHex(b.Hash(n.GetAPI().GetConfig()))[:16])
 		if b.BlockTime-lb.BlockTime < 1 {
+			plog.Info("go here0", "dt", b.BlockTime-lb.BlockTime)
 			time.AfterFunc(time.Millisecond*500, func() {
 				n.pushBlock(b)
 			})
@@ -1005,12 +1005,9 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 
 	hash := m.B.Hash(n.GetAPI().GetConfig())
 	plog.Info("handleBlock", "height", height, "round", round, "ntx", len(m.B.Txs), "bh", common.HashHex(hash)[:16], "addr", address.PubKeyToAddr(miner.Sort.Proof.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
-	if comm.ab.n == 0 {
-		comm.ab.n = 1
-		time.AfterFunc(voteBlockWait, func() {
-			n.vch <- hr{height, round}
-		})
-	}
+	time.AfterFunc(voteBlockWait*time.Duration((3-len(comm.ab.bs))), func() {
+		n.vch <- hr{height, round}
+	})
 }
 
 func checkTime(t int64) bool {
@@ -1158,19 +1155,10 @@ func (n *node) sendVote(vs []*pt.Pos33VoteMsg, ty int) {
 	n.handleVoteMsg(vs, true, ty)
 }
 
-const voteBlockWait = time.Millisecond * 700
-
-// const voteBlockDeadline = time.Millisecond * 900
+const voteBlockWait = time.Millisecond * 1000
 
 func (n *node) voteBlock(height int64, round int) {
 	comm := n.getCommittee(height, round)
-	// if ab.n < len(ab.bs) {
-	// 	ab.n = len(ab.bs)
-	// 	time.AfterFunc(voteBlockWait, func() {
-	// 		n.vch <- hr{height, round}
-	// 	})
-	// 	return
-	// }
 	if comm.voteOk {
 		return
 	}
@@ -1198,16 +1186,6 @@ func (n *node) voteBlock(height int64, round int) {
 	n.voteBlockHash([]byte(minHash), height, round)
 }
 
-// func (n *node) revoteBlock(bh []byte, height int64, round int) {
-// 	maker := n.getCommittee(height, round)
-// 	if maker.findVb(string(bh), string(n.priv.PubKey().Bytes())) {
-// 		return
-// 	}
-
-// 	plog.Info("revoteBlock", "height", height, "round", round, "bh", common.HashHex(bh)[:16])
-// 	n.voteBlockHash(bh, height, round)
-// }
-
 func (n *node) voteBlockHash(bh []byte, height int64, round int) {
 	comm := n.getCommittee(height, round)
 	var myss []*pt.Pos33SortMsg
@@ -1220,10 +1198,6 @@ func (n *node) voteBlockHash(bh []byte, height int64, round int) {
 		plog.Info("i am NOT committee", "height", height)
 		return
 	}
-	// if maker.status >= voteBlockOk {
-	// 	return
-	// }
-	// maker.status = voteBlockOk
 
 	var vs []*pt.Pos33VoteMsg
 	for _, mys := range myss {
@@ -1595,16 +1569,7 @@ func (n *node) runLoop() {
 				nch <- b.Height + 1
 			})
 		case v := <-n.vch:
-			// height := v.h
-			// _, err := n.RequestBlock(height - 1)
-			// if err != nil {
-			// 	plog.Error("requestBlock error", "err", err, "height", height-1)
-			// 	time.AfterFunc(time.Millisecond*100, func() { n.vch <- v })
-			// } else {
 			n.voteBlock(v.h, v.r)
-			// }
-			// case s := <-n.sch:
-			// 	n.trySetBlock(s.h, s.r, true)
 		}
 	}
 }

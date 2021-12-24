@@ -22,10 +22,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-core/routing"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	routing "github.com/libp2p/go-libp2p-routing"
 
 	// disc "github.com/libp2p/go-libp2p/p2p/discovery"
 	pio "github.com/libp2p/go-msgio/protoio"
@@ -116,8 +116,8 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, forwardP
 	ps, err := pubsub.NewGossipSub(
 		ctx,
 		h,
-		pubsub.WithPeerOutboundQueueSize(128),
-		pubsub.WithMaxMessageSize(pubsub.DefaultMaxMessageSize*10),
+		// pubsub.WithPeerOutboundQueueSize(128),
+		// pubsub.WithMaxMessageSize(pubsub.DefaultMaxMessageSize*10),
 		pubsub.WithMessageSigning(false),
 		pubsub.WithStrictSignatureVerification(false),
 	)
@@ -328,9 +328,8 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 		libp2p.ListenAddrStrings(
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
-		// libp2p.EnableNATService(),
-		// libp2p.DefaultTransports,
-		// libp2p.Transport(libp2pquic.NewTransport),
+		libp2p.EnableNATService(),
+		libp2p.DefaultTransports,
 		libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 			dht, err := dht.New(ctx, h)
@@ -338,7 +337,6 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 			return idht, err
 		}),
 		libp2p.EnableRelay(circuit.OptHop),
-		libp2p.EnableRelay(),
 	)
 
 	if err != nil {
