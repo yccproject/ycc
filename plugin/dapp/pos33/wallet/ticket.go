@@ -399,10 +399,10 @@ func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]b
 }
 
 func (policy *ticketPolicy) openticket(mineraddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
-	bizlog.Debug("openticket", "mineraddr", mineraddr, "count", count)
+	bizlog.Info("openticket", "mineraddr", mineraddr, "count", count)
 	if count > ty.Pos33TicketCountOpenOnce {
 		count = ty.Pos33TicketCountOpenOnce
-		bizlog.Debug("openticket", "Update count", "wait for another open")
+		bizlog.Info("openticket", "Update count", "wait for another open")
 	}
 
 	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
@@ -440,7 +440,7 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 			//必须大于0，才需要转移币
 			var hash *types.ReplyHash
 			if amount > 0 {
-				bizlog.Debug("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
+				bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
 				hash, err = policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
 
 				if err != nil {
@@ -457,7 +457,7 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 			return nil, 0, err
 		}
 		count := acc.Balance / cfg.Pos33TicketPrice
-		bizlog.Debug("go here", "acc.balance", acc.Balance, "count", count)
+		bizlog.Info("go here", "acc.balance", acc.Balance, "count", count)
 		if count > 0 {
 			txhash, err := policy.openticket(addr, priv, int32(count))
 			return txhash, int(count), err

@@ -1,5 +1,5 @@
-FxTime = false
-Title = "ycc-test22"
+FxTime = true
+Title = "ycc-test23"
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -64,11 +64,11 @@ useGithub = false
 channel = 7
 port = 13701
 seeds = [
-  "/ip4/123.60.72.92/tcp/13701/p2p/16Uiu2HAmR5ALcQCHLCamW1MSztGePr5R2qeVDMcC87t5Hz7buAKD",
-  "/ip4/124.70.185.34/tcp/13701/p2p/16Uiu2HAm51FgCyTkRvnGiSq2x7GQfKWLtjCDFBz4t6g97mZZTrJj",
-  "/ip4/124.71.142.233/tcp/13701/p2p/16Uiu2HAkwNRb29bCBbco5GuEq62DT8FNF5J9wLGD5iAEXMLaQLMz",
-  "/ip4/123.60.23.154/tcp/13701/p2p/16Uiu2HAmQBRF2SE2yw7HZ6eukxRoZpauFYNn8McwFYENz8BTZJLS",
-  "/ip4/123.60.23.251/tcp/13701/p2p/16Uiu2HAmNsMZnq73Ubs4oZmnrvjuJr4tdChUgRnvDvjgPYRZRF9M",
+  "/ip4/123.60.72.92/tcp/13701/p2p/16Uiu2HAm6xcTDQTT4xRfFRrdDyg4Ji7MVW9dmMt4G1n3fGhSiafN",
+  "/ip4/124.70.185.34/tcp/13701/p2p/16Uiu2HAm7EpC4emTJv39k7tNurbUNtWTEPKiNRdTfiYYuQ5yCqs3",
+  "/ip4/124.71.142.233/tcp/13701/p2p/16Uiu2HAkvozQc4Vrnu6rwNvLhA2gUDMnSCP918EPTQqgnR3uD6Ro",
+  "/ip4/123.60.23.154/tcp/13701/p2p/16Uiu2HAmMAGWFPWzpzG7i34XfpiM8s529Ed2vzVdAHSgnEoyjZD6",
+  "/ip4/123.60.23.251/tcp/13701/p2p/16Uiu2HAmLHbAYgaDfDJ5Jc42gfwRBjBKg7PXRN9yXALSNju9wwq1",
 ]
 
 #dht 版本还不稳定，暂时限定较小的连接数
@@ -103,10 +103,10 @@ whitelist = ["127.0.0.1"]
 [consensus.sub.pos33]
 bootPeers = [
   "/ip4/123.60.72.92/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
-  "/ip4/124.70.185.34/tcp/10801/p2p/16Uiu2HAm2PitThAR4G9jc713SfzF9MjNAVA7LXCG7fMDQxGML47C",
-  "/ip4/124.71.142.233/tcp/10801/p2p/16Uiu2HAmKLsetK9onJLXcp6rHWr3VPNJtFYjifDp8u3P22tv4Txq",
-  "/ip4/123.60.23.154/tcp/10801/p2p/16Uiu2HAm6jPSeeuabbX4FxRHMfxHPQ9cc2zbYr26EQSMAAVuggcZ",
-  "/ip4/123.60.23.251/tcp/10801/p2p/16Uiu2HAmNWG41attdfvMJkNPV7sYwfCEYCJsSPE7wmZfPjtif2N6",
+  "/ip4/124.70.185.34/tcp/10801/p2p/16Uiu2HAmJjC9TDXYgrx2DyBH7BLYiMFH8RiYA9m5twNhfPCFJ4QN",
+  "/ip4/124.71.142.233/tcp/10801/p2p/16Uiu2HAmKPNRzv7bwBvaoSaZabvrrU7dmDN7PmCGHSyCgm7RXvi6",
+  "/ip4/123.60.23.154/tcp/10801/p2p/16Uiu2HAmBUNMfDj94jt2os4xgRGqAKTPq5oosFmrCvDK9Khr2iy3",
+  "/ip4/123.60.23.251/tcp/10801/p2p/16Uiu2HAmGqCQyV1GDme86cEwLWR89sjLPocuJubsM1UqBqRY6hrj",
 ]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10801
