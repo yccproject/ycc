@@ -42,6 +42,7 @@ type Tx = types.Transaction
 type genesisTicket struct {
 	MinerAddr  string `json:"minerAddr"`
 	ReturnAddr string `json:"returnAddr"`
+	BlsAddr    string `json:"blsAddr"`
 	Count      int32  `json:"count"`
 }
 
@@ -227,7 +228,7 @@ func (client *Client) CreateBlock() {
 	client.n.runLoop()
 }
 
-func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count int32, height int64) (ret []*types.Transaction) {
+func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr string, count int32, height int64) (ret []*types.Transaction) {
 	//给hotkey 1000 个币，作为miner的手续费
 	tx1 := types.Transaction{}
 	tx1.Execer = []byte("coins")
@@ -242,7 +243,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count 
 	tx2.Execer = []byte("coins")
 	tx2.To = driver.ExecAddress(pt.Pos33TicketX)
 	g = &ct.CoinsAction_Genesis{}
-	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice, ReturnAddress: minerAddr}
+	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice, ReturnAddress: returnAddr}
 	tx2.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 
@@ -251,7 +252,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr string, count 
 	tx3.Execer = []byte(pt.Pos33TicketX)
 	tx3.To = driver.ExecAddress(pt.Pos33TicketX)
 	gticket := &pt.Pos33TicketAction_Genesis{}
-	gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, Count: count}
+	gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, BlsAddress: blsAddr, Count: count}
 	tx3.Payload = types.Encode(&pt.Pos33TicketAction{Value: gticket, Ty: pt.Pos33TicketActionGenesis})
 	ret = append(ret, &tx3)
 	plog.Debug("genesis miner", "execaddr", tx3.To)
@@ -274,7 +275,7 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 
 	// 初始化挖矿
 	for _, genesis := range client.conf.Genesis {
-		tx1 := createTicket(cfg, genesis.MinerAddr, genesis.ReturnAddr, genesis.Count, 0)
+		tx1 := createTicket(cfg, genesis.MinerAddr, genesis.ReturnAddr, genesis.BlsAddr, genesis.Count, 0)
 		ret = append(ret, tx1...)
 	}
 	return ret

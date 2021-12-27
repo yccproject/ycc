@@ -22,12 +22,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	routing "github.com/libp2p/go-libp2p-routing"
-
-	// disc "github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -116,8 +115,8 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, forwardP
 	ps, err := pubsub.NewGossipSub(
 		ctx,
 		h,
-		// pubsub.WithPeerOutboundQueueSize(128),
-		// pubsub.WithMaxMessageSize(pubsub.DefaultMaxMessageSize*10),
+		pubsub.WithPeerOutboundQueueSize(128),
+		pubsub.WithMaxMessageSize(pubsub.DefaultMaxMessageSize*10),
 		pubsub.WithMessageSigning(false),
 		pubsub.WithStrictSignatureVerification(false),
 	)
@@ -396,13 +395,13 @@ func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
 	if err != nil {
 		panic(err)
 	}
-	// mdns, err := disc.NewMdnsService(ctx, h, time.Second*10, ns)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	mdns := mdns.NewMdnsService(h, ns)
+	if err != nil {
+		panic(err)
+	}
 
-	// mn := &mdnsNotifee{h: h, ctx: ctx}
-	// mdns.RegisterNotifee(mn)
+	mn := &mdnsNotifee{h: h, ctx: ctx}
+	mdns.RegisterNotifee(mn)
 
 	err = idht.Bootstrap(ctx)
 	if err != nil {

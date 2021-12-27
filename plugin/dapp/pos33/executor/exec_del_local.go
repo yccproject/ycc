@@ -38,8 +38,8 @@ func (t *Pos33Ticket) ExecDelLocal_Miner(payload *ty.Pos33MinerMsg, tx *types.Tr
 	return t.execDelLocal(receiptData)
 }
 
-// // ExecDelLocal_Bind exec del local miner
-// func (t *Pos33Ticket) ExecDelLocal_Bind(payload *ty.Pos33TicketBind, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-// 	tlog.Info("ExecDelLocal_Miner", "height", t.GetHeight())
-// 	return t.execDelLocal(receiptData)
-// }
+// ExecDelLocal_Bind exec del local miner
+func (t *Pos33Ticket) ExecDelLocal_Bind(payload *ty.Pos33TicketBind, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	tlog.Info("ExecDelLocal_Miner", "height", t.GetHeight())
+	return t.execDelLocal(receiptData)
+}

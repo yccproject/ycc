@@ -20,6 +20,22 @@ function init() {
 
     sleep 1
 
+    echo "=========== # create new key for transfer ============="
+    result=$(./ycc-cli account create -l transfer | jq ".acc")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    # sleep 1
+    # echo "=========== # deposit to pos33 ============="
+    # result=$(./ycc-cli send coins transfer -a=1000000000 -t=1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq -k=transfer | jq "")
+    # echo "${result}"
+    # if [ -z "${result}" ]; then
+    #     exit 1
+    # fi
+
+    sleep 1
     echo "=========== # create new key for mining ============="
     result=$(./ycc-cli account create -l mining | jq ".acc")
     echo "${result}"
