@@ -40,8 +40,8 @@ func (t *Pos33Ticket) Exec_Miner(payload *ty.Pos33MinerMsg, tx *types.Transactio
 	return actiondb.Pos33Miner(payload, index)
 }
 
-// // Exec_Tbind exec bind
-// func (t *Pos33Ticket) Exec_Tbind(payload *ty.Pos33TicketBind, tx *types.Transaction, index int) (*types.Receipt, error) {
-// 	actiondb := NewAction(t, tx)
-// 	return actiondb.Pos33TicketBind(payload)
-// }
+// Exec_Tbind exec bind
+func (t *Pos33Ticket) Exec_Tbind(payload *ty.Pos33TicketBind, tx *types.Transaction, index int) (*types.Receipt, error) {
+	actiondb := NewAction(t, tx)
+	return actiondb.Pos33TicketBind(payload)
+}

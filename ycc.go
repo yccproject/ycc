@@ -56,7 +56,8 @@ checkFutureBlockHeight=1500000
 
 [[consensus.sub.pos33.genesis]]
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-returnAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
+returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+blsAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
 count=10000
 
 

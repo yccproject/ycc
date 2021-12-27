@@ -6,6 +6,7 @@ package rpc
 
 import (
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
@@ -115,4 +116,59 @@ func (c *Jrpc) GetPos33TicketReward(in *ty.Pos33TicketReward, result *interface{
 	}
 	*result = resp
 	return nil
+}
+
+func bindMiner(cfg *types.Chain33Config, param *ty.ReqBindPos33Miner) (*ty.ReplyBindPos33Miner, error) {
+	tBind := &ty.Pos33TicketBind{
+		MinerAddress:  param.BindAddr,
+		ReturnAddress: param.OriginAddr,
+	}
+	data, err := types.CallCreateTx(cfg, cfg.ExecName(ty.Pos33TicketX), "Tbind", tBind)
+	if err != nil {
+		return nil, err
+	}
+	hex := common.ToHex(data)
+	return &ty.ReplyBindPos33Miner{TxHex: hex}, nil
+}
+
+// CreateBindMiner 创建绑定挖矿
+func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindPos33Miner) (*ty.ReplyBindPos33Miner, error) {
+	if in.BindAddr != "" {
+		err := address.CheckAddress(in.BindAddr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := address.CheckAddress(in.OriginAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := g.GetConfig()
+	if in.CheckBalance {
+		header, err := g.GetLastHeader()
+		if err != nil {
+			return nil, err
+		}
+		price := ty.GetPos33TicketMinerParam(cfg, header.Height).Pos33TicketPrice
+		if price == 0 {
+			return nil, types.ErrInvalidParam
+		}
+		if in.Amount%ty.GetPos33TicketMinerParam(cfg, header.Height).Pos33TicketPrice != 0 || in.Amount < 0 {
+			return nil, types.ErrAmount
+		}
+
+		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: cfg.GetCoinExec(), AssetSymbol: "bty", AssetExec: cfg.GetCoinExec()}
+		balances, err := g.GetCoinsAccountDB().GetBalance(g, getBalance)
+		if err != nil {
+			return nil, err
+		}
+		if len(balances) == 0 {
+			return nil, types.ErrInvalidParam
+		}
+		if balances[0].Balance < in.Amount+2*cfg.GetCoinPrecision() {
+			return nil, types.ErrNoBalance
+		}
+	}
+	return bindMiner(cfg, in)
 }

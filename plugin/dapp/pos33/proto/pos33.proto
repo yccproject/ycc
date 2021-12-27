@@ -165,12 +165,14 @@ message Pos33TicketBind {
 message Pos33TicketOpen {
   //用户挖矿的ticket 地址
   string minerAddress = 1;
-  //购买ticket的数目
-  int32 count = 2;
   //币实际存储的地址
   string returnAddress = 3;
+  //聚合签名的地址
+  string blsAddress = 6;
+  //购买ticket的数目
+  int32 count = 2;
   //随机种子
-  // int64 randSeed = 4;
+  int64 randSeed = 4;
   //购买ticket时公开
   // repeated bytes pubHashes = 5;
 }
@@ -178,6 +180,7 @@ message Pos33TicketOpen {
 message Pos33TicketGenesis {
   string minerAddress = 1;
   string returnAddress = 2;
+  string blsAddress = 6;
   int32 count = 3;
 }
 
@@ -217,24 +220,24 @@ message ReceiptPos33Miner {
   int64 reward = 3;
 }
 
-// message ReceiptPos33TicketBind {
-//   string oldMinerAddress = 1;
-//   string newMinerAddress = 2;
-//   string returnAddress = 3;
-// }
+message ReceiptPos33TicketBind {
+  string oldMinerAddress = 1;
+  string newMinerAddress = 2;
+  string returnAddress = 3;
+}
 
-// message ReqBindPos33Miner {
-//   string bindAddr = 1;
-//   string originAddr = 2;
-//   int64 amount = 3;
-//   bool checkBalance = 4;
-// }
+message ReqBindPos33Miner {
+  string bindAddr = 1;
+  string originAddr = 2;
+  int64 amount = 3;
+  bool checkBalance = 4;
+}
 
-// message ReplyBindPos33Miner { string txHex = 1; }
+message ReplyBindPos33Miner { string txHex = 1; }
 
 service pos33Ticket {
   //创建绑定挖矿
-  // rpc CreateBindMiner(ReqBindPos33Miner) returns(ReplyBindPos33Miner) {}
+  rpc CreateBindMiner(ReqBindPos33Miner) returns (ReplyBindPos33Miner) {}
   //查询钱包票数
   rpc GetPos33TicketCount(types.ReqNil) returns (Int64) {}
   //设置自动挖矿

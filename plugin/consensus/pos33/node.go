@@ -415,16 +415,16 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 }
 
 func (n *node) broadcastBlock(b *types.Block) {
-	txs := b.Txs
-	b.Txs = nil
-	nb := b.Clone()
-	b.Txs = txs
-	nb.Txs = txs[:1]
+	// txs := b.Txs
+	// b.Txs = nil
+	// nb := b.Clone()
+	// b.Txs = txs
+	// nb.Txs = txs[:1]
 	m := &pt.Pos33BlockMsg{B: b, Pid: n.pid}
 	n.handleBlockMsg(m, true)
 
-	nm := &pt.Pos33BlockMsg{B: nb, Pid: n.pid}
-	pm := &pt.Pos33Msg{Data: types.Encode(nm), Ty: pt.Pos33Msg_B}
+	// nm := &pt.Pos33BlockMsg{B: nb, Pid: n.pid}
+	pm := &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_B}
 	data := types.Encode(pm)
 	// n.gss.forwad(data)
 	n.gss.gossip(n.topic+"/block", data)
@@ -553,7 +553,7 @@ func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte, ty int) error {
 	if ty == int(pt.Pos33Msg_BV) {
 		blsAddr := address.PubKeyToAddr(v.Sig.Pubkey)
 		sortAddr := address.PubKeyToAddr(v.Sort.Proof.Pubkey)
-		msg, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33BindAddr", &types.ReqAddr{Addr: blsAddr})
+		msg, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsAddr})
 		if err != nil {
 			return err
 		}
@@ -796,6 +796,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	}
 
 	if n.lastBlock().Height > height {
+		// panic("can't go here")
 		return
 	}
 
@@ -806,6 +807,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	if ty == int(pt.Pos33Msg_BV) {
 		// maker.rmBvByPub(string(m0.Sig.Pubkey), int(m0.Round))
 		if comm.findVb(string(m0.Hash), string(m0.Sig.Pubkey)) {
+			// panic("can't go here")
 			return
 		}
 		// 检查投票是否属于委员会, 去除非委员会投票
@@ -823,6 +825,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 		}
 	} else if ty == int(pt.Pos33Msg_MV) {
 		if maker.findVm(string(m0.Hash), string(m0.Sig.Pubkey)) {
+			// panic("can't go here")
 			return
 		}
 	}
@@ -841,6 +844,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 			return
 		}
 		if string(m.Hash) != string(m0.Hash) {
+			// panic("can't go here")
 			return
 		}
 
@@ -853,7 +857,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 	if ty == int(pt.Pos33Msg_BV) {
 		vs := comm.bvs[string(m0.Hash)]
-		if len(vs) >= 10 { //pt.Pos33MustVotes {
+		if len(vs) >= 1 { //pt.Pos33MustVotes {
 			plog.Info("handleVoteMsg block", "hash", common.HashHex(m0.Hash)[:16], "allbvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
 		}
 		if len(vs) < pt.Pos33VoterSize/2+1 {
@@ -974,9 +978,9 @@ func (n *node) trySetBlock(height int64, round int, vs []*pt.Pos33VoteMsg, bh st
 		h := string(b.B.Hash(n.GetAPI().GetConfig()))
 		if bh == h {
 			plog.Info("set block", "height", height, "round", round, "bh", common.HashHex([]byte(h))[:16])
-			if b.B.Txs[0].From() == address.PubKeyToAddr(n.priv.PubKey().Bytes()) {
-				n.setBlock(b.B)
-			}
+			// if b.B.Txs[0].From() == address.PubKeyToAddr(n.priv.PubKey().Bytes()) {
+			n.setBlock(b.B)
+			// }
 			comm.ok = true
 			return true
 		}
