@@ -33,7 +33,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = false
+singleMode = true
 
 [mempool]
 # 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
@@ -65,14 +65,15 @@ useGithub = false
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
-channel = 7
+channel = 9
 port = 13701
 seeds = [
-  "/ip4/139.9.43.189/tcp/13701/p2p/16Uiu2HAkvVA1m1ALGfYST6cZRNfsdyjjmAnWFrjA2zqtr1cjhtBA",
-  # "/ip4/124.70.185.34/tcp/13701/p2p/16Uiu2HAm7EpC4emTJv39k7tNurbUNtWTEPKiNRdTfiYYuQ5yCqs3",
-  # "/ip4/124.71.142.233/tcp/13701/p2p/16Uiu2HAkvozQc4Vrnu6rwNvLhA2gUDMnSCP918EPTQqgnR3uD6Ro",
-  # "/ip4/123.60.23.154/tcp/13701/p2p/16Uiu2HAmMAGWFPWzpzG7i34XfpiM8s529Ed2vzVdAHSgnEoyjZD6",
-  # "/ip4/123.60.23.251/tcp/13701/p2p/16Uiu2HAmLHbAYgaDfDJ5Jc42gfwRBjBKg7PXRN9yXALSNju9wwq1",
+  "/ip4/121.36.202.4/tcp/13701/p2p/16Uiu2HAm6nTX7ym4BnTQhkBrrgpmuR5LRmWSb17DKJ4jigEN31qi",
+#  "/ip4/116.63.160.223/tcp/13701/p2p/16Uiu2HAm2Rr77N6N1YiWBi9q3Wo9FYUhJXf3WywxSwuNTD2PtpUo",
+#  "/ip4/121.36.27.236/tcp/13701/p2p/16Uiu2HAky71y1ZygKcSKyJEq5SQTvZgjqA1uxzVVuRBEz33uBvXw",
+#  "/ip4/124.70.87.172/tcp/13701/p2p/16Uiu2HAkwroYq8JAcfchrMfs7rzTPeMhfCTKbNAPges5wjuYTW8u",
+#  "/ip4/16.163.56.45/tcp/13701/p2p/16Uiu2HAmA4XW7aCoWFjx2HWTotsjh3n5ZcisME1yKyqjGncXfo4F",
+#  "/ip4/18.166.74.155/tcp/13701/p2p/16Uiu2HAmByRT5HTMXmp8dSHrWzUnHDeeW7MRyxr2wgezttnUFJyn",
 ]
 
 #dht 版本还不稳定，暂时限定较小的连接数
@@ -106,20 +107,16 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 bootPeers = [
-  "/ip4/139.9.43.189/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
-  # "/ip4/124.70.185.34/tcp/10801/p2p/16Uiu2HAmJjC9TDXYgrx2DyBH7BLYiMFH8RiYA9m5twNhfPCFJ4QN",
-  # "/ip4/124.71.142.233/tcp/10801/p2p/16Uiu2HAmKPNRzv7bwBvaoSaZabvrrU7dmDN7PmCGHSyCgm7RXvi6",
-  # "/ip4/123.60.23.154/tcp/10801/p2p/16Uiu2HAmBUNMfDj94jt2os4xgRGqAKTPq5oosFmrCvDK9Khr2iy3",
-  # "/ip4/123.60.23.251/tcp/10801/p2p/16Uiu2HAmGqCQyV1GDme86cEwLWR89sjLPocuJubsM1UqBqRY6hrj",
+  "/ip4/121.36.202.4/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
 ]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10801
 onlyVoter = false
-# forwardPeers = true
+forwardPeers = true
 
 [mver.consensus]
-fundKeyAddr = "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF"
-maxTxNumber = 30000
+fundKeyAddr = "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt"
+maxTxNumber = 3000
 powLimitBits = "0x1f00ffff"
 
 [mver.consensus.ForkChainParamV1]
