@@ -68,8 +68,7 @@ useGithub = false
 channel = 9
 port = 13701
 seeds = [
-  "/ip4/121.36.202.4/tcp/13701/p2p/16Uiu2HAm6nTX7ym4BnTQhkBrrgpmuR5LRmWSb17DKJ4jigEN31qi", #  "/ip4/116.63.160.223/tcp/13701/p2p/16Uiu2HAm2Rr77N6N1YiWBi9q3Wo9FYUhJXf3WywxSwuNTD2PtpUo",  #  "/ip4/121.36.27.236/tcp/13701/p2p/16Uiu2HAky71y1ZygKcSKyJEq5SQTvZgjqA1uxzVVuRBEz33uBvXw",
-  #  "/ip4/124.70.87.172/tcp/13701/p2p/16Uiu2HAkwroYq8JAcfchrMfs7rzTPeMhfCTKbNAPges5wjuYTW8u",
+  "/ip4/121.36.202.4/tcp/13701/p2p/16Uiu2HAm6nTX7ym4BnTQhkBrrgpmuR5LRmWSb17DKJ4jigEN31qi", #  "/ip4/116.63.160.223/tcp/13701/p2p/16Uiu2HAm2Rr77N6N1YiWBi9q3Wo9FYUhJXf3WywxSwuNTD2PtpUo",  #  "/ip4/121.36.27.236/tcp/13701/p2p/16Uiu2HAky71y1ZygKcSKyJEq5SQTvZgjqA1uxzVVuRBEz33uBvXw",  #  "/ip4/124.70.87.172/tcp/13701/p2p/16Uiu2HAkwroYq8JAcfchrMfs7rzTPeMhfCTKbNAPges5wjuYTW8u",
   #  "/ip4/16.163.56.45/tcp/13701/p2p/16Uiu2HAmA4XW7aCoWFjx2HWTotsjh3n5ZcisME1yKyqjGncXfo4F",
   #  "/ip4/18.166.74.155/tcp/13701/p2p/16Uiu2HAmByRT5HTMXmp8dSHrWzUnHDeeW7MRyxr2wgezttnUFJyn",
 ]
@@ -106,6 +105,9 @@ whitelist = ["127.0.0.1"]
 [consensus.sub.pos33]
 bootPeers = [
   "/ip4/121.36.202.4/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
+  "/ip4/123.60.129.148/tcp/10801/p2p/16Uiu2HAmBUsggspon2LQepEEc7bk6QiJhTqa1NdHqXTkghr4sEnL",
+  "/ip4/121.37.178.141/tcp/10801/p2p/16Uiu2HAm76UfXjHKWptdMtq11AQbvEL6Z5EWPU58CKQ8i3ZuY1HT",
+  "/ip4/124.70.218.253/tcp/10801/p2p/16Uiu2HAmDm8vhMovuFqAU4VyMWvNt4aohH2xtmvicRZt69FTEb4a",
 ]
 forwardServers = ["124.71.10.240:10902"]
 listenPort = 10801
