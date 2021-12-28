@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package rpc_test
+package rpc
 
 //only load all plugin and system
 import (
@@ -19,7 +19,7 @@ import (
 
 func TestNewPos33Ticket(t *testing.T) {
 	//选票(可以用hotwallet 关闭选票)
-	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(cfgstring)
 	cfg.GetModuleConfig().Consensus.Name = "pos33"
 	mocker := testnode.NewWithConfig(cfg, nil)
 	mocker.Listen()

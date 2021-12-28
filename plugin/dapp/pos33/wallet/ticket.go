@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
@@ -442,24 +443,25 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 	// 	toaddr := address.ExecAddress(ty.Pos33TicketX)
 	// 	amount := acc1.Balance - 2*fee
 	// 	//必须大于0，才需要转移币
-	// 	var hash *types.ReplyHash
-	// 	if amount > 0 {
-	// 		bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
-	// 		hash, err = policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
-
-	// 		if err != nil {
-	// 			return nil, 0, err
-	// 		}
-	// 		bizlog.Info("buyticket tx hash", "hash", common.HashHex(hash.Hash))
-	// 		operater.WaitTx(hash.Hash)
-	// 		bizlog.Info("buyticket send ok")
-	// 	}
-	// }
 
 	raddr := addr
 	msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33Deposit", &types.ReqAddr{Addr: addr})
 	if err != nil {
 		bizlog.Error("openticket query bind addr error", "error", err, "maddr", addr)
+		amount := acc1.Balance / cfg.Pos33TicketPrice * cfg.Pos33TicketPrice
+		var hash *types.ReplyHash
+		if amount > 0 {
+			toaddr := address.ExecAddress(ty.Pos33TicketX)
+			bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
+			hash, err = policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
+
+			if err != nil {
+				return nil, 0, err
+			}
+			bizlog.Info("buyticket tx hash", "hash", common.HashHex(hash.Hash))
+			operater.WaitTx(hash.Hash)
+			bizlog.Info("buyticket send ok")
+		}
 	} else {
 		raddr = msg.(*ty.Pos33DepositMsg).Raddr
 	}

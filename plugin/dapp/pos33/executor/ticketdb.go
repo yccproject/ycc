@@ -101,9 +101,9 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int6
 	if err != nil {
 		d = &ty.Pos33DepositMsg{Maddr: maddr, Raddr: raddr, Count: newCount, Reward: newReward}
 	} else {
-		if newCount == 0 && newReward == 0 {
-			return nil
-		}
+		// if newCount == 0 && newReward == 0 {
+		// 	return nil
+		// }
 		if raddr != "" {
 			d.Raddr = raddr
 		}
@@ -318,6 +318,9 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	if err != nil {
 		return nil, err
 	}
+	if action.fromaddr != tclose.MinerAddress || action.fromaddr != d.Raddr {
+		return nil, types.ErrFromAddr
+	}
 	if d.Count == 0 {
 		return nil, errors.New("your ticket count is 0")
 	}
@@ -341,18 +344,18 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 	return receipt, nil
 }
 
-func saveBind(db dbm.KV, tbind *ty.Pos33TicketBind) {
-	set := getBindKV(tbind)
-	for i := 0; i < len(set); i++ {
-		db.Set(set[i].GetKey(), set[i].Value)
-	}
-}
+// func saveBind(db dbm.KV, tbind *ty.Pos33TicketBind) {
+// 	set := getBindKV(tbind)
+// 	for i := 0; i < len(set); i++ {
+// 		db.Set(set[i].GetKey(), set[i].Value)
+// 	}
+// }
 
-func getBindKV(tbind *ty.Pos33TicketBind) (kvset []*types.KeyValue) {
-	value := types.Encode(tbind)
-	kvset = append(kvset, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: value})
-	return kvset
-}
+// func getBindKV(tbind *ty.Pos33TicketBind) (kvset []*types.KeyValue) {
+// 	value := types.Encode(tbind)
+// 	kvset = append(kvset, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: value})
+// 	return kvset
+// }
 
 func getBindLog(tbind *ty.Pos33TicketBind, old string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
@@ -370,12 +373,13 @@ func (action *Action) getBind(addr string) string {
 	if err != nil || value == nil {
 		return ""
 	}
-	var bind ty.Pos33TicketBind
-	err = types.Decode(value, &bind)
-	if err != nil {
-		panic(err)
-	}
-	return bind.MinerAddress
+	return string(value)
+	// var bind ty.Pos33TicketBind
+	// err = types.Decode(value, &bind)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// return bind.MinerAddress
 }
 
 //TicketBind 授权某个地址进行挖矿
@@ -400,18 +404,14 @@ func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt
 		d, err := getDeposit(action.db, oldbind)
 		if err != nil {
 			tlog.Error("bind getDeposit error", "err", err, "oldbind", oldbind)
-			return nil, err
-		}
-		if d.Count != 0 {
+		} else if d.Count != 0 {
 			return nil, errors.New("bind new MUST close all tickts")
 		}
 	}
 	log := getBindLog(tbind, oldbind)
 	logs = append(logs, log)
-	saveBind(action.db, tbind)
-	kv := getBindKV(tbind)
-	kvs = append(kvs, kv...)
 
+	kvs = append(kvs, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: []byte(tbind.ReturnAddress)})
 	kvs = append(kvs, setDeposit(action.db, tbind.MinerAddress, tbind.ReturnAddress, 0, 0, action.height))
 	tlog.Info("pos33 bind", "maddr", tbind.MinerAddress, "raddr", tbind.ReturnAddress)
 
