@@ -273,6 +273,9 @@ func Hash2BlsSk(hash []byte) crypto.PrivKey {
 }
 
 func (m *Pos33MinerMsg) Verify() error {
+	if len(m.BlsPkList) == 0 {
+		return nil
+	}
 	d := new(bls33.Driver)
 	var pks []crypto.PubKey
 	for _, b := range m.BlsPkList {

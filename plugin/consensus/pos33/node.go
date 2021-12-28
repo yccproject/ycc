@@ -310,7 +310,7 @@ func (n *node) lastBlock() *types.Block {
 	return b
 }
 
-func (n *node) minerTx(height int64, sm *pt.Pos33SortMsg, hash []byte, vs []*pt.Pos33VoteMsg, priv crypto.PrivKey) (*types.Transaction, error) {
+func (n *node) minerTx(height int64, round int, sm *pt.Pos33SortMsg, hash []byte, vs []*pt.Pos33VoteMsg, priv crypto.PrivKey) (*types.Transaction, error) {
 	if len(vs) > pt.Pos33VoterSize {
 		sort.Sort(pt.Votes(vs))
 		vs = vs[:pt.Pos33VoterSize]
@@ -325,8 +325,10 @@ func (n *node) minerTx(height int64, sm *pt.Pos33SortMsg, hash []byte, vs []*pt.
 	}
 
 	blsSig, err := bls.Driver{}.Aggregate(sigs)
-	if err != nil {
+	if err != nil && round < 3 {
 		return nil, err
+	} else if err != nil {
+		blsSig = bls.SignatureBLS{}
 	}
 	act := &pt.Pos33TicketAction{
 		Value: &pt.Pos33TicketAction_Miner{
@@ -394,7 +396,7 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	if err != nil {
 		return nil, err
 	}
-	tx, err := n.minerTx(height, sort, lb.Hash(n.GetAPI().GetConfig()), vs, priv)
+	tx, err := n.minerTx(height, round, sort, lb.Hash(n.GetAPI().GetConfig()), vs, priv)
 	if err != nil {
 		return nil, err
 	}
@@ -604,6 +606,10 @@ func (n *node) blockCheck(b *types.Block) error {
 	if err != nil {
 		plog.Error("blockCheck error", "err", err, "height", b.Height, "round", round)
 		return err
+	}
+
+	if round >= 3 {
+		return nil
 	}
 
 	return act.Verify()
@@ -939,7 +945,7 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	lcomm := n.getCommittee(height-1, lr)
 	lh := lb.Hash(n.GetAPI().GetConfig())
 	lvs := lcomm.bvs[string(lh)]
-	if round <= 1 {
+	if round < 3 {
 		_, err := lcomm.checkVotes(lvs)
 		if err != nil {
 			plog.Error("tryMakerBlock checklastVotes error", "err", err, "phash", common.HashHex(lh)[:16], "height", height, "round", round, "lnvs", len(lvs))
@@ -948,7 +954,7 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	}
 
 	nb, err := n.makeBlock(height, round, maker.my, lvs)
-	if err != nil {
+	if err != nil && round < 3 {
 		plog.Error("makeBlock error", "err", err, "height", height)
 		return
 	}

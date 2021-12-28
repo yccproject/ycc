@@ -2565,26 +2565,26 @@ var file_pos33_proto_rawDesc = []byte{
 	0x68, 0x65, 0x63, 0x6b, 0x42, 0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65, 0x22, 0x2b, 0x0a, 0x13, 0x52,
 	0x65, 0x70, 0x6c, 0x79, 0x42, 0x69, 0x6e, 0x64, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x4d, 0x69, 0x6e,
 	0x65, 0x72, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x78, 0x48, 0x65, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x05, 0x74, 0x78, 0x48, 0x65, 0x78, 0x32, 0x99, 0x02, 0x0a, 0x0b, 0x70, 0x6f, 0x73,
-	0x33, 0x33, 0x54, 0x69, 0x63, 0x6b, 0x65, 0x74, 0x12, 0x49, 0x0a, 0x0f, 0x43, 0x72, 0x65, 0x61,
-	0x74, 0x65, 0x42, 0x69, 0x6e, 0x64, 0x4d, 0x69, 0x6e, 0x65, 0x72, 0x12, 0x18, 0x2e, 0x74, 0x79,
-	0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x42, 0x69, 0x6e, 0x64, 0x50, 0x6f, 0x73, 0x33, 0x33,
-	0x4d, 0x69, 0x6e, 0x65, 0x72, 0x1a, 0x1a, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65,
-	0x70, 0x6c, 0x79, 0x42, 0x69, 0x6e, 0x64, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x4d, 0x69, 0x6e, 0x65,
-	0x72, 0x22, 0x00, 0x12, 0x34, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x54,
-	0x69, 0x63, 0x6b, 0x65, 0x74, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x0d, 0x2e, 0x74, 0x79, 0x70,
-	0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x4e, 0x69, 0x6c, 0x1a, 0x0c, 0x2e, 0x74, 0x79, 0x70, 0x65,
-	0x73, 0x2e, 0x49, 0x6e, 0x74, 0x36, 0x34, 0x22, 0x00, 0x12, 0x36, 0x0a, 0x0d, 0x53, 0x65, 0x74,
-	0x41, 0x75, 0x74, 0x6f, 0x4d, 0x69, 0x6e, 0x69, 0x6e, 0x67, 0x12, 0x15, 0x2e, 0x74, 0x79, 0x70,
-	0x65, 0x73, 0x2e, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x4d, 0x69, 0x6e, 0x65, 0x72, 0x46, 0x6c, 0x61,
-	0x67, 0x1a, 0x0c, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22,
-	0x00, 0x12, 0x51, 0x0a, 0x14, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x54, 0x69, 0x63,
-	0x6b, 0x65, 0x74, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x12, 0x18, 0x2e, 0x74, 0x79, 0x70, 0x65,
-	0x73, 0x2e, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x54, 0x69, 0x63, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x77,
-	0x61, 0x72, 0x64, 0x1a, 0x1d, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x70, 0x6c,
-	0x79, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x54, 0x69, 0x63, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x77, 0x61,
-	0x72, 0x64, 0x22, 0x00, 0x42, 0x0a, 0x5a, 0x08, 0x2e, 0x2e, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x09, 0x52, 0x05, 0x74, 0x78, 0x48, 0x65, 0x78, 0x32, 0x93, 0x02, 0x0a, 0x05, 0x70, 0x6f, 0x73,
+	0x33, 0x33, 0x12, 0x49, 0x0a, 0x0f, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x42, 0x69, 0x6e, 0x64,
+	0x4d, 0x69, 0x6e, 0x65, 0x72, 0x12, 0x18, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65,
+	0x71, 0x42, 0x69, 0x6e, 0x64, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x4d, 0x69, 0x6e, 0x65, 0x72, 0x1a,
+	0x1a, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x42, 0x69, 0x6e,
+	0x64, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x4d, 0x69, 0x6e, 0x65, 0x72, 0x22, 0x00, 0x12, 0x34, 0x0a,
+	0x13, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x54, 0x69, 0x63, 0x6b, 0x65, 0x74, 0x43,
+	0x6f, 0x75, 0x6e, 0x74, 0x12, 0x0d, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71,
+	0x4e, 0x69, 0x6c, 0x1a, 0x0c, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x49, 0x6e, 0x74, 0x36,
+	0x34, 0x22, 0x00, 0x12, 0x36, 0x0a, 0x0d, 0x53, 0x65, 0x74, 0x41, 0x75, 0x74, 0x6f, 0x4d, 0x69,
+	0x6e, 0x69, 0x6e, 0x67, 0x12, 0x15, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x50, 0x6f, 0x73,
+	0x33, 0x33, 0x4d, 0x69, 0x6e, 0x65, 0x72, 0x46, 0x6c, 0x61, 0x67, 0x1a, 0x0c, 0x2e, 0x74, 0x79,
+	0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x51, 0x0a, 0x14, 0x47,
+	0x65, 0x74, 0x50, 0x6f, 0x73, 0x33, 0x33, 0x54, 0x69, 0x63, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x77,
+	0x61, 0x72, 0x64, 0x12, 0x18, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x50, 0x6f, 0x73, 0x33,
+	0x33, 0x54, 0x69, 0x63, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x1a, 0x1d, 0x2e,
+	0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x50, 0x6f, 0x73, 0x33, 0x33,
+	0x54, 0x69, 0x63, 0x6b, 0x65, 0x74, 0x52, 0x65, 0x77, 0x61, 0x72, 0x64, 0x22, 0x00, 0x42, 0x0a,
+	0x5a, 0x08, 0x2e, 0x2e, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -2672,14 +2672,14 @@ var file_pos33_proto_depIdxs = []int32{
 	13, // 23: types.Pos33TicketMiner.vs:type_name -> types.Pos33VoteMsg
 	7,  // 24: types.Pos33MinerMsg.sort:type_name -> types.Pos33SortMsg
 	7,  // 25: types.Pos33SortMap.SortMapEntry.value:type_name -> types.Pos33SortMsg
-	34, // 26: types.pos33Ticket.CreateBindMiner:input_type -> types.ReqBindPos33Miner
-	39, // 27: types.pos33Ticket.GetPos33TicketCount:input_type -> types.ReqNil
-	21, // 28: types.pos33Ticket.SetAutoMining:input_type -> types.Pos33MinerFlag
-	27, // 29: types.pos33Ticket.GetPos33TicketReward:input_type -> types.Pos33TicketReward
-	35, // 30: types.pos33Ticket.CreateBindMiner:output_type -> types.ReplyBindPos33Miner
-	40, // 31: types.pos33Ticket.GetPos33TicketCount:output_type -> types.Int64
-	41, // 32: types.pos33Ticket.SetAutoMining:output_type -> types.Reply
-	29, // 33: types.pos33Ticket.GetPos33TicketReward:output_type -> types.ReplyPos33TicketReward
+	34, // 26: types.pos33.CreateBindMiner:input_type -> types.ReqBindPos33Miner
+	39, // 27: types.pos33.GetPos33TicketCount:input_type -> types.ReqNil
+	21, // 28: types.pos33.SetAutoMining:input_type -> types.Pos33MinerFlag
+	27, // 29: types.pos33.GetPos33TicketReward:input_type -> types.Pos33TicketReward
+	35, // 30: types.pos33.CreateBindMiner:output_type -> types.ReplyBindPos33Miner
+	40, // 31: types.pos33.GetPos33TicketCount:output_type -> types.Int64
+	41, // 32: types.pos33.SetAutoMining:output_type -> types.Reply
+	29, // 33: types.pos33.GetPos33TicketReward:output_type -> types.ReplyPos33TicketReward
 	30, // [30:34] is the sub-list for method output_type
 	26, // [26:30] is the sub-list for method input_type
 	26, // [26:26] is the sub-list for extension type_name
@@ -3150,10 +3150,10 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// Pos33TicketClient is the client API for Pos33Ticket service.
+// Pos33Client is the client API for Pos33 service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type Pos33TicketClient interface {
+type Pos33Client interface {
 	//创建绑定挖矿
 	CreateBindMiner(ctx context.Context, in *ReqBindPos33Miner, opts ...grpc.CallOption) (*ReplyBindPos33Miner, error)
 	//查询钱包票数
@@ -3164,52 +3164,52 @@ type Pos33TicketClient interface {
 	GetPos33TicketReward(ctx context.Context, in *Pos33TicketReward, opts ...grpc.CallOption) (*ReplyPos33TicketReward, error)
 }
 
-type pos33TicketClient struct {
+type pos33Client struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPos33TicketClient(cc grpc.ClientConnInterface) Pos33TicketClient {
-	return &pos33TicketClient{cc}
+func NewPos33Client(cc grpc.ClientConnInterface) Pos33Client {
+	return &pos33Client{cc}
 }
 
-func (c *pos33TicketClient) CreateBindMiner(ctx context.Context, in *ReqBindPos33Miner, opts ...grpc.CallOption) (*ReplyBindPos33Miner, error) {
+func (c *pos33Client) CreateBindMiner(ctx context.Context, in *ReqBindPos33Miner, opts ...grpc.CallOption) (*ReplyBindPos33Miner, error) {
 	out := new(ReplyBindPos33Miner)
-	err := c.cc.Invoke(ctx, "/types.pos33Ticket/CreateBindMiner", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/types.pos33/CreateBindMiner", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *pos33TicketClient) GetPos33TicketCount(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.Int64, error) {
+func (c *pos33Client) GetPos33TicketCount(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.Int64, error) {
 	out := new(types.Int64)
-	err := c.cc.Invoke(ctx, "/types.pos33Ticket/GetPos33TicketCount", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/types.pos33/GetPos33TicketCount", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *pos33TicketClient) SetAutoMining(ctx context.Context, in *Pos33MinerFlag, opts ...grpc.CallOption) (*types.Reply, error) {
+func (c *pos33Client) SetAutoMining(ctx context.Context, in *Pos33MinerFlag, opts ...grpc.CallOption) (*types.Reply, error) {
 	out := new(types.Reply)
-	err := c.cc.Invoke(ctx, "/types.pos33Ticket/SetAutoMining", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/types.pos33/SetAutoMining", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *pos33TicketClient) GetPos33TicketReward(ctx context.Context, in *Pos33TicketReward, opts ...grpc.CallOption) (*ReplyPos33TicketReward, error) {
+func (c *pos33Client) GetPos33TicketReward(ctx context.Context, in *Pos33TicketReward, opts ...grpc.CallOption) (*ReplyPos33TicketReward, error) {
 	out := new(ReplyPos33TicketReward)
-	err := c.cc.Invoke(ctx, "/types.pos33Ticket/GetPos33TicketReward", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/types.pos33/GetPos33TicketReward", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Pos33TicketServer is the server API for Pos33Ticket service.
-type Pos33TicketServer interface {
+// Pos33Server is the server API for Pos33 service.
+type Pos33Server interface {
 	//创建绑定挖矿
 	CreateBindMiner(context.Context, *ReqBindPos33Miner) (*ReplyBindPos33Miner, error)
 	//查询钱包票数
@@ -3220,118 +3220,118 @@ type Pos33TicketServer interface {
 	GetPos33TicketReward(context.Context, *Pos33TicketReward) (*ReplyPos33TicketReward, error)
 }
 
-// UnimplementedPos33TicketServer can be embedded to have forward compatible implementations.
-type UnimplementedPos33TicketServer struct {
+// UnimplementedPos33Server can be embedded to have forward compatible implementations.
+type UnimplementedPos33Server struct {
 }
 
-func (*UnimplementedPos33TicketServer) CreateBindMiner(context.Context, *ReqBindPos33Miner) (*ReplyBindPos33Miner, error) {
+func (*UnimplementedPos33Server) CreateBindMiner(context.Context, *ReqBindPos33Miner) (*ReplyBindPos33Miner, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateBindMiner not implemented")
 }
-func (*UnimplementedPos33TicketServer) GetPos33TicketCount(context.Context, *types.ReqNil) (*types.Int64, error) {
+func (*UnimplementedPos33Server) GetPos33TicketCount(context.Context, *types.ReqNil) (*types.Int64, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPos33TicketCount not implemented")
 }
-func (*UnimplementedPos33TicketServer) SetAutoMining(context.Context, *Pos33MinerFlag) (*types.Reply, error) {
+func (*UnimplementedPos33Server) SetAutoMining(context.Context, *Pos33MinerFlag) (*types.Reply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAutoMining not implemented")
 }
-func (*UnimplementedPos33TicketServer) GetPos33TicketReward(context.Context, *Pos33TicketReward) (*ReplyPos33TicketReward, error) {
+func (*UnimplementedPos33Server) GetPos33TicketReward(context.Context, *Pos33TicketReward) (*ReplyPos33TicketReward, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPos33TicketReward not implemented")
 }
 
-func RegisterPos33TicketServer(s *grpc.Server, srv Pos33TicketServer) {
-	s.RegisterService(&_Pos33Ticket_serviceDesc, srv)
+func RegisterPos33Server(s *grpc.Server, srv Pos33Server) {
+	s.RegisterService(&_Pos33_serviceDesc, srv)
 }
 
-func _Pos33Ticket_CreateBindMiner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Pos33_CreateBindMiner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReqBindPos33Miner)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(Pos33TicketServer).CreateBindMiner(ctx, in)
+		return srv.(Pos33Server).CreateBindMiner(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/types.pos33Ticket/CreateBindMiner",
+		FullMethod: "/types.pos33/CreateBindMiner",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(Pos33TicketServer).CreateBindMiner(ctx, req.(*ReqBindPos33Miner))
+		return srv.(Pos33Server).CreateBindMiner(ctx, req.(*ReqBindPos33Miner))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Pos33Ticket_GetPos33TicketCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Pos33_GetPos33TicketCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(types.ReqNil)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(Pos33TicketServer).GetPos33TicketCount(ctx, in)
+		return srv.(Pos33Server).GetPos33TicketCount(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/types.pos33Ticket/GetPos33TicketCount",
+		FullMethod: "/types.pos33/GetPos33TicketCount",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(Pos33TicketServer).GetPos33TicketCount(ctx, req.(*types.ReqNil))
+		return srv.(Pos33Server).GetPos33TicketCount(ctx, req.(*types.ReqNil))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Pos33Ticket_SetAutoMining_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Pos33_SetAutoMining_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Pos33MinerFlag)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(Pos33TicketServer).SetAutoMining(ctx, in)
+		return srv.(Pos33Server).SetAutoMining(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/types.pos33Ticket/SetAutoMining",
+		FullMethod: "/types.pos33/SetAutoMining",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(Pos33TicketServer).SetAutoMining(ctx, req.(*Pos33MinerFlag))
+		return srv.(Pos33Server).SetAutoMining(ctx, req.(*Pos33MinerFlag))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Pos33Ticket_GetPos33TicketReward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Pos33_GetPos33TicketReward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Pos33TicketReward)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(Pos33TicketServer).GetPos33TicketReward(ctx, in)
+		return srv.(Pos33Server).GetPos33TicketReward(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/types.pos33Ticket/GetPos33TicketReward",
+		FullMethod: "/types.pos33/GetPos33TicketReward",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(Pos33TicketServer).GetPos33TicketReward(ctx, req.(*Pos33TicketReward))
+		return srv.(Pos33Server).GetPos33TicketReward(ctx, req.(*Pos33TicketReward))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Pos33Ticket_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "types.pos33Ticket",
-	HandlerType: (*Pos33TicketServer)(nil),
+var _Pos33_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "types.pos33",
+	HandlerType: (*Pos33Server)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CreateBindMiner",
-			Handler:    _Pos33Ticket_CreateBindMiner_Handler,
+			Handler:    _Pos33_CreateBindMiner_Handler,
 		},
 		{
 			MethodName: "GetPos33TicketCount",
-			Handler:    _Pos33Ticket_GetPos33TicketCount_Handler,
+			Handler:    _Pos33_GetPos33TicketCount_Handler,
 		},
 		{
 			MethodName: "SetAutoMining",
-			Handler:    _Pos33Ticket_SetAutoMining_Handler,
+			Handler:    _Pos33_SetAutoMining_Handler,
 		},
 		{
 			MethodName: "GetPos33TicketReward",
-			Handler:    _Pos33Ticket_GetPos33TicketReward_Handler,
+			Handler:    _Pos33_GetPos33TicketReward_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

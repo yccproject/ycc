@@ -52,6 +52,16 @@ func (c *Jrpc) GetPos33TicketCount(in *types.ReqNil, result *int64) error {
 
 }
 
+// CreateBindMiner create bind miner
+func (c *Jrpc) CreateBindMiner(in *ty.ReqBindPos33Miner, result *interface{}) error {
+	reply, err := c.cli.CreateBindMiner(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+
 // ClosePos33Tickets close ticket
 func (c *Jrpc) ClosePos33Tickets(in *ty.Pos33TicketClose, result *interface{}) error {
 	resp, err := c.cli.ClosePos33Tickets(context.Background(), in)
@@ -158,7 +168,7 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindPos33
 			return nil, types.ErrAmount
 		}
 
-		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: cfg.GetCoinExec(), AssetSymbol: "bty", AssetExec: cfg.GetCoinExec()}
+		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: cfg.GetCoinExec(), AssetSymbol: "ycc", AssetExec: cfg.GetCoinExec()}
 		balances, err := g.GetCoinsAccountDB().GetBalance(g, getBalance)
 		if err != nil {
 			return nil, err
