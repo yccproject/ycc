@@ -96,7 +96,7 @@ func getDeposit(db dbm.KV, addr string) (*ty.Pos33DepositMsg, error) {
 	}
 	return &dep, nil
 }
-func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int64) *types.KeyValue {
+func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int64, changeRaddr bool) *types.KeyValue {
 	d, err := getDeposit(db, maddr)
 	if err != nil {
 		d = &ty.Pos33DepositMsg{Maddr: maddr, Raddr: raddr, Count: newCount, Reward: newReward}
@@ -104,7 +104,7 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int6
 		// if newCount == 0 && newReward == 0 {
 		// 	return nil
 		// }
-		if raddr != "" {
+		if changeRaddr {
 			d.Raddr = raddr
 		}
 		if newCount < 0 {
@@ -184,7 +184,7 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 	tlog.Info("genesis init", "count", genesis.Count, "blsAddr", genesis.ReturnAddress, "addr", genesis.MinerAddress)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, int(genesis.Count)))
 	receipt.KV = append(receipt.KV, &types.KeyValue{Key: BlsKey(genesis.BlsAddress), Value: []byte(genesis.MinerAddress)})
-	receipt.KV = append(receipt.KV, setDeposit(action.db, genesis.MinerAddress, genesis.ReturnAddress, int64(genesis.Count), 0, 0))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, genesis.MinerAddress, genesis.ReturnAddress, int64(genesis.Count), 0, 0, true))
 	receipt.Logs = append(receipt.Logs, depositReceipt(ty.TyLogNewPos33Ticket, genesis.MinerAddress, int64(genesis.Count)))
 	return receipt, nil
 }
@@ -193,6 +193,11 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt, error) {
 	if action.fromaddr != topen.MinerAddress {
 		return nil, errors.New("address NOT match, from address must == miner address")
+	}
+
+	d, _ := getDeposit(action.db, topen.MinerAddress)
+	if d != nil && d.Raddr != topen.ReturnAddress {
+		return nil, errors.New("open return address NOT match")
 	}
 
 	chain33Cfg := action.api.GetConfig()
@@ -208,7 +213,7 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 	tlog.Info("new deposit", "count", topen.Count, "height", action.height)
 	receipt.KV = append(receipt.KV, &types.KeyValue{Key: BlsKey(topen.BlsAddress), Value: []byte(topen.MinerAddress)})
 	receipt.KV = append(receipt.KV, setNewCount(action.db, int(topen.Count)))
-	receipt.KV = append(receipt.KV, setDeposit(action.db, topen.MinerAddress, topen.ReturnAddress, int64(topen.Count), 0, action.height))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, topen.MinerAddress, topen.ReturnAddress, int64(topen.Count), 0, action.height, false))
 	receipt.Logs = append(receipt.Logs, depositReceipt(ty.TyLogNewPos33Ticket, topen.MinerAddress, int64(topen.Count)))
 	return receipt, nil
 }
@@ -262,7 +267,11 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 		if err != nil {
 			return nil, err
 		}
-		receipt, err := action.coinsAccount.ExecDeposit(d.Raddr, action.execaddr, Pos33VoteReward)
+		raddr := vaddr
+		if d.Raddr != "" {
+			raddr = d.Raddr
+		}
+		receipt, err := action.coinsAccount.ExecDeposit(raddr, action.execaddr, Pos33VoteReward)
 		if err != nil {
 			tlog.Error("Pos33TicketMiner.ExecDeposit error", "voter", vaddr, "execaddr", action.execaddr)
 			return nil, err
@@ -270,7 +279,7 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
-		kvs = append(kvs, setDeposit(action.db, vaddr, "", 0, Pos33VoteReward, action.height))
+		kvs = append(kvs, setDeposit(action.db, vaddr, "", 0, Pos33VoteReward, action.height, false))
 	}
 
 	// bp reward
@@ -280,7 +289,11 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 		if err != nil {
 			return nil, err
 		}
-		receipt, err := action.coinsAccount.ExecDeposit(d.Raddr, action.execaddr, bpReward)
+		raddr := action.fromaddr
+		if d.Raddr != "" {
+			raddr = d.Raddr
+		}
+		receipt, err := action.coinsAccount.ExecDeposit(raddr, action.execaddr, bpReward)
 		if err != nil {
 			tlog.Error("Pos33TicketMiner.ExecDeposit error", "error", err, "bp", action.fromaddr, "value", bpReward)
 			return nil, err
@@ -288,7 +301,7 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
-		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, Pos33VoteReward, action.height))
+		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, Pos33VoteReward, action.height, false))
 		tlog.Info("block reward", "height", action.height, "reward", bpReward, "from", action.fromaddr[:16], "nv", len(miner.BlsPkList))
 	}
 
@@ -316,46 +329,35 @@ func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Rece
 
 	d, err := getDeposit(action.db, action.fromaddr)
 	if err != nil {
+		tlog.Error("close ticket error: getDeposit error", "err", err, "fromaddr", action.fromaddr)
 		return nil, err
 	}
-	if action.fromaddr != tclose.MinerAddress || action.fromaddr != d.Raddr {
+	if tclose.MinerAddress != action.fromaddr && tclose.MinerAddress != d.Raddr {
 		return nil, types.ErrFromAddr
 	}
+
 	if d.Count == 0 {
 		return nil, errors.New("your ticket count is 0")
 	}
-	if action.height-d.CloseHeight <= ty.Pos33SortBlocks {
-		return nil, errors.New("close deposit too often")
-	}
+	// if action.height-d.CloseHeight <= ty.Pos33SortBlocks {
+	// 	return nil, errors.New("close deposit too often")
+	// }
 
 	count := int(tclose.Count)
 	if count <= 0 || count > int(d.Count) {
 		count = int(d.Count)
 	}
-	receipt, err := action.coinsAccount.ExecActive(d.Raddr, action.execaddr, price*int64(count))
+	receipt, err := action.coinsAccount.ExecActive(tclose.MinerAddress, action.execaddr, price*int64(count))
 	if err != nil {
 		tlog.Error("close deposit error", "addr", d.Raddr, "execaddr", action.execaddr, "value", price*int64(count))
 		return nil, err
 	}
 	tlog.Info("close deposit", "count", count, "height", action.height, "addr", action.fromaddr)
 	receipt.KV = append(receipt.KV, setNewCount(action.db, -count))
-	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, d.Raddr, int64(-count), 0, action.height))
+	receipt.KV = append(receipt.KV, setDeposit(action.db, action.fromaddr, "", int64(-count), 0, action.height, false))
 	receipt.Logs = append(receipt.Logs, depositReceipt(ty.TyLogClosePos33Ticket, action.fromaddr, int64(tclose.Count)))
 	return receipt, nil
 }
-
-// func saveBind(db dbm.KV, tbind *ty.Pos33TicketBind) {
-// 	set := getBindKV(tbind)
-// 	for i := 0; i < len(set); i++ {
-// 		db.Set(set[i].GetKey(), set[i].Value)
-// 	}
-// }
-
-// func getBindKV(tbind *ty.Pos33TicketBind) (kvset []*types.KeyValue) {
-// 	value := types.Encode(tbind)
-// 	kvset = append(kvset, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: value})
-// 	return kvset
-// }
 
 func getBindLog(tbind *ty.Pos33TicketBind, old string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
@@ -374,12 +376,6 @@ func (action *Action) getBind(addr string) string {
 		return ""
 	}
 	return string(value)
-	// var bind ty.Pos33TicketBind
-	// err = types.Decode(value, &bind)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// return bind.MinerAddress
 }
 
 //TicketBind 授权某个地址进行挖矿
@@ -397,7 +393,8 @@ func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
 	oldbind := action.getBind(tbind.ReturnAddress)
-	if oldbind != "" {
+	if oldbind != "nil" {
+		tlog.Info("pos33 bind", "maddr", tbind.MinerAddress, "raddr", tbind.ReturnAddress, "oldbind", oldbind)
 		if oldbind == tbind.MinerAddress {
 			return nil, nil
 		}
@@ -405,15 +402,30 @@ func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt
 		if err != nil {
 			tlog.Error("bind getDeposit error", "err", err, "oldbind", oldbind)
 		} else if d.Count != 0 {
-			return nil, errors.New("bind new MUST close all tickts")
+			return nil, errors.New("bind new MUST close all oldbind tickts")
 		}
+		kvs = append(kvs, setDeposit(action.db, oldbind, oldbind, 0, 0, action.height, true))
 	}
+
 	log := getBindLog(tbind, oldbind)
 	logs = append(logs, log)
 
-	kvs = append(kvs, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: []byte(tbind.ReturnAddress)})
-	kvs = append(kvs, setDeposit(action.db, tbind.MinerAddress, tbind.ReturnAddress, 0, 0, action.height))
+	maddr := tbind.MinerAddress
+	if maddr == "" {
+		maddr = "nil"
+	}
+	kvs = append(kvs, &types.KeyValue{Key: BindKey(tbind.ReturnAddress), Value: []byte(maddr)})
 	tlog.Info("pos33 bind", "maddr", tbind.MinerAddress, "raddr", tbind.ReturnAddress)
+
+	if tbind.MinerAddress != "" {
+		d, err := getDeposit(action.db, tbind.MinerAddress)
+		if err != nil {
+			tlog.Error("bind getDeposit error", "err", err, "maddr", tbind.MinerAddress)
+		} else if d.Count != 0 {
+			return nil, errors.New("bind new MUST close all tickts")
+		}
+		kvs = append(kvs, setDeposit(action.db, tbind.MinerAddress, tbind.ReturnAddress, 0, 0, action.height, true))
+	}
 
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}
 	return receipt, nil
