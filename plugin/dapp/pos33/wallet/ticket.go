@@ -5,7 +5,6 @@
 package wallet
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -416,55 +415,62 @@ func (policy *ticketPolicy) openticket(mineraddr, raddr string, priv crypto.Priv
 	return policy.walletOperate.SendTransaction(ta, []byte(ty.Pos33TicketX), priv, "")
 }
 
+func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey) ([]byte, int, error) {
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33Deposit", &types.ReqAddr{Addr: addr})
+	if err != nil {
+		bizlog.Error("openticket query bind addr error", "error", err, "maddr", addr)
+		return nil, 0, err
+	}
+	raddr := msg.(*ty.Pos33DepositMsg).Raddr
+	if raddr == addr {
+		return nil, 0, nil
+	}
+
+	operater := policy.getWalletOperate()
+	acc, err := operater.GetBalance(raddr, ty.Pos33TicketX)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
+	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
+	count := acc.Balance / cfg.Pos33TicketPrice
+	if count > 0 {
+		txhash, err := policy.openticket(addr, raddr, priv, int32(count))
+		return txhash, int(count), err
+	}
+	return nil, 0, nil
+}
+
 func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
-	//ticket balance and coins balance
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	operater := policy.getWalletOperate()
 	acc1, err := operater.GetBalance(addr, "coins")
 	if err != nil {
 		return nil, 0, err
 	}
-	// acc2, err := operater.GetBalance(addr, ty.Pos33TicketX)
-	// if err != nil {
-	// 	return nil, 0, err
-	// }
-	//留一个币作为手续费，如果手续费不够了，不能挖矿
-	//判断手续费是否足够，如果不足要及时补充。
 	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
-	fee := chain33Cfg.GetCoinPrecision() * 1
-	if acc1.Balance < fee {
+	fee := chain33Cfg.GetCoinPrecision() * 100
+	amount := acc1.Balance / cfg.Pos33TicketPrice * cfg.Pos33TicketPrice
+	if amount <= 0 {
+		return nil, 0, errors.New("balance NOT enough")
+	}
+	if acc1.Balance-amount < fee {
 		return nil, 0, errors.New("fee NOT enough")
 	}
-	// if acc1.Balance+acc2.Balance-2*fee >= cfg.Pos33TicketPrice {
-	// 如果可用余额+冻结余额，可以凑成新票，则转币到冻结余额
-	// if (acc1.Balance+acc2.Balance-2*fee)/cfg.Pos33TicketPrice > acc2.Balance/cfg.Pos33TicketPrice {
-	// 	//第一步。转移币到 ticket
-	// 	toaddr := address.ExecAddress(ty.Pos33TicketX)
-	// 	amount := acc1.Balance - 2*fee
-	// 	//必须大于0，才需要转移币
+
+	toaddr := address.ExecAddress(ty.Pos33TicketX)
+	bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
+	hash, err := policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
+	if err != nil {
+		return nil, 0, err
+	}
+	bizlog.Info("buyticket tx hash", "hash", common.HashHex(hash.Hash))
+	operater.WaitTx(hash.Hash)
 
 	raddr := addr
-	msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33Deposit", &types.ReqAddr{Addr: addr})
-	if err != nil {
-		bizlog.Error("openticket query bind addr error", "error", err, "maddr", addr)
-		amount := acc1.Balance / cfg.Pos33TicketPrice * cfg.Pos33TicketPrice
-		var hash *types.ReplyHash
-		if amount > 0 {
-			toaddr := address.ExecAddress(ty.Pos33TicketX)
-			bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
-			hash, err = policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
-
-			if err != nil {
-				return nil, 0, err
-			}
-			bizlog.Info("buyticket tx hash", "hash", common.HashHex(hash.Hash))
-			operater.WaitTx(hash.Hash)
-			bizlog.Info("buyticket send ok")
-		}
-	} else {
-		raddr = msg.(*ty.Pos33DepositMsg).Raddr
-	}
 	acc, err := operater.GetBalance(raddr, ty.Pos33TicketX)
 	if err != nil {
 		return nil, 0, err
@@ -474,28 +480,35 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 		txhash, err := policy.openticket(addr, raddr, priv, int32(count))
 		return txhash, int(count), err
 	}
-	// }
 	return nil, 0, nil
 }
 
 func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) {
-	minerPriv, minerAddr, err := policy.getMiner("")
+	minerPriv, _, err := policy.getMiner("")
 	if err != nil {
 		return nil, 0, err
 	}
+
 	count := 0
 	var hashes [][]byte
-	hash, n, err := policy.buyPos33TicketOne(height, minerPriv)
+
+	// miner addr buy
+	hash, n, _ := policy.buyPos33TicketOne(height, minerPriv)
+	count += n
+	if hash != nil {
+		hashes = append(hashes, hash)
+	}
+
+	// return addr buy
+	hash, n, err = policy.buyPos33TicketBind(height, minerPriv)
 	if err != nil {
-		bizlog.Error("ticketPolicy buyPos33Ticket buyPos33TicketOne", "err", err)
 		return nil, 0, err
 	}
 	count += n
 	if hash != nil {
 		hashes = append(hashes, hash)
 	}
-	bizlog.Debug("ticketPolicy buyPos33Ticket", "Address", minerAddr, "txhash", hex.EncodeToString(hash), "n", n)
-	return hashes, count, nil
+	return hashes, count, err
 }
 
 func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, error) {
@@ -512,7 +525,7 @@ func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, 
 			}
 		}
 		if minerAddr == "" {
-			err := fmt.Errorf("No mining label account in wallet")
+			err := fmt.Errorf("no mining label account in wallet")
 			bizlog.Error("getMiner error", "err", err)
 			return nil, "", err
 		}

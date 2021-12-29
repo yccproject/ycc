@@ -23,18 +23,18 @@ func (g *channelClient) SetAutoMining(ctx context.Context, in *ty.Pos33MinerFlag
 }
 
 // GetPos33TicketCount get count
-func (g *channelClient) GetPos33TicketCount(ctx context.Context, in *types.ReqNil) (*types.Int64, error) {
-	data, err := g.QueryConsensusFunc(ty.Pos33TicketX, "GetPos33TicketCount", &types.ReqNil{})
+func (g *channelClient) GetPos33TicketCount(ctx context.Context, in *types.ReqAddr) (*types.Int64, error) {
+	msg, err := g.Query(ty.Pos33TicketX, "Pos33TicketCount", in)
 	if err != nil {
 		return nil, err
 	}
-	return data.(*types.Int64), nil
+	return msg.(*types.Int64), nil
 }
 
 // ClosePos33Tickets close ticket
 func (g *channelClient) ClosePos33Tickets(ctx context.Context, in *ty.Pos33TicketClose) (*types.ReplyHashes, error) {
-	inn := *in
-	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "ClosePos33Tickets", &inn)
+	// inn := *in
+	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "ClosePos33Tickets", in)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +42,8 @@ func (g *channelClient) ClosePos33Tickets(ctx context.Context, in *ty.Pos33Ticke
 }
 
 // GetPos33TicketCount get ticket count
-func (c *Jrpc) GetPos33TicketCount(in *types.ReqNil, result *int64) error {
-	resp, err := c.cli.GetPos33TicketCount(context.Background(), &types.ReqNil{})
+func (c *Jrpc) GetPos33TicketCount(in *types.ReqAddr, result *int64) error {
+	resp, err := c.cli.GetPos33TicketCount(context.Background(), in)
 	if err != nil {
 		return err
 	}

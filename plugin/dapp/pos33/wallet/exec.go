@@ -14,9 +14,12 @@ import (
 func (policy *ticketPolicy) On_ClosePos33Tickets(req *ty.Pos33TicketClose) (types.Message, error) {
 	operater := policy.getWalletOperate()
 	bizlog.Info("On_ClosePos33Tickets", "maddr", req.MinerAddress, "count", req.Count)
-	priv, maddr, err := policy.getMiner(req.MinerAddress)
+	priv, maddr, err := policy.getMiner("")
 	if err != nil {
 		return nil, err
+	}
+	if req.MinerAddress != "" {
+		maddr = req.MinerAddress
 	}
 	reply, err := policy.closePos33Tickets(priv, maddr, int(req.Count))
 	if err != nil || reply == nil {
