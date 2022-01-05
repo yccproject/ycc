@@ -1519,7 +1519,7 @@ func (n *node) runLoop() {
 	round := 0
 	blockTimeout := time.Second * 5
 	resortTimeout := time.Second * 5
-	blockD := time.Millisecond * 2000
+	blockD := int64(1700)
 
 	for {
 		if !isSync {
@@ -1566,16 +1566,16 @@ func (n *node) runLoop() {
 				if err != nil {
 					panic("can't go here")
 				}
-				d = time.Millisecond * time.Duration(m.BlockTime+2000-time.Now().UnixNano()/1000000)
+				d = m.BlockTime + blockD - time.Now().UnixNano()/1000000
 				if d < 0 {
 					d = 0
 				}
 				if d > blockD {
-					d = time.Millisecond * 1500
+					d = blockD
 				}
 			}
 			plog.Info("after ms make next block", "d", d, "height", b.Height)
-			time.AfterFunc(d, func() {
+			time.AfterFunc(time.Millisecond*time.Duration(d), func() {
 				nch <- b.Height + 1
 			})
 		case v := <-n.vch:
