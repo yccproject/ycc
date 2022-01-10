@@ -1,7 +1,6 @@
 package pos33
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,12 +21,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
-	routing "github.com/libp2p/go-libp2p-core/routing"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-	pio "github.com/libp2p/go-msgio/protoio"
+
+	// pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -46,15 +45,14 @@ func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 type gossip2 struct {
-	C          chan []byte
-	h          host.Host
-	tmap       map[string]*pubsub.Topic
-	ctx        context.Context
-	bootPeers  []string
-	streams    map[peer.ID]*stream
-	incoming   chan *pt.Pos33Msg
-	outgoing   chan *smsg
-	fsCh       chan []byte
+	C         chan []byte
+	h         host.Host
+	tmap      map[string]*pubsub.Topic
+	bootPeers []string
+	streams   map[peer.ID]stream
+	incoming  chan *pt.Pos33Msg
+	outgoing  chan *smsg
+	// fsCh       chan []byte
 	raddrPid   string
 	peersTopic string
 }
@@ -80,13 +78,13 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 		}
 
 		g.h.Peerstore().AddAddrs(targetInfo.ID, targetInfo.Addrs, peerstore.AddressTTL)
-		err = g.h.Connect(g.ctx, *targetInfo)
+		err = g.h.Connect(context.Background(), *targetInfo)
 		if err != nil {
 			plog.Error("bootstrap error", "err", err)
 			continue
 		}
 		plog.Info("connect boot peer", "bootpeer", targetAddr.String())
-		s, err := g.h.NewStream(g.ctx, targetInfo.ID, protocol.ID(g.raddrPid))
+		s, err := g.h.NewStream(context.Background(), targetInfo.ID, protocol.ID(g.raddrPid))
 		if err != nil {
 			plog.Error("bootstrap error", "err", err)
 			continue
@@ -97,13 +95,14 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 	return nil
 }
 
-type stream struct {
-	s  network.Stream
-	w  *bufio.Writer
-	wc pio.WriteCloser
-}
+// type stream struct {
+// 	s  network.Stream
+// 	w  *bufio.Writer
+// 	wc pio.WriteCloser
+// }
+type stream WriteCloser
 
-const defaultMaxSize = 1024 * 1024
+const defaultMaxSize = 1024 * 1024 * 128
 
 func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, forwardPeers bool, topics ...string) *gossip2 {
 	ctx := context.Background()
@@ -115,24 +114,24 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, forwardP
 	ps, err := pubsub.NewGossipSub(
 		ctx,
 		h,
-		pubsub.WithPeerOutboundQueueSize(128),
+		// pubsub.WithPeerOutboundQueueSize(128),
 		pubsub.WithMaxMessageSize(pubsub.DefaultMaxMessageSize*10),
 		pubsub.WithMessageSigning(false),
 		pubsub.WithStrictSignatureVerification(false),
+		pubsub.WithFloodPublish(true),
 	)
 	if err != nil {
 		panic(err)
 	}
 
 	g := &gossip2{
-		ctx:        ctx,
-		h:          h,
-		tmap:       make(map[string]*pubsub.Topic),
-		streams:    make(map[peer.ID]*stream),
-		incoming:   make(chan *pt.Pos33Msg, 16),
-		outgoing:   make(chan *smsg, 16),
-		C:          make(chan []byte, 1024),
-		fsCh:       make(chan []byte, 16),
+		h:        h,
+		tmap:     make(map[string]*pubsub.Topic),
+		streams:  make(map[peer.ID]stream),
+		incoming: make(chan *pt.Pos33Msg, 16),
+		outgoing: make(chan *smsg, 16),
+		C:        make(chan []byte, 1024),
+		// fsCh:       make(chan []byte, 16),
 		raddrPid:   ns + "/" + remoteAddrID,
 		peersTopic: ns + "-" + pos33Peerstore,
 	}
@@ -151,7 +150,7 @@ func (g *gossip2) setHandler() {
 		h.Peerstore().AddAddrs(pid, []multiaddr.Multiaddr{maddr}, peerstore.AddressTTL)
 	})
 
-	// h.SetStreamHandler(pos33MsgID, g.handleIncoming)
+	h.SetStreamHandler(pos33MsgID, g.handleIncoming)
 }
 
 func (g *gossip2) handlePeers(data []byte) {
@@ -165,7 +164,7 @@ func (g *gossip2) handlePeers(data []byte) {
 		if ai.ID != g.h.ID() {
 			plog.Info("add remote peer", "addr", ai.String())
 			g.h.Peerstore().AddAddrs(ai.ID, ai.Addrs, peerstore.AddressTTL)
-			err = g.h.Connect(g.ctx, ai)
+			err = g.h.Connect(context.Background(), ai)
 			if err != nil {
 				plog.Error("connect error", "err", err)
 			}
@@ -187,7 +186,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool)
 		}
 		go func(s *pubsub.Subscription) {
 			for {
-				m, err := s.Next(g.ctx)
+				m, err := s.Next(context.Background())
 				if err != nil {
 					panic(err)
 				}
@@ -202,7 +201,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool)
 			}
 		}(sb)
 	}
-	// go g.handleOutgoing()
+	go g.handleOutgoing()
 	go func() {
 		for range time.NewTicker(time.Second * 60).C {
 			np := ps.ListPeers(topics[0])
@@ -225,7 +224,7 @@ func (g *gossip2) gossip(topic string, data []byte) error {
 		// return fmt.Errorf("%s topic NOT match", topic)
 	}
 	// plog.Debug("gossip data", "len", len(data))
-	return t.Publish(g.ctx, data)
+	return t.Publish(context.Background(), data)
 }
 
 func pub2pid(pub []byte) (peer.ID, error) {
@@ -243,25 +242,28 @@ func pub2pid(pub []byte) (peer.ID, error) {
 	return pid, nil
 }
 
-func (s *stream) writeMsg(msg types.Message) error {
-	err := s.wc.WriteMsg(msg)
-	if err != nil {
-		return err
-	}
+// func (s *stream) writeMsg(msg types.Message) error {
+// 	err := s.wc.WriteMsg(msg)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return s.w.Flush()
-}
+// 	return s.w.Flush()
+// }
 
-func (g *gossip2) newStream(pid peer.ID) (*stream, error) {
+func (g *gossip2) newStream(pid peer.ID) (stream, error) {
 	st, ok := g.streams[pid]
 	if !ok {
-		s, err := g.h.NewStream(g.ctx, pid, pos33MsgID)
+		s, err := g.h.NewStream(context.Background(), pid, pos33MsgID)
 		if err != nil {
+			plog.Error("newStream error", "err", err)
 			return nil, err
 		}
-		w := bufio.NewWriter(s)
-		st = &stream{s: s, w: w, wc: pio.NewDelimitedWriter(w)}
-		g.streams[pid] = st
+		// w := bufio.NewWriter(s)
+		// st = &stream{s: s, w: w, wc: pio.NewDelimitedWriter(w)}
+		w := NewDelimitedWriter(s)
+		g.streams[pid] = w
+		st = w
 	}
 	return st, nil
 }
@@ -281,7 +283,7 @@ func (g *gossip2) sendMsg(pub []byte, msg types.Message) error {
 }
 
 func (g *gossip2) handleIncoming(s network.Stream) {
-	r := pio.NewDelimitedReader(s, defaultMaxSize)
+	r := NewDelimitedReader(s, defaultMaxSize)
 	for {
 		m := new(pt.Pos33Msg)
 		err := r.ReadMsg(m)
@@ -302,39 +304,39 @@ func (g *gossip2) handleIncoming(s network.Stream) {
 func (g *gossip2) handleOutgoing() {
 	for {
 		m := <-g.outgoing
-		s, err := g.newStream(m.pid)
-		if err != nil {
-			plog.Error("new stream error", "err", err)
-			continue
-		}
-		err = s.writeMsg(m.msg)
-		if err != nil {
-			plog.Error("write msg error", "err", err)
-			if err != io.EOF {
-				s.s.Reset()
-			} else {
-				s.s.Close()
+		go func(msg *smsg) {
+			s, err := g.newStream(msg.pid)
+			if err != nil {
+				plog.Error("new stream error", "err", err)
+				return
 			}
-			delete(g.streams, m.pid)
-		}
+			err = s.WriteMsg(msg.msg)
+			if err != nil {
+				plog.Error("write msg error", "err", err)
+				if err != nil {
+					s.Close()
+				}
+				delete(g.streams, msg.pid)
+			}
+		}(m)
 	}
 }
 
 func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host.Host {
-	var idht *dht.IpfsDHT
+	// var idht *dht.IpfsDHT
 	h, err := libp2p.New(ctx,
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
-		libp2p.EnableNATService(),
-		libp2p.DefaultTransports,
-		libp2p.NATPortMap(),
-		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-			dht, err := dht.New(ctx, h)
-			idht = dht
-			return idht, err
-		}),
+		// libp2p.EnableNATService(),
+		// libp2p.DefaultTransports,
+		// libp2p.NATPortMap(),
+		// libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
+		// 	dht, err := dht.New(ctx, h)
+		// 	idht = dht
+		// 	return idht, err
+		// }),
 		libp2p.EnableRelay(circuit.OptHop),
 	)
 
@@ -356,7 +358,7 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 	}
 	plog.Info("host inited", "host", paddr)
 
-	discover(ctx, h, idht, ns)
+	// discover(ctx, h, idht, ns)
 
 	return h
 }

@@ -3,7 +3,7 @@ package main
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TestNet=true
-version="6.4.2.2"
+version="6.4.2.3"
 CoinSymbol="ycc"
 ChainID=999
 

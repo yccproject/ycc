@@ -87,7 +87,7 @@ func (f *frc) reConnect() error {
 
 func (g *gossip2) forwad(data []byte) {
 	select {
-	case g.fsCh <- data:
+	// case g.fsCh <- data:
 	default:
 	}
 }
@@ -115,13 +115,13 @@ func (g *gossip2) fsLoop(fs []string) error {
 		}
 	}
 	mp := make(map[string]*frc)
-	go func() {
-		for data := range g.fsCh {
-			for _, fc := range mp {
-				fc.ch <- data
-			}
-		}
-	}()
+	// go func() {
+	// 	for data := range g.fsCh {
+	// 		for _, fc := range mp {
+	// 			fc.ch <- data
+	// 		}
+	// 	}
+	// }()
 	for _, s := range fs {
 		fc, ok := mp[s]
 		if !ok {
