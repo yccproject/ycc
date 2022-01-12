@@ -24,6 +24,7 @@ import (
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	routing "github.com/libp2p/go-libp2p-routing"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 
 	// pio "github.com/libp2p/go-msgio/protoio"
@@ -323,20 +324,20 @@ func (g *gossip2) handleOutgoing() {
 }
 
 func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host.Host {
-	// var idht *dht.IpfsDHT
+	var idht *dht.IpfsDHT
 	h, err := libp2p.New(ctx,
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
-		// libp2p.EnableNATService(),
+		libp2p.EnableNATService(),
 		// libp2p.DefaultTransports,
-		// libp2p.NATPortMap(),
-		// libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-		// 	dht, err := dht.New(ctx, h)
-		// 	idht = dht
-		// 	return idht, err
-		// }),
+		libp2p.NATPortMap(),
+		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
+			dht, err := dht.New(ctx, h)
+			idht = dht
+			return idht, err
+		}),
 		libp2p.EnableRelay(circuit.OptHop),
 	)
 
@@ -358,7 +359,7 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 	}
 	plog.Info("host inited", "host", paddr)
 
-	// discover(ctx, h, idht, ns)
+	discover(ctx, h, idht, ns)
 
 	return h
 }

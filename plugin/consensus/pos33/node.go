@@ -85,7 +85,7 @@ func (c *committee) setCommittee(height int64) {
 	plog.Info("committee len", "len", len(c.svmp), "height", height)
 }
 
-func (c *committee) myCommitteeSort(pub string) []*pt.Pos33SortMsg {
+func (c *committee) myCommitteeSort(pub string, myprop float64) []*pt.Pos33SortMsg {
 	var mss []*pt.Pos33SortMsg
 	for _, ss := range c.myss {
 		for _, s := range ss {
@@ -96,7 +96,7 @@ func (c *committee) myCommitteeSort(pub string) []*pt.Pos33SortMsg {
 		}
 	}
 	if len(mss) == 0 {
-		return c.getMySorts(pub)
+		return c.getMySorts(pub, myprop)
 	}
 	return mss
 }
@@ -131,7 +131,7 @@ func (n *node) getCommittee(height int64, round int) *committee {
 // 	setBlockOk
 // )
 
-func (c *committee) getMySorts(pub string) []*pt.Pos33SortMsg {
+func (c *committee) getMySorts(pub string, myProp float64) []*pt.Pos33SortMsg {
 	ssmp := c.getCommitteeSorts()
 	var ss []*pt.Pos33SortMsg
 	for _, s := range ssmp {
@@ -139,6 +139,11 @@ func (c *committee) getMySorts(pub string) []*pt.Pos33SortMsg {
 			ss = append(ss, s)
 		}
 	}
+	// max := int(float64(pt.Pos33VoterSize) * myProp * 2)
+	// if len(ss) > max {
+	// 	ss = ss[max:]
+	// }
+
 	return ss
 }
 
@@ -327,6 +332,9 @@ func (n *node) minerTx(height int64, round int, sm *pt.Pos33SortMsg, hash []byte
 		var sig [bls.BLSSignatureLength]byte
 		copy(sig[:], v.Sig.Signature)
 		sigs = append(sigs, bls.SignatureBLS(sig))
+		if string(hash) != string(v.Hash) {
+			panic("can't go here")
+		}
 	}
 
 	blsSig, err := bls.Driver{}.Aggregate(sigs)
@@ -796,6 +804,10 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 	return getMinerSeed(sb)
 }
 
+func (n *node) myProportion(height int64) float64 {
+	return float64(n.myCount()) / float64(n.allCount(height))
+}
+
 func (n *node) getDiff(height int64, round int, isMaker bool) float64 {
 	height -= pt.Pos33SortBlocks
 	w := n.allCount(height)
@@ -863,7 +875,7 @@ func (n *node) handleVoterSort(ss []*pt.Pos33SortMsg, myself bool, ty int) bool 
 		// }
 		mp[string(s.SortHash.Hash)] = s
 	}
-	// plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
+	plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
 	return true
 }
 
@@ -923,6 +935,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 			return
 		}
 	}
+	plog.Info("handleVoteMsg", "hash", common.HashHex(m0.Hash)[:16], "nvs", len(ms), "height", height, "ty", ty, "time", time.Now().Format("15:04:05.00000"))
 	if len(ms) == 0 {
 		return
 	}
@@ -1160,7 +1173,7 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	for _, h := range m.SelectSorts {
 		comm.svmp[string(h)] += len(m.MySorts)
 	}
-	plog.Debug("handleCommittee", "height", height)
+	plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
 }
 
 func (n *node) voteCommittee(height int64, round int) {
@@ -1172,18 +1185,21 @@ func (n *node) voteCommittee(height int64, round int) {
 	}
 
 	m := &pt.Pos33SortsVote{
-		MySorts:     comm.getMySorts(string(n.priv.PubKey().Bytes())),
+		MySorts:     comm.getMySorts(string(n.priv.PubKey().Bytes()), n.myProportion(height)),
 		SelectSorts: ss,
 		Height:      height,
 		Round:       int32(round),
 	}
 	m.Sign(n.priv)
+
+	plog.Info("voteCommittee", "height", height, "nmySelect", len(ss), "nv", len(m.MySorts))
 	n.handleCommittee(m, true)
 
 	pm := &pt.Pos33Msg{
 		Data: types.Encode(m),
 		Ty:   pt.Pos33Msg_CV,
 	}
+	// n.broadcastComm(height, round, pm)
 	data := types.Encode(pm)
 	n.gss.gossip(n.topic+"/committee", data)
 }
@@ -1230,7 +1246,7 @@ func (n *node) voteMaker(height int64, round int) {
 	}
 	sort.Sort(pt.Sorts(mss))
 
-	myss := comm.getMySorts(string(n.priv.PubKey().Bytes()))
+	myss := comm.getMySorts(string(n.priv.PubKey().Bytes()), n.myProportion(height))
 
 	var mvs []*pt.Pos33Votes
 	for i, s := range mss {
@@ -1320,9 +1336,9 @@ func (n *node) voteBlockHash(bh []byte, height int64, round int) {
 	comm := n.getCommittee(height, round)
 	var myss []*pt.Pos33SortMsg
 	if height <= 10 {
-		myss = comm.getMySorts(string(n.priv.PubKey().Bytes()))
+		myss = comm.getMySorts(string(n.priv.PubKey().Bytes()), n.myProportion(height))
 	} else {
-		myss = comm.myCommitteeSort(string(n.priv.PubKey().Bytes()))
+		myss = comm.myCommitteeSort(string(n.priv.PubKey().Bytes()), n.myProportion(height))
 	}
 	if len(myss) == 0 {
 		plog.Info("i am NOT committee", "height", height)
@@ -1401,6 +1417,7 @@ func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
 	if err != nil {
 		return err
 	}
+	comm.sortCheckedMap[k] = true
 	return nil
 }
 
@@ -1649,7 +1666,7 @@ func (n *node) runLoop() {
 	round := 0
 	blockTimeout := time.Second * 5
 	resortTimeout := time.Second * 5
-	blockD := int64(700)
+	blockD := int64(500)
 
 	for {
 		if !isSync {
@@ -1780,6 +1797,7 @@ func (n *node) sendVoterSort(ss []*pt.Pos33Sorts, height int64, round, ty int) {
 		Data: types.Encode(m),
 		Ty:   pt.Pos33Msg_Ty(ty),
 	}
+	// n.broadcastComm(height, round, pm)
 	n.gss.gossip(n.topic+"/votersorts", types.Encode(pm))
 	n.handleVoterSorts(ss, true, ty)
 }
