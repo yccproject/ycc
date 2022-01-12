@@ -875,7 +875,7 @@ func (n *node) handleVoterSort(ss []*pt.Pos33SortMsg, myself bool, ty int) bool 
 		// }
 		mp[string(s.SortHash.Hash)] = s
 	}
-	plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
+	// plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
 	return true
 }
 
@@ -935,7 +935,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 			return
 		}
 	}
-	plog.Info("handleVoteMsg", "hash", common.HashHex(m0.Hash)[:16], "nvs", len(ms), "height", height, "ty", ty, "time", time.Now().Format("15:04:05.00000"))
+	// plog.Info("handleVoteMsg", "hash", common.HashHex(m0.Hash)[:16], "nvs", len(ms), "height", height, "ty", ty, "time", time.Now().Format("15:04:05.00000"))
 	if len(ms) == 0 {
 		return
 	}
@@ -1103,7 +1103,7 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 		return
 	}
 
-	plog.Info("handleBlockMsg", "height", height, "duration", time.Now().UnixMilli()-miner.BlockTime, "time", time.Now().Format("15:04:05.00000"))
+	// plog.Info("handleBlockMsg", "height", height, "duration", time.Now().UnixMilli()-miner.BlockTime, "time", time.Now().Format("15:04:05.00000"))
 	if height > 10 && !checkTime(miner.BlockTime) {
 		plog.Error("checkTime error", "height", height)
 		return
@@ -1173,7 +1173,7 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	for _, h := range m.SelectSorts {
 		comm.svmp[string(h)] += len(m.MySorts)
 	}
-	plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
+	// plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
 }
 
 func (n *node) voteCommittee(height int64, round int) {
