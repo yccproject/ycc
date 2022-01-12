@@ -332,9 +332,9 @@ func (n *node) minerTx(height int64, round int, sm *pt.Pos33SortMsg, hash []byte
 		var sig [bls.BLSSignatureLength]byte
 		copy(sig[:], v.Sig.Signature)
 		sigs = append(sigs, bls.SignatureBLS(sig))
-		if string(hash) != string(v.Hash) {
-			panic("can't go here")
-		}
+		// if string(hash) != string(v.Hash) {
+		// 	panic("can't go here")
+		// }
 	}
 
 	blsSig, err := bls.Driver{}.Aggregate(sigs)
@@ -972,8 +972,8 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 		}
 		n.trySetBlock(height, round, vs, string(m0.Hash))
 		// 如果下一个高度被选中出块，但是没有收集到这个高度足够的投票，那么会尝试制作下一个区块
-		lvs := comm.bvs[string(m0.Hash)]
-		n.tryMakeNextBlock(height+1, lvs)
+		// lvs := comm.bvs[string(m0.Hash)]
+		// n.tryMakeNextBlock(height+1, lvs)
 	} else {
 		vs := maker.mvs[string(m0.Hash)]
 		if len(vs) >= 10 {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 	"time"
 
 	ccrypto "github.com/33cn/chain33/common/crypto"
@@ -50,9 +51,11 @@ type gossip2 struct {
 	h         host.Host
 	tmap      map[string]*pubsub.Topic
 	bootPeers []string
-	streams   map[peer.ID]stream
-	incoming  chan *pt.Pos33Msg
-	outgoing  chan *smsg
+
+	mu       sync.Mutex
+	streams  map[peer.ID]stream
+	incoming chan *pt.Pos33Msg
+	outgoing chan *smsg
 	// fsCh       chan []byte
 	raddrPid   string
 	peersTopic string
@@ -253,6 +256,8 @@ func pub2pid(pub []byte) (peer.ID, error) {
 // }
 
 func (g *gossip2) newStream(pid peer.ID) (stream, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	st, ok := g.streams[pid]
 	if !ok {
 		s, err := g.h.NewStream(context.Background(), pid, pos33MsgID)

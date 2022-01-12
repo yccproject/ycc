@@ -3,7 +3,7 @@ package main
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TestNet=true
-version="6.4.2.3"
+version="6.4.2.4"
 CoinSymbol="ycc"
 ChainID=999
 
@@ -96,7 +96,7 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [exec.sub.manage]
 superManager=[
-    "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 
+    "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt", 
 ]
 
 [exec.sub.paracross]
