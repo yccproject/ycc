@@ -444,18 +444,12 @@ func (n *node) broadcastComm(height int64, round int, msg types.Message) {
 }
 
 func (n *node) broadcastBlock(b *types.Block, round int) {
-	// txs := b.Txs
-	// b.Txs = nil
-	// nb := b.Clone()
-	// b.Txs = txs
-	// nb.Txs = txs[:1]
 	m := &pt.Pos33BlockMsg{B: b, Pid: n.pid}
 
-	// nm := &pt.Pos33BlockMsg{B: nb, Pid: n.pid}
 	pm := &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_B}
 	n.broadcastComm(b.Height, round, pm)
-	data := types.Encode(pm)
-	n.gss.gossip(n.topic+"/block", data)
+	// data := types.Encode(pm)
+	// n.gss.gossip(n.topic+"/block", data)
 	n.handleBlockMsg(m, true)
 }
 
@@ -1087,13 +1081,14 @@ func (n *node) trySetBlock(height int64, round int, vs []*pt.Pos33VoteMsg, bh st
 }
 
 func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
-	if !myself {
-		err := n.blockCheck(m.B)
-		if err != nil {
-			plog.Info("handleBlockMsg error", "height", m.B.Height, "err", err)
-			return
-		}
-	}
+	// if !myself {
+	// 	err := n.blockCheck(m.B)
+	// 	if err != nil {
+	// 		plog.Info("handleBlockMsg error", "height", m.B.Height, "err", err)
+	// 		return
+	// 	}
+	// }
+	plog.Info("handleBlockMsg", "height", m.B.Height, "time", time.Now().Format("15:04:05.00000"))
 	n.setBlock(m.B)
 
 	// height := m.B.Height
