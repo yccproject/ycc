@@ -33,7 +33,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = true
-singleMode = true
+singleMode = false
 
 [mempool]
 # 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
@@ -68,7 +68,7 @@ useGithub = false
 channel = 9
 port = 13701
 seeds = [
-#  "/ip4/121.36.202.4/tcp/13701/p2p/16Uiu2HAm6nTX7ym4BnTQhkBrrgpmuR5LRmWSb17DKJ4jigEN31qi",
+  #  "/ip4/121.36.202.4/tcp/13701/p2p/16Uiu2HAm6nTX7ym4BnTQhkBrrgpmuR5LRmWSb17DKJ4jigEN31qi",
   "/ip4/119.13.111.72/tcp/13701/p2p/16Uiu2HAmUCikPAhPSxGEXQp38G7nazFnrUyfnWZ4VkfyPj9jXtzj",
   "/ip4/49.0.204.116/tcp/13701/p2p/16Uiu2HAmVC8yWQTG63jPU9b7KXPqyuCL5EWvvNBufHFSvdLCy8Di",
   "/ip4/119.8.181.121/tcp/13701/p2p/16Uiu2HAmRaE9M2yiVSYaMfMWymM38TTmoKXpBDwUmaXYZzzHXKFU",
@@ -116,11 +116,11 @@ onlyVoter = false
 
 [mver.consensus]
 fundKeyAddr = "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt"
-maxTxNumber = 3000
+maxTxNumber = 1000
 powLimitBits = "0x1f00ffff"
 
 [mver.consensus.ForkChainParamV1]
-maxTxNumber = 30000
+maxTxNumber = 1000
 
 [store]
 dbCache = 128

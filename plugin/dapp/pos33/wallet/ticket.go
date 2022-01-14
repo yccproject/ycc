@@ -5,7 +5,6 @@
 package wallet
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -208,7 +207,11 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		}
 		cfg := policy.getAPI().GetConfig()
 		coin := cfg.GetCoinPrecision()
-		wtxdetail.Amount += coin / 2 * n
+		if cfg.IsDappFork(block.Block.Height, ty.Pos33TicketX, "ForkReward15") {
+			wtxdetail.Amount += coin / 4 * n
+		} else {
+			wtxdetail.Amount += coin / 2 * n
+		}
 	}
 
 	if policy.checkNeedFlushPos33Ticket(tx, receipt) {
@@ -446,6 +449,7 @@ func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey
 func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	operater := policy.getWalletOperate()
+
 	acc1, err := operater.GetBalance(addr, "coins")
 	if err != nil {
 		return nil, 0, err
@@ -454,28 +458,31 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
 	fee := chain33Cfg.GetCoinPrecision() * 100
 	amount := acc1.Balance / cfg.Pos33TicketPrice * cfg.Pos33TicketPrice
-	if amount <= 0 {
-		return nil, 0, errors.New("balance NOT enough")
-	}
-	if acc1.Balance-amount < fee {
-		return nil, 0, errors.New("fee NOT enough")
-	}
 
-	toaddr := address.ExecAddress(ty.Pos33TicketX)
-	bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
-	hash, err := policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
-	if err != nil {
-		return nil, 0, err
+	bizlog.Info("buyPos33TicketOne deposit", "addr", addr, "amount", amount)
+
+	if amount > 0 {
+		if acc1.Balance-amount > fee {
+			toaddr := address.ExecAddress(ty.Pos33TicketX)
+			bizlog.Info("buyPos33TicketOne.send", "toaddr", toaddr, "amount", amount)
+			hash, err := policy.walletOperate.SendToAddress(priv, toaddr, amount, "coins->pos33", false, "")
+			if err != nil {
+				return nil, 0, err
+			}
+			bizlog.Info("buyticket tx hash1", "hash", common.HashHex(hash.Hash))
+			operater.WaitTx(hash.Hash)
+			bizlog.Info("buyticket tx hash2", "hash", common.HashHex(hash.Hash))
+		}
 	}
-	bizlog.Info("buyticket tx hash", "hash", common.HashHex(hash.Hash))
-	operater.WaitTx(hash.Hash)
 
 	raddr := addr
 	acc, err := operater.GetBalance(raddr, ty.Pos33TicketX)
 	if err != nil {
+		bizlog.Error("buyPos33TicketOne", "addr", addr, "err", err)
 		return nil, 0, err
 	}
 	count := acc.Balance / cfg.Pos33TicketPrice
+	bizlog.Info("buyPos33TicketOne open", "addr", addr, "amount", count)
 	if count > 0 {
 		txhash, err := policy.openticket(addr, raddr, priv, int32(count))
 		return txhash, int(count), err
