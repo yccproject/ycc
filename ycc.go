@@ -3,7 +3,7 @@ package main
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TestNet=true
-version="6.4.2.3"
+version="6.4.2.5"
 CoinSymbol="ycc"
 ChainID=999
 
@@ -84,9 +84,6 @@ enableTypes = ["secp256k1", "none", "bls"]
 
 
 [exec]
-[exec.sub.pos33]
-ForkTicketId=0
-ForkTicketVrf=0
 
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
@@ -96,7 +93,7 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 [exec.sub.manage]
 superManager=[
-    "1EbDHAXpoiewjPLX9uqoz38HsKqMXayZrF", 
+    "12HKLEn6g4FH39yUbHh4EVJWcFo5CXg22d", 
 ]
 
 [exec.sub.paracross]
@@ -142,6 +139,8 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
+ForkReward15=730000
+
 
 [fork.sub.ticket]
 Enable=0
@@ -179,13 +178,13 @@ ForkTradeFixAssetDB=0
 ForkTradePrice=0
 
 [fork.sub.paracross]
-Enable=1600000
-ForkParacrossWithdrawFromParachain=1600000
-ForkParacrossCommitTx=2270000
-ForkLoopCheckCommitTxDone=4320000
+Enable=730000
+ForkParacrossWithdrawFromParachain=730000
+ForkParacrossCommitTx=730000
+ForkLoopCheckCommitTxDone=730000
 #fork for 6.4
-ForkParaAssetTransferRbk=7200000    
-ForkParaSelfConsStages=7200000
+ForkParaAssetTransferRbk=730000
+ForkParaSelfConsStages=730000
 #仅平行链适用
 ForkParaFullMinerHeight=-1
 ForkParaRootHash=0

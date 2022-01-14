@@ -207,7 +207,11 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		}
 		cfg := policy.getAPI().GetConfig()
 		coin := cfg.GetCoinPrecision()
-		wtxdetail.Amount += coin / 2 * n
+		if cfg.IsDappFork(block.Block.Height, ty.Pos33TicketX, "ForkReward15") {
+			wtxdetail.Amount += coin / 4 * n
+		} else {
+			wtxdetail.Amount += coin / 2 * n
+		}
 	}
 
 	if policy.checkNeedFlushPos33Ticket(tx, receipt) {
@@ -455,6 +459,8 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 	fee := chain33Cfg.GetCoinPrecision() * 100
 	amount := acc1.Balance / cfg.Pos33TicketPrice * cfg.Pos33TicketPrice
 
+	bizlog.Info("buyPos33TicketOne deposit", "addr", addr, "amount", amount)
+
 	if amount > 0 {
 		if acc1.Balance-amount > fee {
 			toaddr := address.ExecAddress(ty.Pos33TicketX)
@@ -463,17 +469,20 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 			if err != nil {
 				return nil, 0, err
 			}
-			bizlog.Info("buyticket tx hash", "hash", common.HashHex(hash.Hash))
+			bizlog.Info("buyticket tx hash1", "hash", common.HashHex(hash.Hash))
 			operater.WaitTx(hash.Hash)
+			bizlog.Info("buyticket tx hash2", "hash", common.HashHex(hash.Hash))
 		}
 	}
 
 	raddr := addr
 	acc, err := operater.GetBalance(raddr, ty.Pos33TicketX)
 	if err != nil {
+		bizlog.Error("buyPos33TicketOne", "addr", addr, "err", err)
 		return nil, 0, err
 	}
 	count := acc.Balance / cfg.Pos33TicketPrice
+	bizlog.Info("buyPos33TicketOne open", "addr", addr, "amount", count)
 	if count > 0 {
 		txhash, err := policy.openticket(addr, raddr, priv, int32(count))
 		return txhash, int(count), err
