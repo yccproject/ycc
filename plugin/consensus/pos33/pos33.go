@@ -229,9 +229,10 @@ func (client *Client) CreateBlock() {
 }
 
 func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr string, count int32, height int64) (ret []*types.Transaction) {
+	coinExec := cfg.GetCoinExec()
 	//给hotkey 1000 个币，作为miner的手续费
 	tx1 := types.Transaction{}
-	tx1.Execer = []byte("coins")
+	tx1.Execer = []byte(coinExec)
 	tx1.To = minerAddr
 	g := &ct.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{Amount: cfg.GetCoinPrecision() * 1000}
@@ -240,7 +241,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 
 	// 发行并抵押
 	tx2 := types.Transaction{}
-	tx2.Execer = []byte("coins")
+	tx2.Execer = []byte(coinExec)
 	tx2.To = driver.ExecAddress(pt.Pos33TicketX)
 	g = &ct.CoinsAction_Genesis{}
 	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice, ReturnAddress: returnAddr}
@@ -261,14 +262,16 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 
 // CreateGenesisTx ticket create genesis tx
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
+	cfg := client.GetAPI().GetConfig()
+	coinExec := cfg.GetCoinExec()
+	coin := cfg.GetCoinPrecision()
+
 	// 预先发行maxcoin 到 genesis 账户
 	tx0 := types.Transaction{}
-	tx0.Execer = []byte("coins")
+	tx0.Execer = []byte(coinExec)
 	tx0.To = client.Cfg.Genesis
 	g := &ct.CoinsAction_Genesis{}
 	// 发行 100 亿
-	cfg := client.GetAPI().GetConfig()
-	coin := cfg.GetCoinPrecision()
 	g.Genesis = &types.AssetsGenesis{Amount: types.MaxCoin * 10 * coin}
 	tx0.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx0)

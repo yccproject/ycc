@@ -84,7 +84,7 @@ func init() {
 
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(Pos33TicketX, "Enable", 0)
-	cfg.RegisterDappFork(Pos33TicketX, "ForkReward15", 725000)
+	cfg.RegisterDappFork(Pos33TicketX, "ForkReward15", 0)
 }
 
 func InitExecutor(cfg *types.Chain33Config) {

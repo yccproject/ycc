@@ -346,10 +346,11 @@ func (policy *ticketPolicy) isAutoMining() bool {
 	return atomic.LoadInt32(&policy.autoMinerFlag) == 1
 }
 
-func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
+func (policy *ticketPolicy) processFee(priv crypto.PrivKey, cfg *types.Chain33Config) error {
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	operater := policy.getWalletOperate()
-	acc1, err := operater.GetBalance(addr, "coins")
+	coinExec := cfg.GetCoinExec()
+	acc1, err := operater.GetBalance(addr, coinExec)
 	if err != nil {
 		return err
 	}
@@ -358,7 +359,6 @@ func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 		return err
 	}
 	toaddr := address.ExecAddress(ty.Pos33TicketX)
-	cfg := policy.getWalletOperate().GetAPI().GetConfig()
 	coin := cfg.GetCoinPrecision()
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
 	if acc1.Balance < coin && acc2.Balance > coin {
@@ -371,13 +371,13 @@ func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 }
 
 //手续费处理
-func (policy *ticketPolicy) processFees() error {
+func (policy *ticketPolicy) processFees(cfg *types.Chain33Config) error {
 	keys, err := policy.getWalletOperate().GetAllPrivKeys()
 	if err != nil {
 		return err
 	}
 	for _, key := range keys {
-		e := policy.processFee(key)
+		e := policy.processFee(key, cfg)
 		if e != nil {
 			err = e
 		}
@@ -452,13 +452,14 @@ func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey
 func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	operater := policy.getWalletOperate()
+	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
+	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
+	coinExec := chain33Cfg.GetCoinExec()
 
-	acc1, err := operater.GetBalance(addr, "coins")
+	acc1, err := operater.GetBalance(addr, coinExec)
 	if err != nil {
 		return nil, 0, err
 	}
-	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
 	fee := chain33Cfg.GetCoinPrecision() * 100
 	amount := acc1.Balance / cfg.Pos33TicketPrice * cfg.Pos33TicketPrice
 
@@ -623,7 +624,7 @@ func (policy *ticketPolicy) autoMining() {
 			}
 			lastHeight = height
 			if policy.isAutoMining() {
-				err := policy.processFees()
+				err := policy.processFees(cfg)
 				if err != nil {
 					bizlog.Error("processFees", "err", err)
 				}
@@ -638,7 +639,7 @@ func (policy *ticketPolicy) autoMining() {
 					FlushPos33Ticket(policy.getAPI())
 				}
 			} else {
-				err := policy.processFees()
+				err := policy.processFees(cfg)
 				if err != nil {
 					bizlog.Error("processFees", "err", err)
 				}

@@ -2,11 +2,14 @@
 [dapp-pos33]
 gitrepo = "github.com/yccproject/ycc/plugin/dapp/pos33"
 
+[dapp-coinsx]
+gitrepo = "github.com/33cn/plugin/plugin/dapp/coinsx"
+
 [consensus-pos33]
 gitrepo = "github.com/yccproject/ycc/plugin/consensus/pos33"
 
-# [dapp-evm]
-# gitrepo = "github.com/33cn/plugin/plugin/dapp/evm"
+[dapp-evm]
+gitrepo = "github.com/33cn/plugin/plugin/dapp/evm"
 
 [dapp-retrieve]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/retrieve"
