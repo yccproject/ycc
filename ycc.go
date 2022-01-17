@@ -6,7 +6,7 @@ TestNet=true
 version="6.4.2.5"
 CoinSymbol="ycc"
 ChainID=999
-coinExec="coinsx"
+CoinExec="coinsx"
 
 [blockchain]
 maxFetchBlockNum=128
