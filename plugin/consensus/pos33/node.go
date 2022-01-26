@@ -58,6 +58,7 @@ type committee struct {
 	bvs            map[string][]*pt.Pos33VoteMsg
 	ok             bool // 表示区块已共识
 	voteOk         bool // 表示已经投票
+	n              *node
 }
 
 func (n *node) getmaker(height int64, round int) *maker {
@@ -117,6 +118,7 @@ func (n *node) getCommittee(height int64, round int) *committee {
 			sortCheckedMap: make(map[string]bool),
 			bvs:            make(map[string][]*pt.Pos33VoteMsg),
 			ab:             &alterBlock{},
+			n:              n,
 		}
 		rmp[round] = m
 	}
@@ -139,10 +141,14 @@ func (c *committee) getMySorts(pub string, myProp float64) []*pt.Pos33SortMsg {
 			ss = append(ss, s)
 		}
 	}
-	// max := int(float64(pt.Pos33VoterSize) * myProp * 2)
-	// if len(ss) > max {
-	// 	ss = ss[max:]
-	// }
+
+	mycount := c.n.getMyCount()
+	allcount := c.n.allCount(c.n.GetCurrentHeight())
+	prop := float64(mycount) / float64(allcount)
+	max := int(float64(pt.Pos33VoterSize) * prop * 2)
+	if len(ss) > max {
+		ss = ss[max:]
+	}
 
 	return ss
 }
@@ -776,9 +782,21 @@ func (n *node) sortCommittee(seed []byte, height int64, round int) {
 	n.sendVoterSort(vss, height, round, int(pt.Pos33Msg_VS))
 }
 
+func (n *node) shouldMake(height int64) bool {
+	h := height - pt.Pos33SortBlocks/2
+	if h <= 0 || height < 20 {
+		return true
+	}
+	comm := n.getCommittee(h, 0)
+	return len(comm.mss) > 0
+}
+
 func (n *node) sortMaker(seed []byte, height int64, round int) {
 	plog.Debug("sortMaker", "height", height, "round", round)
 	if n.conf.OnlyVoter {
+		return
+	}
+	if !n.shouldMake(height) {
 		return
 	}
 	s := n.makerSort(seed, height, round)
@@ -873,7 +891,7 @@ func (n *node) handleVoterSort(ss []*pt.Pos33SortMsg, myself bool, ty int) bool 
 		// }
 		mp[string(s.SortHash.Hash)] = s
 	}
-	// plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
+	plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
 	return true
 }
 
@@ -1181,19 +1199,26 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	for _, h := range m.SelectSorts {
 		comm.svmp[string(h)] += len(m.MySorts)
 	}
-	// plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
+	plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
 }
 
 func (n *node) voteCommittee(height int64, round int) {
 	comm := n.getCommittee(height, round)
 	css := comm.getCommitteeSorts()
 	var ss [][]byte
-	for k := range css {
+	for k, s := range css {
 		ss = append(ss, []byte(k))
+		addr := address.PubKeyToAddr(s.Proof.Pubkey)
+		plog.Info("voteCommittee", "height", height, "addr", addr[:16], "hash", common.HashHex([]byte(k))[:16])
+	}
+
+	myss := comm.getMySorts(string(n.priv.PubKey().Bytes()), n.myProportion(height))
+	if len(myss) == 0 {
+		return
 	}
 
 	m := &pt.Pos33SortsVote{
-		MySorts:     comm.getMySorts(string(n.priv.PubKey().Bytes()), n.myProportion(height)),
+		MySorts:     myss,
 		SelectSorts: ss,
 		Height:      height,
 		Round:       int32(round),
