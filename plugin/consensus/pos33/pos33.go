@@ -155,7 +155,7 @@ func (c *Client) updateTicketCount(height int64) {
 	ac := c.queryAllPos33Count()
 	c.acMap[height] = ac
 	c.mycount = c.getMyCount()
-	plog.Debug("getAllCount", "count", ac, "height", height)
+	plog.Info("AllCount", "count", ac, "height", height)
 	delete(c.acMap, height-pt.Pos33SortBlocks-1)
 }
 

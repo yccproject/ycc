@@ -110,7 +110,7 @@ useBalance=false
 [fork.system]
 ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash=10000000000000000
+ForkBlockHash=0
 ForkMinerTime=0
 ForkTransferExec=0
 ForkExecKey=0
@@ -139,7 +139,7 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkReward15=725000
+ForkReward15=0
 
 
 [fork.sub.ticket]
@@ -178,13 +178,13 @@ ForkTradeFixAssetDB=0
 ForkTradePrice=0
 
 [fork.sub.paracross]
-Enable=725000
-ForkParacrossWithdrawFromParachain=725000
-ForkParacrossCommitTx=725000
-ForkLoopCheckCommitTxDone=725000
+Enable=0
+ForkParacrossWithdrawFromParachain=0
+ForkParacrossCommitTx=0
+ForkLoopCheckCommitTxDone=0
 #fork for 6.4
-ForkParaAssetTransferRbk=725000
-ForkParaSelfConsStages=725000
+ForkParaAssetTransferRbk=0
+ForkParaSelfConsStages=0
 #仅平行链适用
 ForkParaFullMinerHeight=-1
 ForkParaRootHash=0

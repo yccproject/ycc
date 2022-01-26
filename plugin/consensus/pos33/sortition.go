@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"time"
+	"sync"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -54,6 +54,68 @@ func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 	return vrfHash[:], vrfProof
 }
 
+func sortition(vrfHash []byte, count, num int, diff float64, proof *pt.HashProof) []*pt.Pos33SortMsg {
+	ich := make(chan int)
+	mch := make(chan *pt.Pos33SortMsg)
+	done := make(chan struct{})
+	wg := new(sync.WaitGroup)
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-done:
+					return
+				case index := <-ich:
+					data := fmt.Sprintf("%x+%d+%d", vrfHash, index, num)
+					hash := hash2([]byte(data))
+
+					// 转为big.Float计算，比较难度diff
+					y := new(big.Int).SetBytes(hash)
+					z := new(big.Float).SetInt(y)
+					if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+						continue
+					}
+
+					// 符合，表示抽中了
+					m := &pt.Pos33SortMsg{
+						SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: int32(num)},
+						Proof:    proof,
+					}
+					mch <- m
+				}
+			}
+		}()
+	}
+
+	var msgs []*pt.Pos33SortMsg
+	go func() {
+		for m := range mch {
+			msgs = append(msgs, m)
+		}
+	}()
+
+	for i := 0; i < count; i++ {
+		ich <- i
+	}
+
+	close(done)
+	wg.Wait()
+	close(ich)
+	close(mch)
+
+	if len(msgs) == 0 {
+		return nil
+	}
+	if len(msgs) > pt.Pos33VoterSize {
+		sort.Sort(pt.Sorts(msgs))
+		msgs = msgs[:pt.Pos33VoterSize]
+	}
+	// plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	return msgs
+}
+
 func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Pos33SortMsg {
 	count := n.myCount()
 	priv := n.getPriv()
@@ -73,33 +135,34 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	var msgs []*pt.Pos33SortMsg
-	for i := 0; i < count; i++ {
-		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, num)
-		hash := hash2([]byte(data))
+	// var msgs []*pt.Pos33SortMsg
+	// for i := 0; i < count; i++ {
+	// 	data := fmt.Sprintf("%x+%d+%d", vrfHash, i, num)
+	// 	hash := hash2([]byte(data))
 
-		// 转为big.Float计算，比较难度diff
-		y := new(big.Int).SetBytes(hash)
-		z := new(big.Float).SetInt(y)
-		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-			continue
-		}
+	// 	// 转为big.Float计算，比较难度diff
+	// 	y := new(big.Int).SetBytes(hash)
+	// 	z := new(big.Float).SetInt(y)
+	// 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+	// 		continue
+	// 	}
 
-		// 符合，表示抽中了
-		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: int32(num)},
-			Proof:    proof,
-		}
-		msgs = append(msgs, m)
-	}
+	// 	// 符合，表示抽中了
+	// 	m := &pt.Pos33SortMsg{
+	// 		SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: int32(num)},
+	// 		Proof:    proof,
+	// 	}
+	// 	msgs = append(msgs, m)
+	// }
 
-	if len(msgs) == 0 {
-		return nil
-	}
-	if len(msgs) > pt.Pos33VoterSize {
-		sort.Sort(pt.Sorts(msgs))
-		msgs = msgs[:pt.Pos33VoterSize]
-	}
+	// if len(msgs) == 0 {
+	// 	return nil
+	// }
+	// if len(msgs) > pt.Pos33VoterSize {
+	// 	sort.Sort(pt.Sorts(msgs))
+	// 	msgs = msgs[:pt.Pos33VoterSize]
+	// }
+	msgs := sortition(vrfHash, count, num, diff, proof)
 	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	return msgs
 }
@@ -121,33 +184,43 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		VrfProof: vrfProof,
 		Pubkey:   priv.PubKey().Bytes(),
 	}
-
+	msgs := sortition(vrfHash, count, 0, diff, proof)
 	var minSort *pt.Pos33SortMsg
-	// for j := 0; j < 3; j++ {
-	for i := 0; i < count; i++ {
-		data := fmt.Sprintf("%x+%d+%d", vrfHash, i, 0)
-		hash := hash2([]byte(data))
-
-		// 转为big.Float计算，比较难度diff
-		y := new(big.Int).SetBytes(hash)
-		z := new(big.Float).SetInt(y)
-		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-			continue
-		}
-
-		// 符合，表示抽中了
-		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: 0, Time: time.Now().UnixNano() / 1000000},
-			Proof:    proof,
-		}
+	for _, m := range msgs {
 		if minSort == nil {
 			minSort = m
 		}
 		// minHash use string compare, define a rule for which one is min
-		if string(minSort.SortHash.Hash) > string(hash) {
+		if string(minSort.SortHash.Hash) > string(m.SortHash.Hash) {
 			minSort = m
 		}
 	}
+
+	// // for j := 0; j < 3; j++ {
+	// for i := 0; i < count; i++ {
+	// 	data := fmt.Sprintf("%x+%d+%d", vrfHash, i, 0)
+	// 	hash := hash2([]byte(data))
+
+	// 	// 转为big.Float计算，比较难度diff
+	// 	y := new(big.Int).SetBytes(hash)
+	// 	z := new(big.Float).SetInt(y)
+	// 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+	// 		continue
+	// 	}
+
+	// 	// 符合，表示抽中了
+	// 	m := &pt.Pos33SortMsg{
+	// 		SortHash: &pt.SortHash{Hash: hash, Index: int64(i), Num: 0, Time: time.Now().UnixNano() / 1000000},
+	// 		Proof:    proof,
+	// 	}
+	// 	if minSort == nil {
+	// 		minSort = m
+	// 	}
+	// 	// minHash use string compare, define a rule for which one is min
+	// 	if string(minSort.SortHash.Hash) > string(hash) {
+	// 		minSort = m
+	// 	}
+	// }
 	// }
 	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16], "sortHash", minSort != nil)
 	return minSort
