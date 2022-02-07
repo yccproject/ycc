@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/consensus"
@@ -28,6 +29,7 @@ type Client struct {
 
 	clock   sync.Mutex
 	priv    crypto.PrivKey
+	myAddr  string
 	mycount int
 
 	mlock sync.Mutex
@@ -177,6 +179,7 @@ func (c *Client) getMyCount() int {
 		plog.Error("privFromBytes", "err", err)
 		return 0
 	}
+	c.myAddr = address.PubKeyToAddr(c.priv.PubKey().Bytes())
 	plog.Debug("getMyCount", "count", c.mycount)
 	return c.mycount
 }

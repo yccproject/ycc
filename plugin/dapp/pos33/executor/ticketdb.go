@@ -146,13 +146,13 @@ func setNewCount(db dbm.KV, n int) *types.KeyValue {
 	return &types.KeyValue{Key: Key(allCountID), Value: value}
 }
 
-func depositReceipt(t int, addr string, newCount int64) *types.ReceiptLog {
-	r := &ty.ReceiptPos33Deposit{Addr: addr, Count: newCount}
+func depositReceipt(t int, raddr string, newCount int64) *types.ReceiptLog {
+	r := &ty.ReceiptPos33Deposit{Addr: raddr, Count: newCount}
 	return &types.ReceiptLog{Log: types.Encode(r), Ty: int32(t)}
 }
 
-func minerReceipt(t int, addr string, newReward int64) *types.ReceiptLog {
-	r := &ty.ReceiptPos33Miner{Addr: addr, Reward: newReward}
+func minerReceipt(t int, raddr string, newReward int64) *types.ReceiptLog {
+	r := &ty.ReceiptPos33Miner{Addr: raddr, Reward: newReward}
 	return &types.ReceiptLog{Log: types.Encode(r), Ty: int32(t)}
 }
 

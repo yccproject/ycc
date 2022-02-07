@@ -3,7 +3,7 @@ package main
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TestNet=true
-version="6.4.2.5"
+version="6.4.2.7"
 CoinSymbol="ycc"
 ChainID=999
 
@@ -66,16 +66,16 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-coinReward=18
-coinDevFund=12
+#coinReward=18
+#coinDevFund=12
 ticketPrice=10000
-retargetAdjustmentFactor=4
-futureBlockTime=5
-ticketFrozenTime=43200
-ticketWithdrawTime=10
-ticketMinerWaitTime=7200
-targetTimespan=2160
-targetTimePerBlock=15
+#retargetAdjustmentFactor=4
+#futureBlockTime=5
+#ticketFrozenTime=43200
+#ticketWithdrawTime=10
+#ticketMinerWaitTime=7200
+#targetTimespan=2160
+#targetTimePerBlock=15
 
 [store]
 
@@ -110,7 +110,7 @@ useBalance=false
 [fork.system]
 ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash=0
+ForkBlockHash=3000000 // mainnet is 3000000
 ForkMinerTime=0
 ForkTransferExec=0
 ForkExecKey=0
@@ -139,7 +139,7 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkReward15=0
+ForkReward15=725000 //main net is 725000
 
 
 [fork.sub.ticket]
@@ -178,13 +178,13 @@ ForkTradeFixAssetDB=0
 ForkTradePrice=0
 
 [fork.sub.paracross]
-Enable=0
-ForkParacrossWithdrawFromParachain=0
-ForkParacrossCommitTx=0
-ForkLoopCheckCommitTxDone=0
+Enable=725000
+ForkParacrossWithdrawFromParachain=725000
+ForkParacrossCommitTx=725000
+ForkLoopCheckCommitTxDone=725000
 #fork for 6.4
-ForkParaAssetTransferRbk=0
-ForkParaSelfConsStages=0
+ForkParaAssetTransferRbk=725000
+ForkParaSelfConsStages=725000
 #仅平行链适用
 ForkParaFullMinerHeight=-1
 ForkParaRootHash=0
