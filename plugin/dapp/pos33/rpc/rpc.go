@@ -22,6 +22,15 @@ func (g *channelClient) SetAutoMining(ctx context.Context, in *ty.Pos33MinerFlag
 	return data.(*types.Reply), nil
 }
 
+// GetAllPos33TicketCount get count
+func (g *channelClient) GetAllPos33TicketCount(ctx context.Context, in *types.ReqNil) (*types.Int64, error) {
+	msg, err := g.Query(ty.Pos33TicketX, "AllPos33TicketCount", in)
+	if err != nil {
+		return nil, err
+	}
+	return msg.(*types.Int64), nil
+}
+
 // GetPos33TicketCount get count
 func (g *channelClient) GetPos33TicketCount(ctx context.Context, in *types.ReqAddr) (*types.Int64, error) {
 	msg, err := g.Query(ty.Pos33TicketX, "Pos33TicketCount", in)
@@ -39,6 +48,17 @@ func (g *channelClient) ClosePos33Tickets(ctx context.Context, in *ty.Pos33Ticke
 		return nil, err
 	}
 	return data.(*types.ReplyHashes), nil
+}
+
+// GetAllPos33TicketCount get ticket count
+func (c *Jrpc) GetAllPos33TicketCount(in *types.ReqNil, result *int64) error {
+	resp, err := c.cli.GetAllPos33TicketCount(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+
 }
 
 // GetPos33TicketCount get ticket count

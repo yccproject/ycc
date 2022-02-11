@@ -166,7 +166,7 @@ func (c *Client) getMyCount() int {
 	defer c.clock.Unlock()
 	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Count", &types.ReqNil{})
 	if err != nil {
-		plog.Error("WalletGetPos33Count", "err", err)
+		plog.Debug("WalletGetPos33Count", "err", err)
 		return 0
 	}
 	w := resp.(*pt.ReplyWalletPos33Count)
@@ -319,7 +319,7 @@ func getMiner(b *types.Block) (*pt.Pos33MinerMsg, error) {
 	}
 	if len(b.Txs) == 0 {
 		plog.Error("No tx in the block", b.Height)
-		return nil, errors.New("No tx in the block")
+		return nil, errors.New("no tx in the block")
 	}
 	tx := b.Txs[0]
 	var pact pt.Pos33TicketAction

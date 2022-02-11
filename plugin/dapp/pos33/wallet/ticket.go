@@ -524,7 +524,7 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, error) {
 	accs, err := policy.getWalletOperate().GetWalletAccounts()
 	if err != nil {
-		bizlog.Error("getMiner.GetWalletAccounts", "err", err)
+		// bizlog.Error("getMiner.GetWalletAccounts", "err", err)
 		return nil, "", err
 	}
 	if minerAddr == "" {

@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
-	"sync"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -38,60 +36,61 @@ func calcuVrfHash(input proto.Message, priv crypto.PrivKey) ([]byte, []byte) {
 	return vrfHash[:], vrfProof
 }
 
-func sortFunc(wg *sync.WaitGroup, vrfHash []byte, num int, diff float64, proof *pt.HashProof, ich <-chan int, mch chan<- *pt.Pos33SortMsg) {
-	defer wg.Done()
-	for index := range ich {
-		data := fmt.Sprintf("%x+%d+%d", vrfHash, index, num)
-		hash := hash2([]byte(data))
+func sortF(vrfHash []byte, index, num int, diff float64, proof *pt.HashProof) *pt.Pos33SortMsg {
+	data := fmt.Sprintf("%x+%d+%d", vrfHash, index, num)
+	hash := hash2([]byte(data))
 
-		// 转为big.Float计算，比较难度diff
-		y := new(big.Int).SetBytes(hash)
-		z := new(big.Float).SetInt(y)
-		if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-			continue
-		}
+	// 转为big.Float计算，比较难度diff
+	y := new(big.Int).SetBytes(hash)
+	z := new(big.Float).SetInt(y)
+	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
+		return nil
+	}
 
-		// 符合，表示抽中了
-		m := &pt.Pos33SortMsg{
-			SortHash: &pt.SortHash{Hash: hash, Index: int64(index), Num: int32(num)},
-			Proof:    proof,
-		}
-		mch <- m
+	// 符合，表示抽中了
+	m := &pt.Pos33SortMsg{
+		SortHash: &pt.SortHash{Hash: hash, Index: int64(index), Num: int32(num)},
+		Proof:    proof,
+	}
+	return m
+}
+
+type sortArg struct {
+	vrfHash []byte
+	index   int
+	num     int
+	diff    float64
+	proof   *pt.HashProof
+	ch      chan<- *pt.Pos33SortMsg
+}
+
+func (n *node) runSortition() {
+	for i := 0; i < 8; i++ {
+		go func() {
+			for s := range n.sortCh {
+				s.ch <- sortF(s.vrfHash, s.index, s.num, s.diff, s.proof)
+			}
+		}()
 	}
 }
 
-func sortition(vrfHash []byte, count, num int, diff float64, proof *pt.HashProof) []*pt.Pos33SortMsg {
-	ich := make(chan int)
-	mch := make(chan *pt.Pos33SortMsg)
-	wg := new(sync.WaitGroup)
-
-	for i := 0; i < 8; i++ {
-		wg.Add(1)
-		go sortFunc(wg, vrfHash, num, diff, proof, ich, mch)
-	}
-
-	var msgs []*pt.Pos33SortMsg
+func (n *node) doSort(vrfHash []byte, count, num int, diff float64, proof *pt.HashProof) []*pt.Pos33SortMsg {
+	ch := make(chan *pt.Pos33SortMsg)
 	go func() {
-		for m := range mch {
-			msgs = append(msgs, m)
+		for i := 0; i < count; i++ {
+			n.sortCh <- &sortArg{vrfHash, i, num, diff, proof, ch}
 		}
 	}()
-
-	for i := 0; i < count; i++ {
-		ich <- i
+	j := 0
+	var msgs []*pt.Pos33SortMsg
+	for j < count {
+		m := <-ch
+		if m != nil {
+			msgs = append(msgs, m)
+		}
+		j++
 	}
-	close(ich)
-
-	wg.Wait()
-	close(mch)
-
-	if len(msgs) == 0 {
-		return nil
-	}
-	if len(msgs) > pt.Pos33VoterSize {
-		sort.Sort(pt.Sorts(msgs))
-		msgs = msgs[:pt.Pos33VoterSize]
-	}
+	close(ch)
 	return msgs
 }
 
@@ -113,7 +112,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	msgs := sortition(vrfHash, count, num, diff, proof)
+	msgs := n.doSort(vrfHash, count, num, diff, proof)
 	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
 	return msgs
 }
@@ -134,7 +133,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		VrfProof: vrfProof,
 		Pubkey:   priv.PubKey().Bytes(),
 	}
-	msgs := sortition(vrfHash, count, 0, diff, proof)
+	msgs := n.doSort(vrfHash, count, 0, diff, proof)
 	var minSort *pt.Pos33SortMsg
 	for _, m := range msgs {
 		if minSort == nil {
