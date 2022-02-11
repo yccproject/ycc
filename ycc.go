@@ -108,7 +108,7 @@ useBalance=false
 [fork.system]
 ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash=3000000 # mainnet is 3000000
+ForkBlockHash=4000000 
 ForkMinerTime=0
 ForkTransferExec=0
 ForkExecKey=0
@@ -137,7 +137,7 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkReward15=725000 #main net is 725000
+ForkReward15=725000 
 
 [fork.sub.evm]
 Enable=0
