@@ -156,6 +156,11 @@ func find(vmp map[string][]*pt.Pos33VoteMsg, key, pub string) bool {
 	return false
 }
 
+type vArg struct {
+	v  *pt.Pos33VoteMsg
+	ch chan<- bool
+}
+
 type node struct {
 	*Client
 	gss *gossip2
@@ -163,6 +168,9 @@ type node struct {
 	vmp map[int64]map[int]*maker
 	mmp map[int64]map[int]*committee
 	bch chan *types.Block
+
+	vCh    chan vArg
+	sortCh chan *sortArg
 
 	blsMp map[string]string
 
@@ -173,10 +181,12 @@ type node struct {
 
 func newNode(conf *subConfig) *node {
 	return &node{
-		mmp:   make(map[int64]map[int]*committee),
-		vmp:   make(map[int64]map[int]*maker),
-		bch:   make(chan *types.Block, 16),
-		blsMp: make(map[string]string),
+		mmp:    make(map[int64]map[int]*committee),
+		vmp:    make(map[int64]map[int]*maker),
+		bch:    make(chan *types.Block, 16),
+		blsMp:  make(map[string]string),
+		vCh:    make(chan vArg, 8),
+		sortCh: make(chan *sortArg, 8),
 	}
 }
 
@@ -391,54 +401,42 @@ func (n *node) checkBlock(b, pb *types.Block) error {
 	return nil
 }
 
-func verifyVotes(vs []*pt.Pos33VoteMsg) bool {
-	ch := make(chan *pt.Pos33VoteMsg)
-	defer close(ch)
-	done := make(chan struct{})
-
-	go func() {
-		for _, v := range vs {
-			select {
-			case ch <- v:
-			case <-done:
-				return
-			}
-		}
-		close(done)
-	}()
-
-	errch := make(chan bool, 1)
-	defer close(errch)
-	wg := new(sync.WaitGroup)
-	f := func() {
-		defer wg.Done()
-		for {
-			select {
-			case v := <-ch:
-				if !v.Verify() {
-					select {
-					case errch <- false:
-					default:
-					}
-					close(done)
-					return
-				}
-			case <-done:
-				return
-			}
-		}
-	}
+func (n *node) runVerifyVotes() {
 	for i := 0; i < 8; i++ {
-		wg.Add(1)
-		go f()
+		go func() {
+			for v := range n.vCh {
+				v.ch <- v.v.Verify()
+			}
+		}()
 	}
-	wg.Wait()
-	select {
-	case <-errch:
-		return false
-	default:
-		return true
+}
+func (n *node) verifyVotes(vs []*pt.Pos33VoteMsg) bool {
+	ch := make(chan bool)
+	j := 0
+	k := 0
+	rok := true
+	for _, v := range vs {
+		select {
+		case n.vCh <- vArg{v, ch}:
+			k++
+		case ok := <-ch:
+			j++
+			if !ok {
+				rok = false
+				goto END
+			}
+		}
 	}
+END:
+	for j < k {
+		ok := <-ch
+		if !ok {
+			rok = false
+		}
+		j++
+	}
+	close(ch)
+	return rok
 }
 
 func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, ty int, hash []byte, h int64, checkEnough, checkCommittee bool) error {
@@ -452,7 +450,7 @@ func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, ty int, hash []byte, h int64, c
 		}
 	}
 
-	if !verifyVotes(vs) {
+	if !n.verifyVotes(vs) {
 		plog.Error("verifyVotes error", "height", height)
 		return errors.New("verifyVotes error")
 	}
@@ -599,23 +597,11 @@ func (n *node) sortCommittee(seed []byte, height int64, round int) {
 	n.sendVoterSort(vss, height, round, int(pt.Pos33Msg_VS))
 }
 
-func (n *node) shouldMake(height int64) bool {
-	h := height - pt.Pos33SortBlocks/2
-	if h <= 0 || height < 20 {
-		return true
-	}
-	comm := n.getCommittee(h, 0)
-	return len(comm.mss) > 0
-}
-
 func (n *node) sortMaker(seed []byte, height int64, round int) {
 	plog.Debug("sortMaker", "height", height, "round", round)
 	if n.conf.OnlyVoter {
 		return
 	}
-	// if !n.shouldMake(height) {
-	// 	return
-	// }
 	s := n.makerSort(seed, height, round)
 	if s == nil {
 		return
@@ -1109,7 +1095,7 @@ var pos33Topics = []string{
 	"/makersorts",
 	"/votersorts",
 	"/makervotes",
-	"/blockvotes",
+	// "/blockvotes",
 	"/block",
 	"/committee",
 }
@@ -1150,6 +1136,8 @@ func (n *node) runLoop() {
 	}
 
 	plog.Info("pos33 running... 07131918", "last block height", lb.Height)
+	go n.runVerifyVotes()
+	go n.runSortition()
 
 	isSync := false
 	tch := make(chan int64, 1)

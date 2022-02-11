@@ -3,9 +3,10 @@ module github.com/yccproject/ycc
 go 1.15
 
 require (
-	github.com/33cn/chain33 v1.65.6-0.20211210090022-58902cdf2b7c
-	github.com/33cn/plugin v1.65.4
+	github.com/33cn/chain33 v1.66.4
+	github.com/33cn/plugin v1.66.2
 	github.com/btcsuite/btcd v0.22.0-beta
+	github.com/consensys/gurvy v0.3.8 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p v0.15.0
 	github.com/libp2p/go-libp2p-autonat v0.4.2

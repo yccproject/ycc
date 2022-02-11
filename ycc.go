@@ -51,8 +51,6 @@ minerExecs=["pos33"]
 [consensus.sub.pos33]
 genesisBlockTime=1611627559
 checkFutureBlockHeight=1500000
-# listenPort="10901"
-# bootPeers=["/ip4/183.129.226.76/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of"]
 
 [[consensus.sub.pos33.genesis]]
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -66,16 +64,16 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-#coinReward=18
-#coinDevFund=12
+coinReward=15
+coinDevFund=15
 ticketPrice=10000
-#retargetAdjustmentFactor=4
-#futureBlockTime=5
-#ticketFrozenTime=43200
-#ticketWithdrawTime=10
-#ticketMinerWaitTime=7200
-#targetTimespan=2160
-#targetTimePerBlock=15
+retargetAdjustmentFactor=4
+futureBlockTime=5
+ticketFrozenTime=43200
+ticketWithdrawTime=10
+ticketMinerWaitTime=7200
+targetTimespan=2160
+targetTimePerBlock=15
 
 [store]
 
@@ -110,7 +108,7 @@ useBalance=false
 [fork.system]
 ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash=3000000 // mainnet is 3000000
+ForkBlockHash=3000000 # mainnet is 3000000
 ForkMinerTime=0
 ForkTransferExec=0
 ForkExecKey=0
@@ -139,8 +137,22 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkReward15=725000 //main net is 725000
+ForkReward15=725000 #main net is 725000
 
+[fork.sub.evm]
+Enable=0
+ForkEVMYoloV1=0
+ForkEVMTxGroup=0
+ForkEVMState=0
+ForkEVMABI=0
+ForkEVMKVHash=0
+ForkEVMFrozen=0
+
+[fork.sub.evmxgo]
+Enable=0
+
+[fork.sub.exchange]
+Enable=0
 
 [fork.sub.ticket]
 Enable=0
@@ -189,6 +201,7 @@ ForkParaSelfConsStages=725000
 ForkParaFullMinerHeight=-1
 ForkParaRootHash=0
 ForkParaSupervision=0
+ForkParaAutonomySuperGroup = 0
 
 [fork.sub.multisig]
 Enable=0
@@ -196,6 +209,7 @@ Enable=0
 [fork.sub.autonomy]
 Enable=0
 ForkAutonomyDelRule=0
+ForkAutonomyEnableItem=0
 
 
 [fork.sub.unfreeze]
