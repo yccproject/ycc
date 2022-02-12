@@ -85,6 +85,7 @@ func init() {
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(Pos33TicketX, "Enable", 0)
 	cfg.RegisterDappFork(Pos33TicketX, "ForkReward15", 0)
+	cfg.RegisterDappFork(Pos33TicketX, "ForkFixReward", 0)
 }
 
 func InitExecutor(cfg *types.Chain33Config) {
@@ -129,6 +130,7 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 	}
 	cfg := ticket.GetConfig()
 	reward := cfg.GetCoinPrecision() * 22 / 100
+	reward /= 2
 	if action.Ty == Pos33TicketActionMiner && action.GetMiner() != nil {
 		ticketMiner := action.GetMiner()
 		if ticketMiner == nil {
@@ -175,16 +177,16 @@ type Pos33TicketMinerParam struct {
 func GetPos33TicketMinerParam(cfg *types.Chain33Config, height int64) *Pos33TicketMinerParam {
 	conf := types.Conf(cfg, "mver.consensus.pos33")
 	c := &Pos33TicketMinerParam{}
-	c.CoinDevFund = conf.MGInt("coinDevFund", height) * cfg.GetCoinPrecision()
-	c.CoinReward = conf.MGInt("coinReward", height) * cfg.GetCoinPrecision()
-	c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
+	// c.CoinDevFund = conf.MGInt("coinDevFund", height) * cfg.GetCoinPrecision()
+	// c.CoinReward = conf.MGInt("coinReward", height) * cfg.GetCoinPrecision()
+	// c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
 	c.Pos33TicketPrice = conf.MGInt("ticketPrice", height) * cfg.GetCoinPrecision()
-	c.Pos33TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
-	c.Pos33TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
-	c.Pos33TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
-	c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
-	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
-	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
+	// c.Pos33TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
+	// c.Pos33TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
+	// c.Pos33TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
+	// c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
+	// c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
+	// c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
 	return c
 }
 

@@ -3,7 +3,6 @@ package pos33
 import (
 	"bufio"
 	"encoding/binary"
-	"errors"
 	"io"
 
 	"github.com/golang/protobuf/proto"
@@ -27,11 +26,6 @@ type ReadCloser interface {
 	io.Closer
 }
 
-var (
-	errSmallBuffer = errors.New("Buffer Too Small")
-	errLargeValue  = errors.New("Value is Larger than 64 bits")
-)
-
 func NewDelimitedWriter(w io.Writer) WriteCloser {
 	return &varintWriter{w, make([]byte, binary.MaxVarintLen64), nil}
 }
@@ -42,41 +36,25 @@ type varintWriter struct {
 	buffer []byte
 }
 
-func (this *varintWriter) WriteMsg(msg proto.Message) (err error) {
+func (v *varintWriter) WriteMsg(msg proto.Message) (err error) {
 	var data []byte
-	// if m, ok := msg.(marshaler); ok {
-	// 	n, ok := getSize(m)
-	// 	if ok {
-	// 		if n+binary.MaxVarintLen64 >= len(this.buffer) {
-	// 			this.buffer = make([]byte, n+binary.MaxVarintLen64)
-	// 		}
-	// 		lenOff := binary.PutUvarint(this.buffer, uint64(n))
-	// 		_, err = m.MarshalTo(this.buffer[lenOff:])
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		_, err = this.w.Write(this.buffer[:lenOff+n])
-	// 		return err
-	// 	}
-	// }
-
 	// fallback
 	data, err = proto.Marshal(msg)
 	if err != nil {
 		return err
 	}
 	length := uint64(len(data))
-	n := binary.PutUvarint(this.lenBuf, length)
-	_, err = this.w.Write(this.lenBuf[:n])
+	n := binary.PutUvarint(v.lenBuf, length)
+	_, err = v.w.Write(v.lenBuf[:n])
 	if err != nil {
 		return err
 	}
-	_, err = this.w.Write(data)
+	_, err = v.w.Write(data)
 	return err
 }
 
-func (this *varintWriter) Close() error {
-	if closer, ok := this.w.(io.Closer); ok {
+func (v *varintWriter) Close() error {
+	if closer, ok := v.w.(io.Closer); ok {
 		return closer.Close()
 	}
 	return nil
@@ -97,28 +75,28 @@ type varintReader struct {
 	closer  io.Closer
 }
 
-func (this *varintReader) ReadMsg(msg proto.Message) error {
-	length64, err := binary.ReadUvarint(this.r)
+func (v *varintReader) ReadMsg(msg proto.Message) error {
+	length64, err := binary.ReadUvarint(v.r)
 	if err != nil {
 		return err
 	}
 	length := int(length64)
-	if length < 0 || length > this.maxSize {
+	if length < 0 || length > v.maxSize {
 		return io.ErrShortBuffer
 	}
-	if len(this.buf) < length {
-		this.buf = make([]byte, length)
+	if len(v.buf) < length {
+		v.buf = make([]byte, length)
 	}
-	buf := this.buf[:length]
-	if _, err := io.ReadFull(this.r, buf); err != nil {
+	buf := v.buf[:length]
+	if _, err := io.ReadFull(v.r, buf); err != nil {
 		return err
 	}
 	return proto.Unmarshal(buf, msg)
 }
 
-func (this *varintReader) Close() error {
-	if this.closer != nil {
-		return this.closer.Close()
+func (v *varintReader) Close() error {
+	if v.closer != nil {
+		return v.closer.Close()
 	}
 	return nil
 }

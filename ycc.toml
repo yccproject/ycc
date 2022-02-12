@@ -109,6 +109,7 @@ onlyVoter = false
 
 [mver.consensus]
 fundKeyAddr = "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt"
+addWalletTx = false
 maxTxNumber = 1000
 powLimitBits = "0x1f00ffff"
 

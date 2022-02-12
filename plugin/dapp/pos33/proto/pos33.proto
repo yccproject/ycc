@@ -240,8 +240,11 @@ service pos33 {
   rpc CreateBindMiner(ReqBindPos33Miner) returns (ReplyBindPos33Miner) {}
   //查询钱包票数
   rpc GetPos33TicketCount(types.ReqAddr) returns (Int64) {}
+  //查询钱包票数
+  rpc GetAllPos33TicketCount(types.ReqNil) returns (Int64) {}
   //设置自动挖矿
   rpc SetAutoMining(Pos33MinerFlag) returns (Reply) {}
   //查询奖励
-  rpc GetPos33TicketReward(Pos33TicketReward) returns (ReplyPos33TicketReward) {}
+  rpc GetPos33TicketReward(Pos33TicketReward) returns (ReplyPos33TicketReward) {
+  }
 }

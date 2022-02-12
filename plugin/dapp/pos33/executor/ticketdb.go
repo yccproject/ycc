@@ -146,13 +146,13 @@ func setNewCount(db dbm.KV, n int) *types.KeyValue {
 	return &types.KeyValue{Key: Key(allCountID), Value: value}
 }
 
-func depositReceipt(t int, addr string, newCount int64) *types.ReceiptLog {
-	r := &ty.ReceiptPos33Deposit{Addr: addr, Count: newCount}
+func depositReceipt(t int, raddr string, newCount int64) *types.ReceiptLog {
+	r := &ty.ReceiptPos33Deposit{Addr: raddr, Count: newCount}
 	return &types.ReceiptLog{Log: types.Encode(r), Ty: int32(t)}
 }
 
-func minerReceipt(t int, addr string, newReward int64) *types.ReceiptLog {
-	r := &ty.ReceiptPos33Miner{Addr: addr, Reward: newReward}
+func minerReceipt(t int, raddr string, newReward int64) *types.ReceiptLog {
+	r := &ty.ReceiptPos33Miner{Addr: raddr, Reward: newReward}
 	return &types.ReceiptLog{Log: types.Encode(r), Ty: int32(t)}
 }
 
@@ -307,7 +307,11 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 
 		logs = append(logs, receipt.Logs...)
 		kvs = append(kvs, receipt.KV...)
-		kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, Pos33VoteReward, action.height, false))
+		if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "ForkFixReward") {
+			kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, bpReward, action.height, false))
+		} else {
+			kvs = append(kvs, setDeposit(action.db, action.fromaddr, "", 0, Pos33VoteReward, action.height, false))
+		}
 		tlog.Info("block reward", "height", action.height, "reward", bpReward, "from", action.fromaddr[:16], "nv", len(miner.BlsPkList))
 	}
 

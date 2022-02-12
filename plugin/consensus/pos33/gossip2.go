@@ -22,17 +22,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	routing "github.com/libp2p/go-libp2p-routing"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 
-	// pio "github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-multiaddr"
 )
-
-// var _ = libp2pquic.NewTransport
 
 type mdnsNotifee struct {
 	h   host.Host
@@ -52,11 +49,10 @@ type gossip2 struct {
 	tmap      map[string]*pubsub.Topic
 	bootPeers []string
 
-	mu       sync.Mutex
-	streams  map[peer.ID]stream
-	incoming chan *pt.Pos33Msg
-	outgoing chan *smsg
-	// fsCh       chan []byte
+	mu         sync.Mutex
+	streams    map[peer.ID]stream
+	incoming   chan *pt.Pos33Msg
+	outgoing   chan *smsg
 	raddrPid   string
 	peersTopic string
 }
@@ -99,11 +95,6 @@ func (g *gossip2) bootstrap(addrs ...string) error {
 	return nil
 }
 
-// type stream struct {
-// 	s  network.Stream
-// 	w  *bufio.Writer
-// 	wc pio.WriteCloser
-// }
 type stream WriteCloser
 
 const defaultMaxSize = 1024 * 1024 * 128
@@ -129,13 +120,12 @@ func newGossip2(priv ccrypto.PrivKey, port int, ns string, fs []string, forwardP
 	}
 
 	g := &gossip2{
-		h:        h,
-		tmap:     make(map[string]*pubsub.Topic),
-		streams:  make(map[peer.ID]stream),
-		incoming: make(chan *pt.Pos33Msg, 16),
-		outgoing: make(chan *smsg, 16),
-		C:        make(chan []byte, 1024),
-		// fsCh:       make(chan []byte, 16),
+		h:          h,
+		tmap:       make(map[string]*pubsub.Topic),
+		streams:    make(map[peer.ID]stream),
+		incoming:   make(chan *pt.Pos33Msg, 16),
+		outgoing:   make(chan *smsg, 16),
+		C:          make(chan []byte, 1024),
 		raddrPid:   ns + "/" + remoteAddrID,
 		peersTopic: ns + "-" + pos33Peerstore,
 	}
@@ -218,16 +208,13 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool)
 	if forwardPeers {
 		go g.sendPeerstore(g.h)
 	}
-	// go g.fsLoop(fs)
 }
 
 func (g *gossip2) gossip(topic string, data []byte) error {
 	t, ok := g.tmap[topic]
 	if !ok {
-		panic("can't go here")
-		// return fmt.Errorf("%s topic NOT match", topic)
+		return fmt.Errorf("%s topic NOT match", topic)
 	}
-	// plog.Debug("gossip data", "len", len(data))
 	return t.Publish(context.Background(), data)
 }
 
@@ -246,15 +233,6 @@ func pub2pid(pub []byte) (peer.ID, error) {
 	return pid, nil
 }
 
-// func (s *stream) writeMsg(msg types.Message) error {
-// 	err := s.wc.WriteMsg(msg)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return s.w.Flush()
-// }
-
 func (g *gossip2) newStream(pid peer.ID) (stream, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -265,8 +243,6 @@ func (g *gossip2) newStream(pid peer.ID) (stream, error) {
 			plog.Error("newStream error", "err", err)
 			return nil, err
 		}
-		// w := bufio.NewWriter(s)
-		// st = &stream{s: s, w: w, wc: pio.NewDelimitedWriter(w)}
 		w := NewDelimitedWriter(s)
 		g.streams[pid] = w
 		st = w
@@ -441,15 +417,3 @@ func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
 		}
 	}()
 }
-
-// func peerAddr(h host.Host) multiaddr.Multiaddr {
-// 	peerInfo := &{
-// 		ID:    h.ID(),
-// 		Addrs: h.Addrs(),
-// 	}
-// 	addrs, err := peerstore.InfoToP2pAddrs(peerInfo)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return addrs[0]
-// }
