@@ -85,6 +85,7 @@ func init() {
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(Pos33TicketX, "Enable", 0)
 	cfg.RegisterDappFork(Pos33TicketX, "ForkReward15", 725000)
+	cfg.RegisterDappFork(Pos33TicketX, "ForkFixReward", 5000000)
 }
 
 func InitExecutor(cfg *types.Chain33Config) {
@@ -129,6 +130,7 @@ func (ticket Pos33TicketType) Amount(tx *types.Transaction) (int64, error) {
 	}
 	cfg := ticket.GetConfig()
 	reward := cfg.GetCoinPrecision() * 22 / 100
+	reward /= 2
 	if action.Ty == Pos33TicketActionMiner && action.GetMiner() != nil {
 		ticketMiner := action.GetMiner()
 		if ticketMiner == nil {

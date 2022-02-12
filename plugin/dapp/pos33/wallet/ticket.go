@@ -149,86 +149,83 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 	return policy.onAddOrDeleteBlockTx(block, tx, index, dbbatch, true)
 }
 func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch, isAdd bool) *types.WalletTxDetail {
-	return nil
-	/*
-		receipt := block.Receipts[index]
-		amount, _ := tx.Amount()
-		wtxdetail := &types.WalletTxDetail{
-			Tx:         tx,
-			Height:     block.Block.Height,
-			Index:      int64(index),
-			Receipt:    receipt,
-			Blocktime:  block.Block.BlockTime,
-			ActionName: tx.ActionName(),
-			Amount:     amount,
-			Payload:    nil,
-		}
-		isMaker := false
-		if len(wtxdetail.Fromaddr) <= 0 {
-			pubkey := tx.Signature.GetPubkey()
-			address := address.PubKeyToAddress(pubkey)
-			//from addr
-			fromaddress := address.String()
-			if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
-				wtxdetail.Fromaddr = fromaddress
-				if index == 0 {
-					isMaker = true
-				}
+	receipt := block.Receipts[index]
+	amount, _ := tx.Amount()
+	wtxdetail := &types.WalletTxDetail{
+		Tx:         tx,
+		Height:     block.Block.Height,
+		Index:      int64(index),
+		Receipt:    receipt,
+		Blocktime:  block.Block.BlockTime,
+		ActionName: tx.ActionName(),
+		Amount:     amount,
+		Payload:    nil,
+	}
+	isMaker := false
+	if len(wtxdetail.Fromaddr) <= 0 {
+		pubkey := tx.Signature.GetPubkey()
+		address := address.PubKeyToAddress(pubkey)
+		//from addr
+		fromaddress := address.String()
+		if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
+			wtxdetail.Fromaddr = fromaddress
+			if index == 0 {
+				isMaker = true
 			}
 		}
-		if len(wtxdetail.Fromaddr) <= 0 {
-			toaddr := tx.GetTo()
-			if len(toaddr) != 0 && policy.walletOperate.AddrInWallet(toaddr) {
-				wtxdetail.Fromaddr = toaddr
-			}
+	}
+	if len(wtxdetail.Fromaddr) <= 0 {
+		toaddr := tx.GetTo()
+		if len(toaddr) != 0 && policy.walletOperate.AddrInWallet(toaddr) {
+			wtxdetail.Fromaddr = toaddr
 		}
-		//  如果奖励交易里包含钱包地址的投票，那么fromaddr = voter.addr
-		if index == 0 {
-			var pact ty.Pos33TicketAction
-			err := types.Decode(tx.Payload, &pact)
+	}
+	//  如果奖励交易里包含钱包地址的投票，那么fromaddr = voter.addr
+	if index == 0 {
+		var pact ty.Pos33TicketAction
+		err := types.Decode(tx.Payload, &pact)
+		if err != nil {
+			bizlog.Error("pos33action decode error", "err", err)
+			return nil
+		}
+		mact := pact.GetMiner()
+		n := int64(0)
+		for _, pk := range mact.BlsPkList {
+			addr := address.PubKeyToAddr(pk)
+			msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: addr})
 			if err != nil {
-				bizlog.Error("pos33action decode error", "err", err)
-				return nil
+				break
 			}
-			mact := pact.GetMiner()
-			n := int64(0)
-			for _, pk := range mact.BlsPkList {
-				addr := address.PubKeyToAddr(pk)
-				msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: addr})
-				if err != nil {
-					break
-				}
-				raddr := msg.(*types.ReplyString).Data
-				if len(addr) != 0 && policy.walletOperate.AddrInWallet(raddr) {
-					wtxdetail.Fromaddr = raddr
-					n++
-				}
-			}
-			if !isMaker {
-				wtxdetail.Amount = 0
-			}
-			cfg := policy.getAPI().GetConfig()
-			coin := cfg.GetCoinPrecision()
-			if cfg.IsDappFork(block.Block.Height, ty.Pos33TicketX, "ForkReward15") {
-				wtxdetail.Amount += coin / 4 * n
-			} else {
-				wtxdetail.Amount += coin / 2 * n
+			raddr := msg.(*types.ReplyString).Data
+			if len(addr) != 0 && policy.walletOperate.AddrInWallet(raddr) {
+				wtxdetail.Fromaddr = raddr
+				n++
 			}
 		}
+		if !isMaker {
+			wtxdetail.Amount = 0
+		}
+		cfg := policy.getAPI().GetConfig()
+		coin := cfg.GetCoinPrecision()
+		if cfg.IsDappFork(block.Block.Height, ty.Pos33TicketX, "ForkReward15") {
+			wtxdetail.Amount += coin / 4 * n
+		} else {
+			wtxdetail.Amount += coin / 2 * n
+		}
+	}
 
-		if policy.checkNeedFlushPos33Ticket(tx, receipt) {
-			policy.needFlush = true
-		}
+	if policy.checkNeedFlushPos33Ticket(tx, receipt) {
+		policy.needFlush = true
+	}
 
-		if len(wtxdetail.Fromaddr) > 0 {
-			if isAdd {
-				bizlog.Info("wallet block added", "height", block.Block.Height, "from", wtxdetail.Fromaddr, "amount", wtxdetail.Amount)
-			} else {
-				bizlog.Info("wallet block delete", "height", block.Block.Height, "from", wtxdetail.Fromaddr, "amount", wtxdetail.Amount)
-			}
+	if len(wtxdetail.Fromaddr) > 0 {
+		if isAdd {
+			bizlog.Info("wallet block added", "height", block.Block.Height, "from", wtxdetail.Fromaddr, "amount", wtxdetail.Amount)
+		} else {
+			bizlog.Info("wallet block delete", "height", block.Block.Height, "from", wtxdetail.Fromaddr, "amount", wtxdetail.Amount)
 		}
-		return wtxdetail
-	*/
+	}
+	return wtxdetail
 }
 
 // OnDeleteBlockTx on delete block
