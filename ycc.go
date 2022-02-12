@@ -64,16 +64,16 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-coinReward=15
-coinDevFund=15
+#coinReward=15
+#coinDevFund=15
 ticketPrice=10000
-retargetAdjustmentFactor=4
-futureBlockTime=5
-ticketFrozenTime=43200
-ticketWithdrawTime=10
-ticketMinerWaitTime=7200
-targetTimespan=2160
-targetTimePerBlock=15
+#retargetAdjustmentFactor=4
+#futureBlockTime=5
+#ticketFrozenTime=43200
+#ticketWithdrawTime=10
+#ticketMinerWaitTime=7200
+#targetTimespan=2160
+#targetTimePerBlock=15
 
 [store]
 

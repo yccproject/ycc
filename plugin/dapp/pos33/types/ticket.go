@@ -177,16 +177,16 @@ type Pos33TicketMinerParam struct {
 func GetPos33TicketMinerParam(cfg *types.Chain33Config, height int64) *Pos33TicketMinerParam {
 	conf := types.Conf(cfg, "mver.consensus.pos33")
 	c := &Pos33TicketMinerParam{}
-	c.CoinDevFund = conf.MGInt("coinDevFund", height) * cfg.GetCoinPrecision()
-	c.CoinReward = conf.MGInt("coinReward", height) * cfg.GetCoinPrecision()
-	c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
+	// c.CoinDevFund = conf.MGInt("coinDevFund", height) * cfg.GetCoinPrecision()
+	// c.CoinReward = conf.MGInt("coinReward", height) * cfg.GetCoinPrecision()
+	// c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
 	c.Pos33TicketPrice = conf.MGInt("ticketPrice", height) * cfg.GetCoinPrecision()
-	c.Pos33TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
-	c.Pos33TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
-	c.Pos33TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
-	c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
-	c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
-	c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
+	// c.Pos33TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
+	// c.Pos33TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
+	// c.Pos33TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
+	// c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
+	// c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
+	// c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
 	return c
 }
 
