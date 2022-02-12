@@ -146,7 +146,13 @@ func (policy *ticketPolicy) Call(funName string, in types.Message) (ret types.Me
 
 // OnAddBlockTx add Block tx
 func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
-	return policy.onAddOrDeleteBlockTx(block, tx, index, dbbatch, true)
+	cfg := policy.getAPI().GetConfig()
+	ok := cfg.IsEnable("mver.consensus.addWalletTx")
+	if ok {
+		return policy.onAddOrDeleteBlockTx(block, tx, index, dbbatch, true)
+	}
+	bizlog.Info("OnAddBlockTx mver.consensus.addWalletTx is disabled")
+	return nil
 }
 func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch, isAdd bool) *types.WalletTxDetail {
 	receipt := block.Receipts[index]
