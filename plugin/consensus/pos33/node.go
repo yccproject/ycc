@@ -411,31 +411,39 @@ func (n *node) runVerifyVotes() {
 	}
 }
 func (n *node) verifyVotes(vs []*pt.Pos33VoteMsg) bool {
-	ch := make(chan bool)
-	j := 0
+	ch := make(chan bool, len(vs))
+	defer close(ch)
 	k := 0
-	rok := true
+
+FOR:
 	for _, v := range vs {
+		n.vCh <- vArg{v, ch}
+		k++ // 发送请求数量
+
+		// 测试处理结果，如果有失败，就退出
 		select {
-		case n.vCh <- vArg{v, ch}:
-			k++
 		case ok := <-ch:
-			j++
+			ch <- ok // 发送回 ch
 			if !ok {
-				rok = false
-				goto END
+				break FOR
 			}
+		default:
 		}
 	}
-END:
-	for j < k {
-		ok := <-ch
+
+	j := 0
+	rok := true
+	for ok := range ch {
 		if !ok {
 			rok = false
 		}
+
+		// j用来指示接收的结果数量, 和发送相等时，退出循环，关闭ch
 		j++
+		if k == j {
+			break
+		}
 	}
-	close(ch)
 	return rok
 }
 
