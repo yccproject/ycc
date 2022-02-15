@@ -21,8 +21,6 @@ import (
 
 var plog = log15.New("module", "pos33")
 
-const pos33Topic = "ycc-pos33"
-
 // 区块制作人
 type maker struct {
 	my       *pt.Pos33SortMsg              // 我的抽签
