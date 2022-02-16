@@ -147,7 +147,7 @@ func (policy *ticketPolicy) Call(funName string, in types.Message) (ret types.Me
 // OnAddBlockTx add Block tx
 func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	cfg := policy.getAPI().GetConfig()
-	ok := cfg.IsEnable("mver.consensus.addWalletTx")
+	ok := cfg.MIsEnable("mver.consensus.addWalletTx", block.Block.Height)
 	if ok {
 		return policy.onAddOrDeleteBlockTx(block, tx, index, dbbatch, true)
 	}
