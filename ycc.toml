@@ -32,7 +32,7 @@ isRecordBlockSequence = false
 # 升级storedb是否重新执行localdb，bityuan主链升级不需要开启，平行链升级需要开启
 enableReExecLocal = false
 # 使能精简localdb
-enableReduceLocaldb = true
+enableReduceLocaldb = false
 singleMode = false
 
 [mempool]
@@ -115,8 +115,8 @@ onlyVoter = false
 #forwardPeers = true
 
 [mver.consensus]
-fundKeyAddr = "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt"
 addWalletTx = false
+fundKeyAddr = "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt"
 maxTxNumber = 1000
 powLimitBits = "0x1f00ffff"
 
