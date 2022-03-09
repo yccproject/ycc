@@ -226,6 +226,41 @@ message ReceiptPos33TicketBind {
   string returnAddress = 3;
 }
 
+message Consignee {
+  string address = 1;
+  int64 amount = 2;
+}
+
+message Consignor {
+  string address = 1;
+  int64 amount = 2;
+  int64 reward = 3;
+}
+
+// 委托人
+message Pos33Consignor {
+  string address = 1;
+  repeated Consignee consignees = 2; // 受托人列表
+}
+
+// 受托人
+message Pos33Consignee {
+  string address = 1;
+  int64 amount = 2;
+  int64 fee_reward = 3;
+  double fee_rates = 4;              // percentage
+  repeated Consignor consignors = 5; // 委托人列表
+}
+
+message Pos33Entrust {
+  string consignee = 1;
+  string consignor = 2;
+  int64 amount = 3;
+}
+
+message Pos33Migrate { string miner = 1; }
+message Pos33BlsBind { string BlsAddr = 1; }
+
 message ReqBindPos33Miner {
   string bindAddr = 1;
   string originAddr = 2;
