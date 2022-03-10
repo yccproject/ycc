@@ -159,10 +159,6 @@ func minerReceipt(t int, raddr string, newReward int64) *types.ReceiptLog {
 // GenesisInit init genesis
 func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("NOT support!!! UseEntrust replate")
-	}
-
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 
 	Coin := chain33Cfg.GetCoinPrecision()
@@ -195,11 +191,6 @@ func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receip
 
 // Pos33TicketOpen ticket open
 func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt, error) {
-	chain33Cfg := action.api.GetConfig()
-	if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("NOT support!!! UseEntrust replate")
-	}
-
 	if action.fromaddr != topen.MinerAddress {
 		return nil, errors.New("address NOT match, from address must == miner address")
 	}
@@ -209,6 +200,7 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 		return nil, errors.New("open return address NOT match")
 	}
 
+	chain33Cfg := action.api.GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 
 	//冻结子账户资金
@@ -342,10 +334,6 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 // Pos33TicketClose close tick
 func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("NOT support!!! UseEntrust replate")
-	}
-
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	price := cfg.Pos33TicketPrice
 

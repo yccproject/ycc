@@ -199,19 +199,10 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 }
 
 func (action *Action) Pos33BlsBind(pm *ty.Pos33BlsBind) (*types.Receipt, error) {
-	chain33Cfg := action.api.GetConfig()
-	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
-	}
 	return &types.Receipt{KV: []*types.KeyValue{{Key: BlsKey(pm.BlsAddr), Value: []byte(action.fromaddr)}}}, nil
 }
 
 func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) {
-	chain33Cfg := action.api.GetConfig()
-	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
-	}
-
 	d, err := getDeposit(action.db, pm.Miner)
 	if err != nil {
 		return nil, err
@@ -226,11 +217,6 @@ func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) 
 }
 
 func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) {
-	chain33Cfg := action.api.GetConfig()
-	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
-	}
-
 	if action.fromaddr != pe.Consignor {
 		return nil, types.ErrFromAddr
 	}
@@ -258,6 +244,7 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 		consignee.Consignors = append(consignee.Consignors, consignor)
 	}
 
+	chain33Cfg := action.api.GetConfig()
 	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
 	realAmount := cfg.Pos33TicketPrice * pe.Amount
 

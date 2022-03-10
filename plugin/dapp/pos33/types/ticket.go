@@ -62,6 +62,13 @@ const (
 	Pos33TicketActionMiner = 16
 	// Pos33TicketActionBind action bind
 	Pos33TicketActionBind = 17
+
+	// Pos33ActionEntrust action entrust
+	Pos33ActionEntrust = 18
+	// Pos33ActionMigrate action migrate
+	Pos33ActionMigrate = 19
+	// Pos33ActionBlsBind action bls bind
+	Pos33ActionBlsBind = 20
 )
 
 // Pos33TicketOldParts old tick type
@@ -157,6 +164,9 @@ func (ticket *Pos33TicketType) GetTypeMap() map[string]int32 {
 		"Tbind":   Pos33TicketActionBind,
 		"Tclose":  Pos33TicketActionClose,
 		"Miner":   Pos33TicketActionMiner,
+		"Entrust": Pos33ActionEntrust,
+		"Migrate": Pos33ActionMigrate,
+		"BlsBind": Pos33ActionBlsBind,
 	}
 }
 
