@@ -4,7 +4,6 @@ import (
 	_ "github.com/33cn/plugin/plugin/dapp/autonomy"  //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/evm"       //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/evmxgo"    //auto gen
-	_ "github.com/33cn/plugin/plugin/dapp/exchange"  //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/hashlock"  //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/multisig"  //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/paracross" //auto gen

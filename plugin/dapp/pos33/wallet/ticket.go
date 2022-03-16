@@ -170,9 +170,9 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 	isMaker := false
 	if len(wtxdetail.Fromaddr) <= 0 {
 		pubkey := tx.Signature.GetPubkey()
-		address := address.PubKeyToAddress(pubkey)
+		address := address.PubKeyToAddr(address.DefaultID, pubkey)
 		//from addr
-		fromaddress := address.String()
+		fromaddress := address
 		if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
 			wtxdetail.Fromaddr = fromaddress
 			if index == 0 {
@@ -197,7 +197,7 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		mact := pact.GetMiner()
 		n := int64(0)
 		for _, pk := range mact.BlsPkList {
-			addr := address.PubKeyToAddr(pk)
+			addr := address.PubKeyToAddr(address.DefaultID, pk)
 			msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: addr})
 			if err != nil {
 				break
@@ -313,8 +313,8 @@ func FlushPos33Ticket(api client.QueueProtocolAPI) {
 
 func (policy *ticketPolicy) needFlushPos33Ticket(tx *types.Transaction, receipt *types.ReceiptData) bool {
 	pubkey := tx.Signature.GetPubkey()
-	addr := address.PubKeyToAddress(pubkey)
-	return policy.store.checkAddrIsInWallet(addr.String())
+	addr := address.PubKeyToAddr(address.DefaultID, pubkey)
+	return policy.store.checkAddrIsInWallet(addr)
 }
 
 func (policy *ticketPolicy) checkNeedFlushPos33Ticket(tx *types.Transaction, receipt *types.ReceiptData) bool {
@@ -350,7 +350,7 @@ func (policy *ticketPolicy) isAutoMining() bool {
 }
 
 func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
 	operater := policy.getWalletOperate()
 	acc1, err := operater.GetBalance(addr, "coins")
 	if err != nil {
@@ -389,7 +389,7 @@ func (policy *ticketPolicy) processFees() error {
 }
 
 func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]byte, error) {
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
 	operater := policy.getWalletOperate()
 	acc, err := operater.GetBalance(addr, ty.Pos33TicketX)
 	if err != nil {
@@ -416,7 +416,7 @@ func (policy *ticketPolicy) openticket(mineraddr, raddr string, priv crypto.Priv
 	// }
 
 	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
-	blsaddr := address.PubKeyToAddr(blsPk.Bytes())
+	blsaddr := address.PubKeyToAddr(address.DefaultID, blsPk.Bytes())
 	ta := &ty.Pos33TicketAction{}
 	topen := &ty.Pos33TicketOpen{MinerAddress: mineraddr, BlsAddress: blsaddr, ReturnAddress: raddr, Count: count}
 	ta.Value = &ty.Pos33TicketAction_Topen{Topen: topen}
@@ -425,7 +425,7 @@ func (policy *ticketPolicy) openticket(mineraddr, raddr string, priv crypto.Priv
 }
 
 func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey) ([]byte, int, error) {
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
 	msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33Deposit", &types.ReqAddr{Addr: addr})
 	if err != nil {
 		bizlog.Error("openticket query bind addr error", "error", err, "maddr", addr)
@@ -453,7 +453,7 @@ func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey
 }
 
 func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
 	operater := policy.getWalletOperate()
 
 	acc1, err := operater.GetBalance(addr, "coins")
@@ -551,7 +551,7 @@ func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, 
 	}
 	var minerPriv crypto.PrivKey
 	for _, priv := range privs {
-		if address.PubKeyToAddress(priv.PubKey().Bytes()).String() == minerAddr {
+		if address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()) == minerAddr {
 			minerPriv = priv
 			break
 		}

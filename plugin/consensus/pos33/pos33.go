@@ -179,7 +179,7 @@ func (c *Client) getMyCount() int {
 		plog.Error("privFromBytes", "err", err)
 		return 0
 	}
-	c.myAddr = address.PubKeyToAddr(c.priv.PubKey().Bytes())
+	c.myAddr = address.PubKeyToAddr(address.DefaultID, c.priv.PubKey().Bytes())
 	plog.Debug("getMyCount", "count", c.mycount)
 	return c.mycount
 }

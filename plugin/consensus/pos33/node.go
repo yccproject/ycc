@@ -92,7 +92,7 @@ func (c *committee) getMySorts(myaddr string, height int64) []*pt.Pos33SortMsg {
 	ssmp := c.getCommitteeSorts()
 	var ss []*pt.Pos33SortMsg
 	for _, s := range ssmp {
-		addr := address.PubKeyToAddr(s.Proof.Pubkey)
+		addr := address.PubKeyToAddr(address.DefaultID,s.Proof.Pubkey)
 		if myaddr == addr {
 			ss = append(ss, s)
 		}
@@ -482,7 +482,7 @@ func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte, ty int) error {
 		return errors.New("vote hash NOT right")
 	}
 
-	blsAddr := address.PubKeyToAddr(v.Sig.Pubkey)
+	blsAddr := address.PubKeyToAddr(address.DefaultID,v.Sig.Pubkey)
 	addr, ok := n.blsMp[blsAddr]
 	if !ok {
 		msg, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsAddr})
@@ -492,7 +492,7 @@ func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte, ty int) error {
 		addr = msg.(*types.ReplyString).Data
 		n.blsMp[blsAddr] = addr
 	}
-	sortAddr := address.PubKeyToAddr(v.Sort.Proof.Pubkey)
+	sortAddr := address.PubKeyToAddr(address.DefaultID,v.Sort.Proof.Pubkey)
 	if addr != sortAddr {
 		return errors.New("Pos33BindAddr NOT match")
 	}
@@ -667,7 +667,7 @@ func (n *node) handleVoterSort(ss []*pt.Pos33SortMsg, myself bool, ty int) bool 
 	round := int(s0.Proof.Input.Round)
 	num := int(s0.SortHash.Num)
 	if num >= 3 {
-		plog.Error("handleVoterSort error: sort num >=3", "height", height, "round", round, "num", num, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
+		plog.Error("handleVoterSort error: sort num >=3", "height", height, "round", round, "num", num, "addr", address.PubKeyToAddr(address.DefaultID,s0.Proof.Pubkey)[:16])
 		return false
 	}
 
@@ -687,7 +687,7 @@ func (n *node) handleVoterSort(ss []*pt.Pos33SortMsg, myself bool, ty int) bool 
 	for _, s := range ss {
 		mp[string(s.SortHash.Hash)] = s
 	}
-	// plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
+	// plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(address.DefaultID,s0.Proof.Pubkey)[:16])
 	return true
 }
 
@@ -746,7 +746,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 	vs := maker.mvs[string(m0.Hash)]
 	if len(vs) >= 10 {
-		plog.Info("handleVoteMsg maker", "hash", common.HashHex(m0.Hash)[:16], "allmvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(m0.Sig.Pubkey)[:16])
+		plog.Info("handleVoteMsg maker", "hash", common.HashHex(m0.Hash)[:16], "allmvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(address.DefaultID,m0.Sig.Pubkey)[:16])
 	}
 	if round > 0 {
 		n.tryMakeBlock(height, round)
@@ -829,7 +829,7 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	for _, h := range m.SelectSorts {
 		comm.svmp[string(h)] += len(m.MySorts)
 	}
-	plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
+	plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(address.DefaultID,m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
 }
 
 func (n *node) voteCommittee(height int64, round int) {
@@ -917,7 +917,7 @@ func (n *node) voteMaker(height int64, round int) {
 		}
 		signVotes(n.priv, vs)
 		mvs = append(mvs, &pt.Pos33Votes{Vs: vs})
-		plog.Info("vote maker", "addr", address.PubKeyToAddr(s.Proof.Pubkey)[:16], "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
+		plog.Info("vote maker", "addr", address.PubKeyToAddr(address.DefaultID,s.Proof.Pubkey)[:16], "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
 		break
 	}
 	if len(mvs) == 0 {
@@ -954,7 +954,7 @@ func (n *node) handleMakerSort(m *pt.Pos33SortMsg, myself bool) {
 			return
 		}
 		if !checkTime(m.SortHash.Time) {
-			plog.Error("handleSort time NOT right", "height", height, "addr", address.PubKeyToAddr(m.Proof.Pubkey)[:16])
+			plog.Error("handleSort time NOT right", "height", height, "addr", address.PubKeyToAddr(address.DefaultID,m.Proof.Pubkey)[:16])
 			return
 		}
 	}
@@ -964,7 +964,7 @@ func (n *node) handleMakerSort(m *pt.Pos33SortMsg, myself bool) {
 	if round > 0 && height > n.maxSortHeight {
 		n.maxSortHeight = height
 	}
-	plog.Debug("handleMakerSort", "nmss", len(comm.mss), "height", height, "round", round, "addr", address.PubKeyToAddr(m.Proof.Pubkey)[:16])
+	plog.Debug("handleMakerSort", "nmss", len(comm.mss), "height", height, "round", round, "addr", address.PubKeyToAddr(address.DefaultID,m.Proof.Pubkey)[:16])
 }
 
 func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {

@@ -152,9 +152,6 @@ ForkEVMFrozen=0
 [fork.sub.evmxgo]
 Enable=0
 
-[fork.sub.exchange]
-Enable=0
-
 [fork.sub.ticket]
 Enable=0
 ForkTicketId = 0 

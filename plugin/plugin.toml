@@ -11,8 +11,8 @@ gitrepo = "github.com/33cn/plugin/plugin/dapp/evm"
 [dapp-evmxgo]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/evmxgo"
 
-[dapp-exchange]
-gitrepo = "github.com/33cn/plugin/plugin/dapp/exchange"
+# [dapp-exchange]
+# gitrepo = "github.com/33cn/plugin/plugin/dapp/exchange"
 
 [dapp-retrieve]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/retrieve"
@@ -46,3 +46,6 @@ gitrepo = "github.com/33cn/plugin/plugin/mempool/price"
 
 [store-kvmvccmavl]
 gitrepo = "github.com/33cn/plugin/plugin/store/kvmvccmavl"
+
+[store-kvmvcc]
+gitrepo = "github.com/33cn/plugin/plugin/store/kvmvcc"

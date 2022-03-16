@@ -122,7 +122,7 @@ func bindMiner(cmd *cobra.Command, args []string) {
 	//c, _ := crypto.Load(types.GetSignName(wallet.SignType))
 	//a, _ := common.FromHex(key)
 	//privKey, _ := c.PrivKeyFromBytes(a)
-	//originAddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	//originAddr := account.PubKeyToAddr(address.DefaultID, privKey.PubKey().Bytes()).String()
 	ta := &ty.Pos33TicketAction{}
 	tBind := &ty.Pos33TicketBind{
 		MinerAddress:  bindAddr,
@@ -158,7 +158,7 @@ func blsAddrFromPrivKey(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 	blsSk := ty.Hash2BlsSk(common.Sha256(pb))
-	fmt.Println(address.PubKeyToAddr(blsSk.PubKey().Bytes()))
+	fmt.Println(address.PubKeyToAddr(address.DefaultID, blsSk.PubKey().Bytes()))
 }
 
 func addBlsAddrFlags(cmd *cobra.Command) {
