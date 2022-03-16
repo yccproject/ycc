@@ -36,6 +36,7 @@ func Pos33TicketCmd() *cobra.Command {
 		CountPos33TicketCmd(),
 		ClosePos33TicketCmd(),
 		GetDepositCmd(),
+		SetEntrustCmd(),
 	)
 
 	return cmd
@@ -64,6 +65,58 @@ func Pos33TicketCmd() *cobra.Command {
 // 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33Deposit", &types.ReqAddr{Addr: addr}, &res)
 // 	ctx.Run()
 // }
+
+func SetEntrustCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "entrust",
+		Short: "set entrust opration",
+		Run:   setEntrust,
+	}
+	addSetEntrustFlags(cmd)
+	return cmd
+}
+
+func addSetEntrustFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("consignor", "r", "", "address for consignor")
+	cmd.Flags().StringP("consignee", "e", "", "address for consignee")
+	cmd.Flags().IntP("amount", "a", 1000, "amount of entrust, if < 0, unentrust")
+	cmd.MarkFlagRequired("consignor")
+	cmd.MarkFlagRequired("consignee")
+	cmd.MarkFlagRequired("amount")
+}
+
+func setEntrust(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
+
+	consignor, _ := cmd.Flags().GetString("consignor")
+	consignee, _ := cmd.Flags().GetString("consignee")
+	amount, _ := cmd.Flags().GetInt("amount")
+
+	entrust := &ty.Pos33Entrust{
+		Consignor: consignor,
+		Consignee: consignee,
+		Amount:    int64(amount),
+	}
+	act := &ty.Pos33TicketAction{
+		Ty:    ty.Pos33ActionEntrust,
+		Value: &ty.Pos33TicketAction_Entrust{Entrust: entrust},
+	}
+
+	cfg, err := cmdtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+	rawTx := &types.Transaction{Payload: types.Encode(act)}
+	tx, err := types.FormatTxExt(cfg.ChainID, len(paraName) > 0, cfg.MinTxFeeRate, ty.Pos33TicketX, rawTx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
+}
 
 func GetDepositCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -119,10 +172,6 @@ func bindMiner(cmd *cobra.Command, args []string) {
 	}
 	bindAddr, _ := cmd.Flags().GetString("bind_addr")
 	originAddr, _ := cmd.Flags().GetString("origin_addr")
-	//c, _ := crypto.Load(types.GetSignName(wallet.SignType))
-	//a, _ := common.FromHex(key)
-	//privKey, _ := c.PrivKeyFromBytes(a)
-	//originAddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	ta := &ty.Pos33TicketAction{}
 	tBind := &ty.Pos33TicketBind{
 		MinerAddress:  bindAddr,

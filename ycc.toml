@@ -1,5 +1,6 @@
 FxTime = true
 Title = "ycc"
+TxHeight = true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit

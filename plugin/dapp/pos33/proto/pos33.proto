@@ -33,6 +33,7 @@ message Pos33TicketAction {
     Pos33TicketGenesis genesis = 2;
     Pos33TicketClose tclose = 3;
     Pos33MinerMsg miner = 6;
+    Pos33Entrust entrust = 7;
   }
   int32 ty = 10;
 }
@@ -269,8 +270,11 @@ message ReqBindPos33Miner {
 }
 
 message ReplyBindPos33Miner { string txHex = 1; }
+message ReplyTxHex { string txHex = 1; }
 
 service pos33 {
+  // 创建entrust
+  rpc SetEntrust(Pos33Entrust) returns (ReplyTxHex) {}
   //创建绑定挖矿
   rpc CreateBindMiner(ReqBindPos33Miner) returns (ReplyBindPos33Miner) {}
   //查询钱包票数

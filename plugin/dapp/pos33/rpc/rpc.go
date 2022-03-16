@@ -202,3 +202,25 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindPos33
 	}
 	return bindMiner(cfg, in)
 }
+
+// SetEntrust create entrust
+func (g *channelClient) SetEntrust(ctx context.Context, in *ty.Pos33Entrust) (*ty.ReplyTxHex, error) {
+	cfg := g.GetConfig()
+	data, err := types.CallCreateTx(cfg, cfg.ExecName(ty.Pos33TicketX), "entrust", in)
+	if err != nil {
+		return nil, err
+	}
+
+	hex := common.ToHex(data)
+	return &ty.ReplyTxHex{TxHex: hex}, nil
+}
+
+// SetEntrust create entrust
+func (c *Jrpc) SetEntrust(in *ty.Pos33Entrust, result *interface{}) error {
+	r, err := c.cli.SetEntrust(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	*result = r
+	return nil
+}

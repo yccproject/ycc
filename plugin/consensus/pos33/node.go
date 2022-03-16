@@ -121,18 +121,13 @@ func (m *maker) checkVotes(height int64, vs []*pt.Pos33VoteMsg) (int, error) {
 }
 
 func (c *committee) getCommitteeSorts() map[string]*pt.Pos33SortMsg {
-	if len(c.ssmp) > 0 {
-		return c.ssmp
-	}
 	num := int(pt.Pos33VoterSize)
-
 	var ss []*pt.Pos33SortMsg
 	for i := 0; num > 0 && i < 3; i++ {
 		ss1 := getSorts(c.css[i], num)
 		ss = append(ss, ss1...)
 		num -= len(ss1)
 	}
-
 	for _, s := range ss {
 		c.ssmp[string(s.SortHash.Hash)] = s
 	}
@@ -267,6 +262,7 @@ func (n *node) newBlock(lastBlock *types.Block, txs []*types.Transaction, height
 
 	maxTxs := int(cfg.GetP(height).MaxTxNumber)
 	txs = append(txs, n.RequestTx(maxTxs, nil)...)
+	plog.Info("newBlock", "height", height, "ntx", len(txs))
 	txs = n.AddTxsToBlock(nb, txs)
 
 	nb.Txs = txs
@@ -296,10 +292,6 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	nb.Difficulty = n.blockDiff(lb, len(vs))
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "hash", common.HashHex(nb.Hash(n.GetAPI().GetConfig()))[:16])
 
-	nb = n.PreExecBlock(nb, false)
-	if nb == nil {
-		return nil, errors.New("PreExccBlock error")
-	}
 	return nb, nil
 }
 
@@ -687,7 +679,7 @@ func (n *node) handleVoterSort(ss []*pt.Pos33SortMsg, myself bool, ty int) bool 
 	for _, s := range ss {
 		mp[string(s.SortHash.Hash)] = s
 	}
-	// plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
+	plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(s0.Proof.Pubkey)[:16])
 	return true
 }
 
