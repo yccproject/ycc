@@ -64,16 +64,7 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-#coinReward=15
-#coinDevFund=15
 ticketPrice=10000
-#retargetAdjustmentFactor=4
-#futureBlockTime=5
-#ticketFrozenTime=43200
-#ticketWithdrawTime=10
-#ticketMinerWaitTime=7200
-#targetTimespan=2160
-#targetTimePerBlock=15
 
 [store]
 
@@ -108,7 +99,7 @@ useBalance=false
 [fork.system]
 ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash=5000000
+ForkBlockHash=0
 ForkMinerTime=0
 ForkTransferExec=0
 ForkExecKey=0
@@ -137,8 +128,10 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkReward15=725000 
-ForkFixReward=5000000
+ForkReward15=0
+ForkFixReward=0
+UseEntrust=0
+
 
 [fork.sub.evm]
 Enable=0
@@ -152,12 +145,6 @@ ForkEVMFrozen=0
 [fork.sub.evmxgo]
 Enable=0
 
-<<<<<<< HEAD
-[fork.sub.exchange]
-Enable=0
-
-=======
->>>>>>> master
 [fork.sub.ticket]
 Enable=0
 ForkTicketId = 0 
