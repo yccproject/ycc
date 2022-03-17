@@ -41,7 +41,7 @@ func (policy *ticketPolicy) On_WalletGetPos33Count(req *types.ReqNil) (types.Mes
 	if err != nil {
 		return nil, err
 	}
-	addr := address.PubKeyToAddr(priv.PubKey().Bytes())
+	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
 	api := policy.getAPI()
 	msg, err := api.Query(ty.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
 	if err != nil {

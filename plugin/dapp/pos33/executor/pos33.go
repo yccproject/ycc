@@ -120,7 +120,7 @@ func (act *Action) voteReward(mp map[string]int, reward int64) (*types.Receipt, 
 }
 
 func (act *Action) getFromBls(pk []byte) (string, error) {
-	val, err := act.db.Get(BlsKey(address.PubKeyToAddr(pk)))
+	val, err := act.db.Get(BlsKey(address.PubKeyToAddr(address.DefaultID, pk)))
 	if err != nil {
 		return "", err
 	}

@@ -542,7 +542,11 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
+<<<<<<< HEAD
 	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
+=======
+	addrto := address.PubKeyToAddr(address.DefaultID, privto.PubKey().Bytes())
+>>>>>>> master
 	fmt.Println("addr:", addrto.String())
 	return addrto.String(), privto
 }

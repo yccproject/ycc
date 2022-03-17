@@ -152,9 +152,12 @@ ForkEVMFrozen=0
 [fork.sub.evmxgo]
 Enable=0
 
+<<<<<<< HEAD
 [fork.sub.exchange]
 Enable=0
 
+=======
+>>>>>>> master
 [fork.sub.ticket]
 Enable=0
 ForkTicketId = 0 

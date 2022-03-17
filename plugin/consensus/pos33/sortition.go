@@ -113,7 +113,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 	}
 
 	msgs := n.doSort(vrfHash, count, num, diff, proof)
-	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(address.DefaultID, proof.Pubkey)[:16])
 	return msgs
 }
 
@@ -145,7 +145,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		}
 	}
 
-	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16], "sortHash", minSort != nil)
+	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(address.DefaultID, proof.Pubkey)[:16], "sortHash", minSort != nil)
 	return minSort
 }
 
@@ -187,7 +187,7 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 		return fmt.Errorf("verifySort error: sort msg is nil")
 	}
 
-	addr := address.PubKeyToAddr(m.Proof.Pubkey)
+	addr := address.PubKeyToAddr(address.DefaultID, m.Proof.Pubkey)
 	d, err := n.queryDeposit(addr)
 	if err != nil {
 		return err
@@ -229,7 +229,7 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(address.DefaultID, m.Proof.Pubkey))
 		return errDiff
 	}
 

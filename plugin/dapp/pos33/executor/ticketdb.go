@@ -222,7 +222,7 @@ func saddr(sig *types.Signature) string {
 	if sig == nil {
 		return ""
 	}
-	return address.PubKeyToAddress(sig.Pubkey).String()
+	return address.PubKeyToAddr(address.DefaultID, sig.Pubkey)
 }
 
 func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Receipt, error) {
@@ -264,7 +264,7 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 
 	// reward voters
 	for _, pk := range miner.BlsPkList {
-		val, err := action.db.Get(BlsKey(address.PubKeyToAddr(pk)))
+		val, err := action.db.Get(BlsKey(address.PubKeyToAddr(address.DefaultID, pk)))
 		if err != nil {
 			return nil, err
 		}
@@ -396,7 +396,7 @@ func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt
 	}
 	//"" 表示设置为空
 	if len(tbind.MinerAddress) > 0 {
-		if err := address.CheckAddress(tbind.MinerAddress); err != nil {
+		if err := address.CheckAddress(tbind.MinerAddress, action.height); err != nil {
 			return nil, err
 		}
 	}

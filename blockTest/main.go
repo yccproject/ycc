@@ -67,7 +67,11 @@ func getRewardMap(height int64) (map[string]*rewardT, error) {
 	// 遍历投票
 	mp := make(map[string]*rewardT)
 	for _, v := range ma.Vs {
+<<<<<<< HEAD
 		addr := address.PubKeyToAddr(v.Sig.Pubkey)
+=======
+		addr := address.PubKeyToAddr(address.DefaultID, v.Sig.Pubkey)
+>>>>>>> master
 		r, ok := mp[addr]
 		if !ok {
 			r = &rewardT{}
@@ -80,7 +84,11 @@ func getRewardMap(height int64) (map[string]*rewardT, error) {
 
 	// 解析出块证明
 	nv := len(ma.Vs)
+<<<<<<< HEAD
 	minerAddr := address.PubKeyToAddr(ma.Sort.Proof.Pubkey)
+=======
+	minerAddr := address.PubKeyToAddr(address.DefaultID, ma.Sort.Proof.Pubkey)
+>>>>>>> master
 	r, ok := mp[minerAddr]
 	if !ok {
 		r = &rewardT{}

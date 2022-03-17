@@ -21,6 +21,10 @@ import (
 	grpc "github.com/33cn/chain33/rpc/grpcclient"
 	jrpc "github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
+<<<<<<< HEAD
+=======
+	"github.com/33cn/chain33/system/crypto/secp256k1"
+>>>>>>> master
 	ctypes "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	_ "github.com/33cn/plugin/plugin"
@@ -122,6 +126,7 @@ type pp struct {
 type Tx = types.Transaction
 
 func run(privs []crypto.PrivKey) {
+<<<<<<< HEAD
 	hch := make(chan int64, 100)
 	ch := generateTxs(privs, hch)
 	tch := time.NewTicker(time.Second * 10).C
@@ -135,6 +140,16 @@ func run(privs []crypto.PrivKey) {
 	max := 256
 	txs := make([]*types.Transaction, max)
 	for tx := range ch {
+=======
+	hch := make(chan int64, 10)
+	hch <- 0
+	ch := generateTxs(privs, hch)
+	tch := time.NewTicker(time.Second * 10).C
+	i := 0
+	height := int64(0)
+	txs := make([]*types.Transaction, 0, 200)
+	for {
+>>>>>>> master
 		select {
 		case <-tch:
 			if *useGrpc {
@@ -152,6 +167,7 @@ func run(privs []crypto.PrivKey) {
 				}
 				height = res.Height
 			}
+<<<<<<< HEAD
 		default:
 		}
 		hch <- height
@@ -164,6 +180,20 @@ func run(privs []crypto.PrivKey) {
 		}
 		if i%1000 == 0 {
 			log.Println(i, "... txs sent")
+=======
+		case tx := <-ch:
+			txs = append(txs, tx)
+			if len(txs) == 200 {
+				sendTxs(txs)
+				txs = nil
+				hch <- height
+				//time.Sleep(time.Microsecond * time.Duration(*rn))
+				i++
+				if i%1000 == 0 {
+					log.Println(i, "... txs sent")
+				}
+			}
+>>>>>>> master
 		}
 	}
 }
@@ -176,8 +206,12 @@ func generateTxs(privs []crypto.PrivKey, hch <-chan int64) chan *Tx {
 		for {
 			i := rand.Intn(len(privs))
 			signer := privs[l-i]
+<<<<<<< HEAD
 			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddress(privs[i].PubKey().Bytes()).String(), <-hch)
 			// ch <- newTx(signer, 1, address.PubKeyToAddress(privs[i].PubKey().Bytes()).String())
+=======
+			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(address.DefaultID, privs[i].PubKey().Bytes()).String(), <-hch)
+>>>>>>> master
 		}
 	}
 	for i := 0; i < N; i++ {
@@ -190,6 +224,7 @@ func sendTxs(txs []*Tx) error {
 	ts := &types.Transactions{Txs: txs}
 	var err error
 	if *useGrpc {
+<<<<<<< HEAD
 		_, err := gClient.SendTransactions(context.Background(), ts)
 		if err != nil {
 			panic(err)
@@ -197,6 +232,11 @@ func sendTxs(txs []*Tx) error {
 	} else {
 		err = errors.New("not support grpc in batch send txs")
 		panic(err)
+=======
+		_, err = gClient.SendTransactions(context.Background(), ts)
+	} else {
+		return errors.New("not support grpc in batch send txs")
+>>>>>>> master
 		// err = jClient.Call("Chain33.SendTransaction", &rpctypes.RawParm{Data: common.ToHex(types.Encode(tx))}, &txHash)
 	}
 	if err != nil {
@@ -233,23 +273,38 @@ func sendTx(tx *Tx) error {
 func runSendInitTxs(privCh chan crypto.PrivKey) {
 	ch := make(chan *Tx, 16)
 	go runGenerateInitTxs(privCh, ch)
+<<<<<<< HEAD
 	max := 256
 	i := 0
 	txs := make([]*types.Transaction, max)
+=======
+	i := 0
+	txs := make([]*types.Transaction, 0)
+>>>>>>> master
 	for {
 		tx, ok := <-ch
 		if !ok {
 			log.Println("init txs finished:", i)
 			break
 		}
+<<<<<<< HEAD
 		j := i % max
 		txs[j] = tx
+=======
+>>>>>>> master
 		i++
 		if i%100 == 0 {
 			log.Println("send init txs:", i, len(txs))
 		}
+<<<<<<< HEAD
 		if j == max-1 {
 			sendTxs(txs)
+=======
+		txs = append(txs, tx)
+		if len(txs) == 200 {
+			sendTxs(txs)
+			txs = make([]*types.Transaction, 0)
+>>>>>>> master
 		}
 	}
 }
@@ -261,6 +316,7 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	if err != nil {
 		panic(err)
 	}
+<<<<<<< HEAD
 	// tx.Fee, err = tx.GetRealFee(config.GetMinTxFeeRate())
 	// if err != nil {
 	// 	panic(err)
@@ -269,6 +325,11 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	tx.Expire = height + 20 + types.TxHeightFlag
 	tx.ChainID = 999
 	tx.Fee *= 100
+=======
+	tx.Fee = config.GetMaxTxFee()
+	tx.To = to
+	tx.Expire = height + 20 + types.TxHeightFlag
+>>>>>>> master
 	if *sign {
 		tx.Sign(types.SECP256K1, priv)
 	}
@@ -282,6 +343,7 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	if err != nil {
 		panic(err)
 	}
+<<<<<<< HEAD
 	// tx.Fee, err = tx.GetRealFee(config.GetMinTxFeeRate())
 	// if err != nil {
 	// 	panic(err)
@@ -289,6 +351,10 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	tx.Fee *= 100
 	tx.To = to
 	tx.ChainID = 999
+=======
+	tx.Fee = config.GetMaxTxFee()
+	tx.To = to
+>>>>>>> master
 	if *sign {
 		tx.Sign(types.SECP256K1, priv)
 	}
@@ -297,7 +363,11 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 
 //HexToPrivkey ： convert hex string to private key
 func HexToPrivkey(key string) crypto.PrivKey {
+<<<<<<< HEAD
 	cr, err := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
+=======
+	cr, err := crypto.New(secp256k1.Name)
+>>>>>>> master
 	if err != nil {
 		panic(err)
 	}
@@ -320,6 +390,7 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 			close(ch)
 			return
 		}
+<<<<<<< HEAD
 		m := 1000 * types.DefaultCoinPrecision
 		ch <- newTx(rootKey, m, address.PubKeyToAddress(priv.PubKey().Bytes()).String())
 	}
@@ -338,6 +409,25 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 // 	}
 // 	log.Println(n, len(privs))
 // }
+=======
+		m := 100 * types.DefaultCoinPrecision
+		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()).String())
+	}
+}
+func generateInitTxs(n int, privs []crypto.PrivKey, ch chan *Tx, done chan struct{}) {
+	for _, priv := range privs {
+		select {
+		case <-done:
+			return
+		default:
+		}
+
+		m := 100 * types.DefaultCoinPrecision
+		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()).String())
+	}
+	log.Println(n, len(privs))
+}
+>>>>>>> master
 
 //
 func runGenerateAccounts(max int, pksCh chan []crypto.PrivKey) {
@@ -348,7 +438,11 @@ func runGenerateAccounts(max int, pksCh chan []crypto.PrivKey) {
 	ch := make(chan pp, goN)
 	done := make(chan struct{}, 1)
 
+<<<<<<< HEAD
 	c, _ := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
+=======
+	c, _ := crypto.New(secp256k1.Name)
+>>>>>>> master
 	for i := 0; i < goN; i++ {
 		go func() {
 			for {
@@ -433,7 +527,11 @@ func loadAccounts(filename string, max int) []crypto.PrivKey {
 	privs := make([]crypto.PrivKey, ln)
 
 	n = 32
+<<<<<<< HEAD
 	c, _ := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
+=======
+	c, _ := crypto.New(secp256k1.Name)
+>>>>>>> master
 	for i := 0; i < ln; i++ {
 		p := b[:n]
 		priv, err := c.PrivKeyFromBytes(p)
@@ -445,7 +543,11 @@ func loadAccounts(filename string, max int) []crypto.PrivKey {
 		if i%10000 == 0 {
 			log.Println("load acc:", i)
 		}
+<<<<<<< HEAD
 		log.Println("account: ", address.PubKeyToAddr(priv.PubKey().Bytes()))
+=======
+		log.Println("account: ", address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
+>>>>>>> master
 	}
 	log.Println("loadAccount: ", len(privs))
 	return privs
@@ -499,7 +601,11 @@ func runLoadAccounts(filename string, max int) chan crypto.PrivKey {
 
 	go func() {
 		n = 32
+<<<<<<< HEAD
 		c, _ := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
+=======
+		c, _ := crypto.New(secp256k1.Name)
+>>>>>>> master
 		for i := 0; i < ln; i++ {
 			p := b[:n]
 			priv, err := c.PrivKeyFromBytes(p)

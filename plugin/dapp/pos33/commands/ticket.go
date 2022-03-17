@@ -207,7 +207,7 @@ func blsAddrFromPrivKey(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 	blsSk := ty.Hash2BlsSk(common.Sha256(pb))
-	fmt.Println(address.PubKeyToAddr(blsSk.PubKey().Bytes()))
+	fmt.Println(address.PubKeyToAddr(address.DefaultID, blsSk.PubKey().Bytes()))
 }
 
 func addBlsAddrFlags(cmd *cobra.Command) {
