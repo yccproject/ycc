@@ -199,21 +199,31 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 }
 
 func (action *Action) Pos33BlsBind(pm *ty.Pos33BlsBind) (*types.Receipt, error) {
+	tlog.Info("Pos33BlsBind", "blsaddr", pm.BlsAddr, "minerAddr", action.fromaddr)
 	return &types.Receipt{KV: []*types.KeyValue{{Key: BlsKey(pm.BlsAddr), Value: []byte(action.fromaddr)}}}, nil
 }
 
 func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) {
+	if action.fromaddr != pm.Miner {
+		return nil, types.ErrFromAddr
+	}
+
 	d, err := getDeposit(action.db, pm.Miner)
 	if err != nil {
 		return nil, err
 	}
+	// delete old deposit
+	kv := &types.KeyValue{Key: Key(pm.Miner), Value: nil}
+
+	// set net entrust
 	consignor := &ty.Consignor{Address: d.Raddr, Amount: d.Count, Reward: d.Reward}
 	consignee, err := action.getConsignee(pm.Miner)
 	if err != nil {
 		consignee = &ty.Pos33Consignee{Address: pm.Miner, Amount: d.Count}
 	}
 	consignee.Consignors = append(consignee.Consignors, consignor)
-	return &types.Receipt{KV: action.updateConsignee(pm.Miner, consignee)}, nil
+	tlog.Info("Pos33Migrate", "miner", pm.Miner, "raddr", d.Raddr, "amount", d.Count)
+	return &types.Receipt{KV: append(action.updateConsignee(pm.Miner, consignee), kv)}, nil
 }
 
 func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) {
@@ -280,6 +290,8 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 	if err != nil {
 		return nil, err
 	}
+	tlog.Info("Pos33Entrust set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount, "consignor amount", consignor.Amount, "consignee amount", consignee.Amount)
+
 	kvs = append(kvs, action.updateConsignee(pe.Consignee, consignee)...)
 	receipt.KV = append(receipt.KV, kvs...)
 	return receipt, nil

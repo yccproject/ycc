@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -408,6 +409,29 @@ func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]b
 	return nil, nil
 }
 
+func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
+	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
+	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
+	blsaddr := address.PubKeyToAddr(address.DefaultID, blsPk.Bytes())
+	m, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsaddr})
+	if err == nil {
+		retAddr := string(m.(*types.ReplyString).Data)
+		if addr != retAddr {
+			bizlog.Error("blsbind error, bind addr NOT same", "addr", addr, "retAddr", retAddr)
+			return nil, errors.New("blsbind error")
+		}
+		bizlog.Info("already bind blsaddr", "blsaddr", blsaddr, "addr", addr)
+		return nil, nil
+	}
+
+	act := &ty.Pos33TicketAction{
+		Value: &ty.Pos33TicketAction_BlsBind{BlsBind: &ty.Pos33BlsBind{BlsAddr: blsaddr}},
+		Ty:    ty.Pos33ActionBlsBind,
+	}
+	bizlog.Info("bind blsaddr", "blsaddr", blsaddr, "addr", addr)
+	return policy.walletOperate.SendTransaction(act, []byte(ty.Pos33TicketX), priv, "")
+}
+
 func (policy *ticketPolicy) openticket(mineraddr, raddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
 	bizlog.Info("openticket", "mineraddr", mineraddr, "count", count)
 	// if count > ty.Pos33TicketCountOpenOnce {
@@ -500,6 +524,15 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 	minerPriv, _, err := policy.getMiner("")
 	if err != nil {
 		return nil, 0, err
+	}
+
+	chain33Cfg := policy.getAPI().GetConfig()
+	if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "UseEntrust") {
+		hash, err := policy.blsBind(minerPriv)
+		if err != nil {
+			return nil, 0, err
+		}
+		return [][]byte{hash}, 1, nil
 	}
 
 	count := 0

@@ -28,12 +28,14 @@ message Pos33Ticket {
 // message for execs.ticket
 message Pos33TicketAction {
   oneof value {
-    Pos33TicketBind tbind = 5;
     Pos33TicketOpen topen = 1;
     Pos33TicketGenesis genesis = 2;
     Pos33TicketClose tclose = 3;
+    Pos33TicketBind tbind = 5;
     Pos33MinerMsg miner = 6;
     Pos33Entrust entrust = 7;
+    Pos33Migrate migrate = 8;
+    Pos33BlsBind blsBind = 9;
   }
   int32 ty = 10;
 }
