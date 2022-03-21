@@ -188,17 +188,17 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	}
 
 	addr := address.PubKeyToAddr(address.DefaultID, m.Proof.Pubkey)
-	d, err := n.queryDeposit(addr)
-	if err != nil {
-		return err
-	}
-	count := d.Count
-	if d.CloseHeight >= height-pt.Pos33SortBlocks {
-		count = d.PreCount
-	}
-	if count <= m.SortHash.Index {
-		return fmt.Errorf("sort index %d > %d your count, height %d, close-height %d, precount %d", m.SortHash.Index, count, height, d.CloseHeight, d.PreCount)
-	}
+	// d, err := n.queryDeposit(addr)
+	// if err != nil {
+	// 	return err
+	// }
+	// count := d.Count
+	// if d.CloseHeight >= height-pt.Pos33SortBlocks {
+	// 	count = d.PreCount
+	// }
+	// if count <= m.SortHash.Index {
+	// 	return fmt.Errorf("sort index %d > %d your count, height %d, close-height %d, precount %d", m.SortHash.Index, count, height, d.CloseHeight, d.PreCount)
+	// }
 
 	if m.Proof.Input.Height != height {
 		return fmt.Errorf("verifySort error, height NOT match: %d!=%d", m.Proof.Input.Height, height)
@@ -213,7 +213,7 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	round := m.Proof.Input.Round
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Ty: int32(ty)}
 	in := types.Encode(input)
-	err = vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
+	err := vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
 	if err != nil {
 		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "ty", ty, "who", addr[:16])
 		return err

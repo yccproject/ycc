@@ -277,7 +277,8 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 
 		blsBindAct := &pt.Pos33TicketAction_BlsBind{
 			BlsBind: &pt.Pos33BlsBind{
-				BlsAddr: blsAddr,
+				BlsAddr:   blsAddr,
+				MinerAddr: minerAddr,
 			},
 		}
 		tx = &types.Transaction{

@@ -262,7 +262,10 @@ message Pos33Entrust {
 }
 
 message Pos33Migrate { string miner = 1; }
-message Pos33BlsBind { string BlsAddr = 1; }
+message Pos33BlsBind {
+  string BlsAddr = 1;
+  string MinerAddr = 2;
+}
 
 message ReqBindPos33Miner {
   string bindAddr = 1;

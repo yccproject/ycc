@@ -3,7 +3,7 @@ package main
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TestNet=true
-version="6.4.2.7"
+version="6.6.0.0"
 CoinSymbol="ycc"
 ChainID=999
 
@@ -56,7 +56,7 @@ checkFutureBlockHeight=1500000
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 blsAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
-count=10000
+count=1000
 
 
 [mver.consensus.ForkChainParamV2]
@@ -64,7 +64,7 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-ticketPrice=10000
+ticketPrice=100000
 
 [store]
 

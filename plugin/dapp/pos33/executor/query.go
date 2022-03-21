@@ -46,3 +46,21 @@ func (ticket *Pos33Ticket) Query_Pos33Deposit(param *types.ReqAddr) (types.Messa
 	}
 	return d, nil
 }
+
+// Query_Pos33ConsignorEntrust query pos33 entrust info
+func (ticket *Pos33Ticket) Query_Pos33ConsignorEntruct(param *types.ReqAddr) (types.Message, error) {
+	entrust, err := getConsignor(ticket.GetStateDB(), param.Addr)
+	if err != nil {
+		return nil, err
+	}
+	return entrust, nil
+}
+
+// Query_Pos33ConsigneeEntrust query pos33 entrust info
+func (ticket *Pos33Ticket) Query_Pos33ConsigneeEntruct(param *types.ReqAddr) (types.Message, error) {
+	entrust, err := getConsignee(ticket.GetStateDB(), param.Addr)
+	if err != nil {
+		return nil, err
+	}
+	return entrust, nil
+}
