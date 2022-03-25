@@ -530,8 +530,10 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 	if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "UseEntrust") {
 		hash, err := policy.blsBind(minerPriv)
 		if err != nil {
+			bizlog.Error("bls bind error", "height", height, "eror", err)
 			return nil, 0, err
 		}
+		bizlog.Info("bls bind OK", "height", height)
 		return [][]byte{hash}, 1, nil
 	}
 

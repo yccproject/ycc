@@ -1,5 +1,5 @@
 ixTime = false
-Title = "ycc-local"
+Title = "ycc-dev"
 TxHeight = true
 #TestNet=true
 
@@ -35,7 +35,7 @@ isRecordBlockSequence = false
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = false
-singleMode = true
+singleMode = false
 
 [mempool]
 # 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
@@ -67,10 +67,10 @@ useGithub = false
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
-channel = 9
+channel = 7
 port = 13701
 seeds = [
- #"/ip4/172.16.103.39/tcp/13701/p2p/16Uiu2HAm1gjFv3hyxYRY1sBripFopuSojAnjinfoCUDMbWm1EHtN",
+ "/ip4/172.16.103.42/tcp/13701/p2p/16Uiu2HAkzrn3rYjvX8YVwevKw9rwFt5Yf6xG6wQFYMiihcYGKphZ",
 ]
 
 #dht 版本还不稳定，暂时限定较小的连接数
@@ -104,7 +104,7 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 bootPeers = [
-#"/ip4/172.16.103.39/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
+"/ip4/172.16.103.42/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
 ]
 listenPort = 10801
 onlyVoter = false
@@ -162,15 +162,15 @@ minFee = 100000
 signType = "secp256k1"
 
 [exec]
-disableAddrIndex = true
-disableTxIndex=true
-disableFeeIndex=true
+#disableAddrIndex = true
+#disableTxIndex=true
+#disableFeeIndex=true
 enableMVCC = false
 enableStat = false
 
 [exec.sub.coins]
-disableAddrReceiver=true
-disableCheckTxAmount=true
+#disableAddrReceiver=true
+#disableCheckTxAmount=true
 
 [exec.sub.token]
 saveTokenTxList = false

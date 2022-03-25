@@ -24,7 +24,6 @@ func (act *Action) updateConsignee(addr string, consignee *ty.Pos33Consignee) []
 }
 
 func (action *Action) updateConsignor(cr *ty.Consignor, consignee string) []*types.KeyValue {
-	key := ConsignorKey(cr.Address)
 	consignor, err := getConsignor(action.db, cr.Address)
 	if err != nil {
 		consignor = &ty.Pos33Consignor{Address: cr.Address}
@@ -40,6 +39,7 @@ func (action *Action) updateConsignor(cr *ty.Consignor, consignee string) []*typ
 	if !found {
 		consignor.Consignees = append(consignor.Consignees, &ty.Consignee{Address: consignee, Amount: cr.Amount})
 	}
+	key := ConsignorKey(cr.Address)
 	return []*types.KeyValue{{Key: key, Value: types.Encode(consignor)}}
 }
 
@@ -212,11 +212,12 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 }
 
 func (action *Action) Pos33BlsBind(pm *ty.Pos33BlsBind) (*types.Receipt, error) {
-	if action.height != 0 && action.fromaddr != pm.MinerAddr {
-		return nil, types.ErrFromAddr
-	}
 	tlog.Info("Pos33BlsBind", "blsaddr", pm.BlsAddr, "minerAddr", pm.MinerAddr)
-	return &types.Receipt{KV: []*types.KeyValue{{Key: BlsKey(pm.BlsAddr), Value: []byte(pm.MinerAddr)}}, Ty: types.ExecOk}, nil
+	miner := action.fromaddr
+	if action.height == 0 {
+		miner = pm.MinerAddr
+	}
+	return &types.Receipt{KV: []*types.KeyValue{{Key: BlsKey(pm.BlsAddr), Value: []byte(miner)}}, Ty: types.ExecOk}, nil
 }
 
 func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) {
@@ -313,5 +314,6 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 	receipt.KV = append(receipt.KV, kvs...)
 
 	tlog.Info("Pos33Entrust set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount, "consignor amount", consignor.Amount, "consignee amount", consignee.Amount)
+	tlog.Info("pos33 entrust", "receipt", receipt)
 	return receipt, nil
 }
