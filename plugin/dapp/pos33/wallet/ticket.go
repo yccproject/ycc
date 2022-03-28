@@ -536,28 +536,27 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 		bizlog.Info("bls bind OK", "height", height)
 		return [][]byte{hash}, 1, nil
 	}
-	return nil, 0, nil
 
-	// count := 0
-	// var hashes [][]byte
+	count := 0
+	var hashes [][]byte
 
-	// // miner addr buy
-	// hash, n, _ := policy.buyPos33TicketOne(height, minerPriv)
-	// count += n
-	// if hash != nil {
-	// 	hashes = append(hashes, hash)
-	// }
+	// miner addr buy
+	hash, n, _ := policy.buyPos33TicketOne(height, minerPriv)
+	count += n
+	if hash != nil {
+		hashes = append(hashes, hash)
+	}
 
-	// // return addr buy
-	// hash, n, err = policy.buyPos33TicketBind(height, minerPriv)
-	// if err != nil {
-	// 	return nil, 0, err
-	// }
-	// count += n
-	// if hash != nil {
-	// 	hashes = append(hashes, hash)
-	// }
-	// return hashes, count, err
+	// return addr buy
+	hash, n, err = policy.buyPos33TicketBind(height, minerPriv)
+	if err != nil {
+		return nil, 0, err
+	}
+	count += n
+	if hash != nil {
+		hashes = append(hashes, hash)
+	}
+	return hashes, count, err
 }
 
 func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, error) {

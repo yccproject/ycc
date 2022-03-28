@@ -291,10 +291,10 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	nb.Difficulty = n.blockDiff(lb, len(vs))
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "hash", common.HashHex(nb.Hash(n.GetAPI().GetConfig()))[:16])
 
-	nb = n.PreExecBlock(nb, false)
-	if nb == nil {
-		return nil, errors.New("PreExccBlock error")
-	}
+	// nb = n.PreExecBlock(nb, false)
+	// if nb == nil {
+	// 	return nil, errors.New("PreExccBlock error")
+	// }
 
 	return nb, nil
 }
@@ -323,10 +323,10 @@ func (n *node) broadcastComm(height int64, round int, msg types.Message) {
 func (n *node) broadcastBlock(b *types.Block, round int) {
 	m := &pt.Pos33BlockMsg{B: b, Pid: n.pid}
 
-	pm := &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_B}
-	n.broadcastComm(b.Height, round, pm)
-	data := types.Encode(pm)
-	n.gss.gossip(n.topic+"/block", data)
+	// pm := &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_B}
+	// n.broadcastComm(b.Height, round, pm)
+	// data := types.Encode(pm)
+	// n.gss.gossip(n.topic+"/block", data)
 	n.handleBlockMsg(m, true)
 }
 
