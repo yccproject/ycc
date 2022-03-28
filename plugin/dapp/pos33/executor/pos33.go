@@ -2,6 +2,7 @@ package executor
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
@@ -99,16 +100,17 @@ func (act *Action) minerReward(addr string, r int64) (*types.Receipt, error) {
 	return &types.Receipt{KV: kvs, Logs: logs, Ty: types.ExecOk}, nil
 }
 
-func (act *Action) voteReward(mp map[string]int, reward int64) (*types.Receipt, error) {
+func (act *Action) voteReward(rds []*rewards, reward int64) (*types.Receipt, error) {
 	var kvs []*types.KeyValue
 	var logs []*types.ReceiptLog
 
-	for addr, n := range mp {
+	for _, rd := range rds {
+		addr := rd.addr
 		consignee, err := act.getConsignee(addr)
 		if err != nil {
 			return nil, err
 		}
-		r := reward * int64(n)
+		r := reward * int64(rd.count)
 		fee := r * int64(consignee.FeeRates)
 		rr := r - fee
 		rr1 := rr / consignee.Amount
@@ -132,9 +134,15 @@ func (act *Action) voteReward(mp map[string]int, reward int64) (*types.Receipt, 
 func (act *Action) getFromBls(pk []byte) (string, error) {
 	val, err := act.db.Get(BlsKey(address.PubKeyToAddr(address.DefaultID, pk)))
 	if err != nil {
+		tlog.Error("getFromBls error", "err", err, "height", act.height)
 		return "", err
 	}
 	return string(val), nil
+}
+
+type rewards struct {
+	addr  string
+	count int
 }
 
 func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.Receipt, error) {
@@ -184,8 +192,15 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 		}
 		mp[addr]++
 	}
-	receipt, err := action.voteReward(mp, Pos33VoteReward)
+	rds := make([]*rewards, 0, len(miner.BlsPkList))
+	for k, v := range mp {
+		rds = append(rds, &rewards{k, v})
+	}
+	sort.Slice(rds, func(i, j int) bool { return rds[i].addr < rds[j].addr })
+	tlog.Info("Pos33MinerNew", "map", mp, "height", action.height)
+	receipt, err := action.voteReward(rds, Pos33VoteReward)
 	if err != nil {
+		tlog.Error("Pos33MinerNew error", "err", err, "height", action.height)
 		return nil, err
 	}
 	kvs = append(kvs, receipt.KV...)
@@ -193,6 +208,10 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 	// bp reward
 	bpReward := Pos33MakerReward * int64(len(miner.BlsPkList))
 	receipt, err = action.minerReward(action.fromaddr, bpReward)
+	if err != nil {
+		tlog.Error("Pos33MinerNew error", "err", err, "height", action.height)
+		return nil, err
+	}
 	kvs = append(kvs, receipt.KV...)
 
 	// fund reward
@@ -281,29 +300,16 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 
 	var receipt *types.Receipt
 	if pe.Amount > 0 {
-		receipt, err = action.coinsAccount.TransferToExec(pe.Consignor, action.execaddr, realAmount)
+		receipt, err = action.coinsAccount.ExecFrozen(pe.Consignor, action.execaddr, realAmount)
 		if err != nil {
 			tlog.Error("Pos33Entrust error", "err", err, "height", action.height, "consignor", pe.Consignor, "fromaddr", action.fromaddr)
 			return nil, err
 		}
-		receipt1, err := action.coinsAccount.ExecFrozen(pe.Consignor, action.execaddr, realAmount)
-		if err != nil {
-			tlog.Error("Pos33Entrust error", "err", err, "height", action.height, "consignor", pe.Consignor, "fromaddr", action.fromaddr)
-			return nil, err
-		}
-		receipt.KV = append(receipt.KV, receipt1.KV...)
-		receipt.Logs = append(receipt.Logs, receipt1.Logs...)
 	} else {
 		receipt, err = action.coinsAccount.ExecActive(pe.Consignor, action.execaddr, -realAmount)
 		if err != nil {
 			return nil, err
 		}
-		receipt1, err := action.coinsAccount.TransferWithdraw(pe.Consignor, action.execaddr, -realAmount)
-		if err != nil {
-			return nil, err
-		}
-		receipt.KV = append(receipt.KV, receipt1.KV...)
-		receipt.Logs = append(receipt.Logs, receipt1.Logs...)
 	}
 
 	consignee.Amount += pe.Amount
@@ -314,6 +320,6 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 	receipt.KV = append(receipt.KV, kvs...)
 
 	tlog.Info("Pos33Entrust set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount, "consignor amount", consignor.Amount, "consignee amount", consignee.Amount)
-	tlog.Info("pos33 entrust", "receipt", receipt)
+	// tlog.Info("pos33 entrust", "receipt", receipt)
 	return receipt, nil
 }

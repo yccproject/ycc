@@ -123,11 +123,12 @@ func setDeposit(db dbm.KV, maddr, raddr string, newCount, newReward, height int6
 func getCount(db dbm.KV, addr string) int {
 	dep, err := getDeposit(db, addr)
 	if err != nil {
-		consignee, err := getConsignee(db, addr)
-		if err != nil {
-			return 0
-		}
-		return int(consignee.Amount)
+		return 0
+		// consignee, err := getConsignee(db, addr)
+		// if err != nil {
+		// 	return 0
+		// }
+		// return int(consignee.Amount)
 	}
 	return int(dep.Count)
 }

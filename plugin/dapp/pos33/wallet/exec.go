@@ -43,12 +43,26 @@ func (policy *ticketPolicy) On_WalletGetPos33Count(req *types.ReqNil) (types.Mes
 	}
 	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
 	api := policy.getAPI()
-	msg, err := api.Query(ty.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
-	if err != nil {
-		bizlog.Error("getPos33Tickets", "addr", addr, "Query error", err)
-		return nil, err
+	height := policy.walletOperate.GetLastHeader().Height
+
+	count := int64(0)
+	chain33Cfg := api.GetConfig()
+	if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "UseEntrust") {
+		msg, err := api.Query(ty.Pos33TicketX, "Pos33ConsigneeEntruct", &types.ReqAddr{Addr: addr})
+		if err != nil {
+			bizlog.Error("getPos33Tickets", "addr", addr, "Query error", err)
+			return nil, err
+		}
+		count = msg.(*ty.Pos33Consignee).Amount
+	} else {
+		msg, err := api.Query(ty.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
+		if err != nil {
+			bizlog.Error("getPos33Tickets", "addr", addr, "Query error", err)
+			return nil, err
+		}
+		count = msg.(*types.Int64).Data
 	}
-	tks := &ty.ReplyWalletPos33Count{Count: (msg.(*types.Int64).Data), Privkey: priv.Bytes()}
+	tks := &ty.ReplyWalletPos33Count{Count: count, Privkey: priv.Bytes()}
 	return tks, err
 }
 
