@@ -177,7 +177,7 @@ func generateTxs(privs []crypto.PrivKey, hch <-chan int64) chan *Tx {
 		for {
 			i := rand.Intn(len(privs))
 			signer := privs[l-i]
-			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(address.DefaultID, privs[i].PubKey().Bytes()).String(), <-hch)
+			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(address.DefaultID, privs[i].PubKey().Bytes()), <-hch)
 		}
 	}
 	for i := 0; i < N; i++ {
@@ -317,7 +317,7 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 			return
 		}
 		m := 100 * types.DefaultCoinPrecision
-		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()).String())
+		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
 	}
 }
 func generateInitTxs(n int, privs []crypto.PrivKey, ch chan *Tx, done chan struct{}) {
@@ -329,7 +329,7 @@ func generateInitTxs(n int, privs []crypto.PrivKey, ch chan *Tx, done chan struc
 		}
 
 		m := 100 * types.DefaultCoinPrecision
-		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()).String())
+		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
 	}
 	log.Println(n, len(privs))
 }
