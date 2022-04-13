@@ -384,6 +384,22 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 	return receipt, nil
 }
 
+func (action *Action) minerWithdrawFee(amount int64, consignee *ty.Pos33Consignee) (*types.Receipt, error) {
+	if consignee.FeeReward <= amount {
+		return nil, types.ErrAmount
+	}
+	consignee.FeeReward -= amount
+	receipt, err := action.coinsAccount.Transfer(action.execaddr, consignee.Address, amount)
+	if err != nil {
+		tlog.Error("miner withdrawFee error", "err", err, "height", action.height)
+		return nil, err
+	}
+	kv := action.updateConsignee(consignee.Address, consignee)
+	receipt.KV = append(receipt.KV, kv...)
+	tlog.Info("miner withdraw", "height", action.height, "miner", consignee.Address, "amount", amount)
+	return receipt, nil
+}
+
 func (action *Action) Pos33WithdrawReward(wr *ty.Pos33WithdrawReward) (*types.Receipt, error) {
 	if action.fromaddr != wr.Consignor {
 		return nil, types.ErrFromAddr
@@ -391,12 +407,16 @@ func (action *Action) Pos33WithdrawReward(wr *ty.Pos33WithdrawReward) (*types.Re
 	if wr.Amount <= 0 {
 		return nil, types.ErrAmount
 	}
-
 	consignee, err := action.getConsignee(wr.Consignee)
 	if err != nil {
 		tlog.Error("pos33 withdrawReward error", "err", err, "height", action.height, "consignee", wr.Consignee, "consignor", wr.Consignor)
 		return nil, err
 	}
+
+	if wr.Consignor == wr.Consignee {
+		return action.minerWithdrawFee(wr.Amount, consignee)
+	}
+
 	var consignor *ty.Consignor
 	for _, cr := range consignee.Consignors {
 		if cr.Address == wr.Consignor {
@@ -436,12 +456,12 @@ func (action *Action) Pos33WithdrawReward(wr *ty.Pos33WithdrawReward) (*types.Re
 }
 
 func (action *Action) Pos33SetMinerFeeRate(fr *ty.Pos33MinerFeeRate) (*types.Receipt, error) {
-	chain33Cfg := action.api.GetConfig()
-	mp := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
-	old := getAllCount(action.db)
-	new := old / int(mp.Pos33TicketPrice) * int(mp.NewPos33TicketPrice)
-	// value := []byte(fmt.Sprintf("%d", new))
-	tlog.Info("Pos33 update All tickets Count", "height", action.height, "allCount", new)
-	// return &types.KeyValue{Key: Key(allCountID), Value: value}
-	return nil, nil
+	consignee, err := action.getConsignee(action.fromaddr)
+	if err != nil {
+		tlog.Error("pos33 set miner feerate error", "err", err, "height", action.height, "miner", action.fromaddr)
+		return nil, err
+	}
+	consignee.FeeRatePersent = fr.FeeRatePersent
+	kv := action.updateConsignee(action.fromaddr, consignee)
+	return &types.Receipt{KV: kv}, nil
 }
