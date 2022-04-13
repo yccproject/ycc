@@ -28,4 +28,4 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-// replace github.com/33cn/chain33 => github.com/bysomeone/chain33 v0.0.0-20220315091851-419eacbb8c18
+replace github.com/33cn/chain33 => /Users/w/pos33/chain33

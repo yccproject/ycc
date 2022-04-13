@@ -101,3 +101,23 @@ func (t *Pos33Ticket) Exec_BlsBind(payload *ty.Pos33BlsBind, tx *types.Transacti
 	}
 	return action.Pos33BlsBind(payload)
 }
+
+// Exec_WithdrawReward exec withdraw reward
+func (t *Pos33Ticket) Exec_WithdrawReward(payload *ty.Pos33WithdrawReward, tx *types.Transaction, index int) (*types.Receipt, error) {
+	action := NewAction(t, tx)
+	chain33Cfg := action.api.GetConfig()
+	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
+		return nil, errors.New("config exec.ycc.UseEntrust error")
+	}
+	return action.Pos33WithdrawReward(payload)
+}
+
+// Exec_SetMinerFeeRate exec set miner fee rate
+func (t *Pos33Ticket) Exec_SetMinerFeeRate(payload *ty.Pos33MinerFeeRate, tx *types.Transaction, index int) (*types.Receipt, error) {
+	action := NewAction(t, tx)
+	chain33Cfg := action.api.GetConfig()
+	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
+		return nil, errors.New("config exec.ycc.UseEntrust error")
+	}
+	return action.Pos33SetMinerFeeRate(payload)
+}

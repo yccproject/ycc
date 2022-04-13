@@ -10,6 +10,31 @@ import (
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
+// On_SetMinerFeeRate set miner fee rate
+func (policy *ticketPolicy) On_SetMinerFeeRate(req *ty.Pos33MinerFeeRate) (types.Message, error) {
+	operater := policy.getWalletOperate()
+	bizlog.Info("On_SetMinerFeeRate", "maddr", req.MinerAddr, "fee rate persent", req.FeeRatePersent)
+	priv, maddr, err := policy.getMiner("")
+	if err != nil {
+		return nil, err
+	}
+	if req.MinerAddr == "" {
+		req.MinerAddr = maddr
+	}
+
+	reply, err := policy.setMinerFeeRate(priv, req)
+	if err != nil || reply == nil {
+		bizlog.Error("onClosePos33Tickets", "forceClosePos33Ticket error", err.Error())
+	} else {
+		go func() {
+			if len(reply.Hashes) > 0 {
+				operater.WaitTxs(reply.Hashes)
+			}
+		}()
+	}
+	return reply, err
+}
+
 // On_ClosePos33Tickets close ticket
 func (policy *ticketPolicy) On_ClosePos33Tickets(req *ty.Pos33TicketClose) (types.Message, error) {
 	operater := policy.getWalletOperate()

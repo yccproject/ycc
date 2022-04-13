@@ -34,7 +34,7 @@ func init() {
 
 // New new instance
 func New() wcom.WalletBizPolicy {
-	return &ticketPolicy{mtx: &sync.Mutex{}}
+	return &ticketPolicy{mtx: &sync.Mutex{}, blsMap: make(map[string]bool)}
 }
 
 type ticketPolicy struct {
@@ -47,6 +47,8 @@ type ticketPolicy struct {
 	isPos33TicketLocked     int32
 	minertimeout            *time.Timer
 	cfg                     *subConfig
+	blsMap                  map[string]bool
+	migrated                bool
 }
 
 type subConfig struct {
@@ -288,18 +290,12 @@ func (policy *ticketPolicy) OnImportPrivateKey(acc *types.Account) {
 
 // OnAddBlockFinish process finish block
 func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {
-	if policy.needFlush {
-		// 新增区块，由于ticket具有锁定期，所以这里不需要刷新
-	}
-	policy.needFlush = false
+	FlushPos33Ticket(policy.getAPI())
 }
 
 // OnDeleteBlockFinish process finish block
 func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
-	if policy.needFlush {
-		FlushPos33Ticket(policy.getAPI())
-	}
-	policy.needFlush = false
+	FlushPos33Ticket(policy.getAPI())
 }
 
 // FlushPos33Ticket flush ticket
@@ -323,6 +319,19 @@ func (policy *ticketPolicy) checkNeedFlushPos33Ticket(tx *types.Transaction, rec
 		return false
 	}
 	return policy.needFlushPos33Ticket(tx, receipt)
+}
+
+func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33MinerFeeRate) (*types.ReplyHashes, error) {
+	feeRate := float64(fr.FeeRatePersent) / 100.
+	bizlog.Info("setMinerFeeRate", "maddr", fr.MinerAddr, "fee rate", feeRate)
+	ta := &ty.Pos33TicketAction{}
+	ta.Value = &ty.Pos33TicketAction_FeeRate{FeeRate: fr}
+	ta.Ty = ty.Pos33ActionMinerFeeRate
+	hash, err := policy.getWalletOperate().SendTransaction(ta, []byte(ty.Pos33TicketX), priv, "")
+	if err != nil {
+		return nil, err
+	}
+	return &types.ReplyHashes{Hashes: [][]byte{hash}}, nil
 }
 
 func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, maddr string, count int) (*types.ReplyHashes, error) {
@@ -350,67 +359,95 @@ func (policy *ticketPolicy) isAutoMining() bool {
 	return atomic.LoadInt32(&policy.autoMinerFlag) == 1
 }
 
-func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
-	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
-	operater := policy.getWalletOperate()
-	acc1, err := operater.GetBalance(addr, "coins")
-	if err != nil {
-		return err
-	}
-	acc2, err := operater.GetBalance(addr, ty.Pos33TicketX)
-	if err != nil {
-		return err
-	}
-	toaddr := address.ExecAddress(ty.Pos33TicketX)
-	cfg := policy.getWalletOperate().GetAPI().GetConfig()
-	coin := cfg.GetCoinPrecision()
-	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
-	if acc1.Balance < coin && acc2.Balance > coin {
-		_, err := operater.SendToAddress(priv, toaddr, -coin, "pos33->coins", false, "")
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
+// 	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+// 	operater := policy.getWalletOperate()
+// 	acc1, err := operater.GetBalance(addr, "coins")
+// 	if err != nil {
+// 		return err
+// 	}
+// 	acc2, err := operater.GetBalance(addr, ty.Pos33TicketX)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	toaddr := address.ExecAddress(ty.Pos33TicketX)
+// 	cfg := policy.getWalletOperate().GetAPI().GetConfig()
+// 	coin := cfg.GetCoinPrecision()
+// 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
+// 	if acc1.Balance < coin && acc2.Balance > coin {
+// 		_, err := operater.SendToAddress(priv, toaddr, -coin, "pos33->coins", false, "")
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
-//手续费处理
-func (policy *ticketPolicy) processFees() error {
-	keys, err := policy.getWalletOperate().GetAllPrivKeys()
-	if err != nil {
-		return err
-	}
-	for _, key := range keys {
-		e := policy.processFee(key)
-		if e != nil {
-			err = e
-		}
-	}
-	return err
-}
+// //手续费处理
+// func (policy *ticketPolicy) processFees() error {
+// 	keys, err := policy.getWalletOperate().GetAllPrivKeys()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for _, key := range keys {
+// 		e := policy.processFee(key)
+// 		if e != nil {
+// 			err = e
+// 		}
+// 	}
+// 	return err
+// }
 
-func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]byte, error) {
-	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
-	operater := policy.getWalletOperate()
-	acc, err := operater.GetBalance(addr, ty.Pos33TicketX)
-	if err != nil {
-		return nil, err
+// func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]byte, error) {
+// 	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+// 	operater := policy.getWalletOperate()
+// 	acc, err := operater.GetBalance(addr, ty.Pos33TicketX)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// 避免频繁的发送 withdraw tx，所以限定 1000
+// 	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
+// 	if acc.Balance > 1000*chain33Cfg.GetCoinPrecision() {
+// 		bizlog.Debug("withdraw", "amount", acc.Balance)
+// 		hash, err := operater.SendToAddress(priv, address.ExecAddress(ty.Pos33TicketX), -acc.Balance, "autominer->withdraw", false, "")
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		return hash.GetHash(), nil
+// 	}
+// 	return nil, nil
+// }
+
+func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
+	if policy.migrated {
+		return nil, nil
 	}
-	// 避免频繁的发送 withdraw tx，所以限定 1000
-	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
-	if acc.Balance > 1000*chain33Cfg.GetCoinPrecision() {
-		bizlog.Debug("withdraw", "amount", acc.Balance)
-		hash, err := operater.SendToAddress(priv, address.ExecAddress(ty.Pos33TicketX), -acc.Balance, "autominer->withdraw", false, "")
-		if err != nil {
-			return nil, err
-		}
-		return hash.GetHash(), nil
+	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
+	_, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33ConsigneeEntruct", &types.ReqAddr{Addr: addr})
+	if err == nil {
+		bizlog.Info("already migrate", "addr", addr)
+		policy.migrated = true
+		return nil, nil
+	} else {
+		bizlog.Error("migrate query error", "err", err, "addr", addr)
 	}
-	return nil, nil
+	act := &ty.Pos33TicketAction{
+		Value: &ty.Pos33TicketAction_Migrate{
+			Migrate: &ty.Pos33Migrate{
+				Miner: addr,
+			},
+		},
+	}
+	bizlog.Info("pos33 migrate", "miner", addr)
+	policy.migrated = true
+	return policy.walletOperate.SendTransaction(act, []byte(ty.Pos33TicketX), priv, "")
 }
 
 func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
+	if policy.blsMap[addr] {
+		return nil, nil
+	}
 	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
 	blsaddr := address.PubKeyToAddr(address.DefaultID, blsPk.Bytes())
 	m, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsaddr})
@@ -421,6 +458,7 @@ func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 			return nil, errors.New("blsbind error")
 		}
 		bizlog.Info("already bind blsaddr", "blsaddr", blsaddr, "addr", addr)
+		policy.blsMap[addr] = true
 		return nil, nil
 	}
 
@@ -429,6 +467,7 @@ func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 		Ty:    ty.Pos33ActionBlsBind,
 	}
 	bizlog.Info("bind blsaddr", "blsaddr", blsaddr, "addr", addr)
+	policy.blsMap[addr] = true
 	return policy.walletOperate.SendTransaction(act, []byte(ty.Pos33TicketX), priv, "")
 }
 
@@ -534,7 +573,13 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 			return nil, 0, err
 		}
 		bizlog.Info("bls bind OK", "height", height)
-		return [][]byte{hash}, 1, nil
+		hash1, err := policy.migrate(minerPriv)
+		if err != nil {
+			bizlog.Error("migrate error", "height", height, "eror", err)
+			return [][]byte{hash}, 1, err
+		}
+		bizlog.Info("migrate ok", "height", height)
+		return [][]byte{hash, hash1}, 2, nil
 	}
 
 	count := 0
@@ -594,24 +639,24 @@ func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, 
 	return minerPriv, minerAddr, nil
 }
 
-func (policy *ticketPolicy) withdrawFromPos33Ticket() (hashes [][]byte, err error) {
-	privs, err := policy.getWalletOperate().GetAllPrivKeys()
-	if err != nil {
-		bizlog.Error("withdrawFromPos33Ticket.getAllPrivKeys", "err", err)
-		return nil, err
-	}
-	for _, priv := range privs {
-		hash, err := policy.withdrawFromPos33TicketOne(priv)
-		if err != nil {
-			bizlog.Error("withdrawFromPos33TicketOne", "err", err)
-			continue
-		}
-		if hash != nil {
-			hashes = append(hashes, hash)
-		}
-	}
-	return hashes, nil
-}
+// func (policy *ticketPolicy) withdrawFromPos33Ticket() (hashes [][]byte, err error) {
+// 	privs, err := policy.getWalletOperate().GetAllPrivKeys()
+// 	if err != nil {
+// 		bizlog.Error("withdrawFromPos33Ticket.getAllPrivKeys", "err", err)
+// 		return nil, err
+// 	}
+// 	for _, priv := range privs {
+// 		hash, err := policy.withdrawFromPos33TicketOne(priv)
+// 		if err != nil {
+// 			bizlog.Error("withdrawFromPos33TicketOne", "err", err)
+// 			continue
+// 		}
+// 		if hash != nil {
+// 			hashes = append(hashes, hash)
+// 		}
+// 	}
+// 	return hashes, nil
+// }
 
 //检查周期 --> 10分
 //开启挖矿：

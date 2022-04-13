@@ -36,8 +36,10 @@ message Pos33TicketAction {
     Pos33Entrust entrust = 7;
     Pos33Migrate migrate = 8;
     Pos33BlsBind blsBind = 9;
+    Pos33MinerFeeRate feeRate = 10;
+    Pos33WithdrawReward withdraw = 11;
   }
-  int32 ty = 10;
+  int32 ty = 12;
 }
 
 message Pos33Msg {
@@ -232,18 +234,21 @@ message ReceiptPos33TicketBind {
 message Consignee {
   string address = 1;
   int64 amount = 2;
+  // int64 reward = 3;        // 获取奖励的总额
+  // int64 remain_reward = 4; // 返给用户后的剩余奖励
 }
 
 message Consignor {
   string address = 1;
-  int64 amount = 2;
-  int64 reward = 3;
+  int64 amount = 2;        // 委托数量
+  int64 reward = 3;        // 获取奖励的总额
+  int64 remain_reward = 4; // 返给用户后的剩余奖励
 }
 
 // 委托人
 message Pos33Consignor {
   string address = 1;
-  repeated Consignee consignees = 2; // 受托人列表
+  repeated Consignee consignees = 3; // 受托人列表
 }
 
 // 受托人
@@ -251,7 +256,7 @@ message Pos33Consignee {
   string address = 1;
   int64 amount = 2;
   int64 fee_reward = 3;
-  double fee_rates = 4;              // percentage
+  int32 fee_rate_persent = 4;
   repeated Consignor consignors = 5; // 委托人列表
 }
 
@@ -274,12 +279,27 @@ message ReqBindPos33Miner {
   bool checkBalance = 4;
 }
 
+message Pos33WithdrawReward {
+  string consignee = 1;
+  string consignor = 2;
+  int64 amount = 3;
+}
+
+message Pos33MinerFeeRate {
+  string miner_addr = 1;
+  int32 fee_rate_persent = 2;
+}
+
 message ReplyBindPos33Miner { string txHex = 1; }
 message ReplyTxHex { string txHex = 1; }
 
 service pos33 {
   // 创建entrust
-  rpc SetEntrust(Pos33Entrust) returns (ReplyTxHex) {}
+  rpc SetPos33Entrust(Pos33Entrust) returns (ReplyTxHex) {}
+  // 查询consignee entrust
+  rpc GetPos33ConsigneeEntrust(types.ReqAddr) returns (Pos33Consignee) {}
+  // 查询consignor entrust
+  rpc GetPos33ConsignorEntrust(types.ReqAddr) returns (Pos33Consignor) {}
   //创建绑定挖矿
   rpc CreateBindMiner(ReqBindPos33Miner) returns (ReplyBindPos33Miner) {}
   //查询钱包票数
@@ -288,7 +308,4 @@ service pos33 {
   rpc GetAllPos33TicketCount(types.ReqNil) returns (Int64) {}
   //设置自动挖矿
   rpc SetAutoMining(Pos33MinerFlag) returns (Reply) {}
-  //查询奖励
-  rpc GetPos33TicketReward(Pos33TicketReward) returns (ReplyPos33TicketReward) {
-  }
 }

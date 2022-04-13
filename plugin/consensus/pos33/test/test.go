@@ -317,7 +317,8 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 			return
 		}
 		m := 100 * types.DefaultCoinPrecision
-		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
+		to := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+		ch <- newTx(rootKey, m, to)
 	}
 }
 func generateInitTxs(n int, privs []crypto.PrivKey, ch chan *Tx, done chan struct{}) {
@@ -506,6 +507,7 @@ func runLoadAccounts(filename string, max int) chan crypto.PrivKey {
 			if i%10000 == 0 {
 				log.Println("load acc:", i)
 			}
+			log.Println("account: ", address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
 		}
 		close(privCh)
 	}()

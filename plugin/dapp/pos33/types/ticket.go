@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
-	"time"
 
 	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -69,6 +68,10 @@ const (
 	Pos33ActionMigrate = 19
 	// Pos33ActionBlsBind action bls bind
 	Pos33ActionBlsBind = 20
+	// Pos33MinerFeeRate action set miner fee rate
+	Pos33ActionMinerFeeRate = 21
+	// Pos33ActionWithdrawReward action withdraw reward
+	Pos33ActionWithdrawReward = 22
 )
 
 // Pos33TicketOldParts old tick type
@@ -159,45 +162,41 @@ func (ticket *Pos33TicketType) GetName() string {
 // GetTypeMap get type map
 func (ticket *Pos33TicketType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Genesis": Pos33TicketActionGenesis,
-		"Topen":   Pos33TicketActionOpen,
-		"Tbind":   Pos33TicketActionBind,
-		"Tclose":  Pos33TicketActionClose,
-		"Miner":   Pos33TicketActionMiner,
-		"Entrust": Pos33ActionEntrust,
-		"Migrate": Pos33ActionMigrate,
-		"BlsBind": Pos33ActionBlsBind,
+		"Genesis":        Pos33TicketActionGenesis,
+		"Topen":          Pos33TicketActionOpen,
+		"Tbind":          Pos33TicketActionBind,
+		"Tclose":         Pos33TicketActionClose,
+		"Miner":          Pos33TicketActionMiner,
+		"Entrust":        Pos33ActionEntrust,
+		"Migrate":        Pos33ActionMigrate,
+		"BlsBind":        Pos33ActionBlsBind,
+		"FeeRate":        Pos33ActionMinerFeeRate,
+		"WithdrawReward": Pos33ActionWithdrawReward,
 	}
 }
 
 // Pos33TicketMinerParam is ...
 type Pos33TicketMinerParam struct {
-	CoinDevFund              int64
-	CoinReward               int64
-	FutureBlockTime          int64
-	Pos33TicketPrice         int64
-	Pos33TicketFrozenTime    int64
-	Pos33TicketWithdrawTime  int64
-	Pos33TicketMinerWaitTime int64
-	TargetTimespan           time.Duration
-	TargetTimePerBlock       time.Duration
-	RetargetAdjustmentFactor int64
+	Pos33TicketPrice    int64
+	NewPos33TicketPrice int64
+	MinerFeePersent     int64
+	RewardTransfer      int64
+	BlockReward         int64
+	VoteReward          int64
+	MineReward          int64
 }
 
 // GetPos33TicketMinerParam 获取ticket miner config params
 func GetPos33TicketMinerParam(cfg *types.Chain33Config, height int64) *Pos33TicketMinerParam {
 	conf := types.Conf(cfg, "mver.consensus.pos33")
 	c := &Pos33TicketMinerParam{}
-	// c.CoinDevFund = conf.MGInt("coinDevFund", height) * cfg.GetCoinPrecision()
-	// c.CoinReward = conf.MGInt("coinReward", height) * cfg.GetCoinPrecision()
-	// c.FutureBlockTime = conf.MGInt("futureBlockTime", height)
 	c.Pos33TicketPrice = conf.MGInt("ticketPrice", height) * cfg.GetCoinPrecision()
-	// c.Pos33TicketFrozenTime = conf.MGInt("ticketFrozenTime", height)
-	// c.Pos33TicketWithdrawTime = conf.MGInt("ticketWithdrawTime", height)
-	// c.Pos33TicketMinerWaitTime = conf.MGInt("ticketMinerWaitTime", height)
-	// c.TargetTimespan = time.Duration(conf.MGInt("targetTimespan", height)) * time.Second
-	// c.TargetTimePerBlock = time.Duration(conf.MGInt("targetTimePerBlock", height)) * time.Second
-	// c.RetargetAdjustmentFactor = conf.MGInt("retargetAdjustmentFactor", height)
+	c.NewPos33TicketPrice = conf.MGInt("newTicketPrice", height) * cfg.GetCoinPrecision()
+	c.MinerFeePersent = conf.MGInt("minerFeePersent", height)
+	c.RewardTransfer = conf.MGInt("rewardTransfer", height) * cfg.GetCoinPrecision()
+	c.BlockReward = conf.MGInt("blockReward", height) * cfg.GetCoinPrecision()
+	c.VoteReward = conf.MGInt("voteRewardPersent", height) * cfg.GetCoinPrecision() / 100
+	c.MineReward = conf.MGInt("mineRewardPersent", height) * cfg.GetCoinPrecision() / 100
 	return c
 }
 

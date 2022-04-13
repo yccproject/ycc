@@ -36,7 +36,11 @@ func Pos33TicketCmd() *cobra.Command {
 		CountPos33TicketCmd(),
 		ClosePos33TicketCmd(),
 		GetDepositCmd(),
+		GetConsigneeCmd(),
+		GetConsignorCmd(),
 		SetEntrustCmd(),
+		SetMinerFeeRateCmd(),
+		WithdrawRewardCmd(),
 	)
 
 	return cmd
@@ -118,6 +122,54 @@ func setEntrust(cmd *cobra.Command, args []string) {
 	fmt.Println(hex.EncodeToString(txHex))
 }
 
+func addGetConsignorFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "address for deposit")
+	cmd.MarkFlagRequired("addr")
+}
+
+func GetConsigneeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "consignee",
+		Short: "get consignee info",
+		Run:   getConsignee,
+	}
+	addGetConsigneeFlags(cmd)
+	return cmd
+}
+
+func getConsignee(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+
+	var res ty.Pos33Consignee
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33ConsigneeEntrust", &types.ReqAddr{Addr: addr}, &res)
+	ctx.Run()
+}
+
+func getConsignor(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+
+	var res ty.Pos33Consignor
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33ConsignorEntrust", &types.ReqAddr{Addr: addr}, &res)
+	ctx.Run()
+}
+
+func addGetConsigneeFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "address for deposit")
+	cmd.MarkFlagRequired("addr")
+}
+
+func GetConsignorCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "consignor",
+		Short: "get consignor info",
+		Run:   getConsignor,
+	}
+	addGetConsignorFlags(cmd)
+	return cmd
+}
+
 func GetDepositCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deposit",
@@ -142,6 +194,17 @@ func addGetDepositFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("addr")
 }
 
+// WithdrawRewardCmd withdraw reward
+func WithdrawRewardCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bind",
+		Short: "Bind private key to miner address",
+		Run:   withdrawReward,
+	}
+	addWithdrawRewardFlags(cmd)
+	return cmd
+}
+
 // BindMinerCmd bind miner
 func BindMinerCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -151,6 +214,47 @@ func BindMinerCmd() *cobra.Command {
 	}
 	addBindMinerFlags(cmd)
 	return cmd
+}
+
+func addWithdrawRewardFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("consignor", "o", "", "consignor address")
+	cmd.MarkFlagRequired("consignor")
+
+	cmd.Flags().StringP("consignee", "e", "", "consignee address")
+	cmd.MarkFlagRequired("origin_addr")
+
+	cmd.Flags().IntP("amount", "a", 10, "amount of withdraw reward")
+	cmd.MarkFlagRequired("amount")
+}
+
+func withdrawReward(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	consignorAddr, _ := cmd.Flags().GetString("consignor")
+	consigneeAddr, _ := cmd.Flags().GetString("consignee")
+	amount, _ := cmd.Flags().GetInt("amount")
+
+	cfg, err := cmdtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+	ta := &ty.Pos33TicketAction{}
+	tBind := &ty.Pos33WithdrawReward{
+		Consignee: consigneeAddr,
+		Consignor: consignorAddr,
+		Amount:    int64(amount),
+	}
+	ta.Value = &ty.Pos33TicketAction_Withdraw{Withdraw: tBind}
+	ta.Ty = ty.Pos33ActionWithdrawReward
+
+	rawTx := &types.Transaction{Payload: types.Encode(ta)}
+	tx, err := types.FormatTxExt(cfg.ChainID, false, cfg.MinTxFeeRate, ty.Pos33TicketX, rawTx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	txHex := types.Encode(tx)
+	fmt.Println(hex.EncodeToString(txHex))
 }
 
 func addBindMinerFlags(cmd *cobra.Command) {
@@ -301,6 +405,23 @@ func getPos33Reward(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
+// SetMinerFeeCmd  set miner entrust fee
+func SetMinerFeeRateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "fee",
+		Short: "set miner fee",
+		Run:   setMinerFeeRate,
+	}
+	addSetMinerFeeRateFlags(cmd)
+	return cmd
+}
+
+func addSetMinerFeeRateFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "address for miner")
+	cmd.Flags().Int32P("fee", "f", 10, "miner entrust mine fee rate persent (default 10% if nil)")
+	cmd.MarkFlagRequired("fee")
+}
+
 // ClosePos33TicketCmd close all accessible tickets
 func ClosePos33TicketCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -321,10 +442,17 @@ func addCloseAddr(cmd *cobra.Command) {
 	// cmd.Flags().BoolP("miner", "m", true, "if addr is miner")
 }
 
+func setMinerFeeRate(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	miner, _ := cmd.Flags().GetString("addr")
+	fee, _ := cmd.Flags().GetInt32("fee")
+
+	fr := &ty.Pos33MinerFeeRate{MinerAddr: miner, FeeRatePersent: fee}
+	rpcCall(rpcLaddr, "Pos33.SetMinerFeeRate", fr)
+}
+
 func closePos33Ticket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	// paraName, _ := cmd.Flags().GetString("paraName")
-
 	bindAddr, _ := cmd.Flags().GetString("addr")
 	count, _ := cmd.Flags().GetInt32("count")
 	// isMiner, _ := cmd.Flags().GetBool("miner")
@@ -345,37 +473,17 @@ func closePos33Ticket(cmd *cobra.Command, args []string) {
 		MinerAddress: bindAddr,
 		Count:        count,
 	}
+	rpcCall(rpcLaddr, "pos33.ClosePos33Tickets", tClose)
+}
 
-	// if !isMiner {
-	// 	cmd.MarkFlagRequired("addr")
-	// 	ta := &ty.Pos33TicketAction{}
-	// 	ta.Value = &ty.Pos33TicketAction_Tclose{Tclose: tClose}
-	// 	ta.Ty = ty.Pos33TicketActionClose
-
-	// 	cfg, err := cmdtypes.GetChainConfig(rpcLaddr)
-	// 	if err != nil {
-	// 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
-	// 		return
-	// 	}
-
-	// 	rawTx := &types.Transaction{Payload: types.Encode(ta)}
-	// 	tx, err := types.FormatTxExt(cfg.ChainID, len(paraName) > 0, cfg.MinTxFeeRate, ty.Pos33TicketX, rawTx)
-	// 	if err != nil {
-	// 		fmt.Fprintln(os.Stderr, err)
-	// 		return
-	// 	}
-	// 	txHex := types.Encode(tx)
-	// 	fmt.Println(hex.EncodeToString(txHex))
-	// 	return
-	// }
-
+func rpcCall(rpcLaddr, method string, param interface{}) {
 	var res rpctypes.ReplyHashes
 	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = rpc.Call("pos33.ClosePos33Tickets", tClose, &res)
+	err = rpc.Call(method, param, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
