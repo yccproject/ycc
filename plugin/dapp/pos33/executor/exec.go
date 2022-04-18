@@ -86,8 +86,8 @@ func (t *Pos33Ticket) Exec_Entrust(payload *ty.Pos33Entrust, tx *types.Transacti
 func (t *Pos33Ticket) Exec_Migrate(payload *ty.Pos33Migrate, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := NewAction(t, tx)
 	chain33Cfg := action.api.GetConfig()
-	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
+	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "Migrate") {
+		return nil, errors.New("config exec.ycc.Migrate error")
 	}
 	return action.Pos33Migrate(payload)
 }
@@ -103,7 +103,7 @@ func (t *Pos33Ticket) Exec_BlsBind(payload *ty.Pos33BlsBind, tx *types.Transacti
 }
 
 // Exec_WithdrawReward exec withdraw reward
-func (t *Pos33Ticket) Exec_WithdrawReward(payload *ty.Pos33WithdrawReward, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *Pos33Ticket) Exec_Withdraw(payload *ty.Pos33WithdrawReward, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := NewAction(t, tx)
 	chain33Cfg := action.api.GetConfig()
 	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
@@ -112,12 +112,12 @@ func (t *Pos33Ticket) Exec_WithdrawReward(payload *ty.Pos33WithdrawReward, tx *t
 	return action.Pos33WithdrawReward(payload)
 }
 
-// Exec_SetMinerFeeRate exec set miner fee rate
-func (t *Pos33Ticket) Exec_SetMinerFeeRate(payload *ty.Pos33MinerFeeRate, tx *types.Transaction, index int) (*types.Receipt, error) {
-	action := NewAction(t, tx)
-	chain33Cfg := action.api.GetConfig()
-	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
-	}
-	return action.Pos33SetMinerFeeRate(payload)
-}
+// // Exec_SetMinerFeeRate exec set miner fee rate
+// func (t *Pos33Ticket) Exec_FeeRate(payload *ty.Pos33MinerFeeRate, tx *types.Transaction, index int) (*types.Receipt, error) {
+// 	action := NewAction(t, tx)
+// 	chain33Cfg := action.api.GetConfig()
+// 	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
+// 		return nil, errors.New("config exec.ycc.UseEntrust error")
+// 	}
+// 	return action.Pos33SetMinerFeeRate(payload)
+// }

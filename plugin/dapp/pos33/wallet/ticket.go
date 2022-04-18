@@ -423,7 +423,7 @@ func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
 		return nil, nil
 	}
 	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
-	_, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33ConsigneeEntruct", &types.ReqAddr{Addr: addr})
+	_, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33ConsigneeEntrust", &types.ReqAddr{Addr: addr})
 	if err == nil {
 		bizlog.Info("already migrate", "addr", addr)
 		policy.migrated = true
@@ -438,6 +438,7 @@ func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
 			},
 		},
 	}
+	act.Ty = ty.Pos33ActionMigrate
 	bizlog.Info("pos33 migrate", "miner", addr)
 	policy.migrated = true
 	return policy.walletOperate.SendTransaction(act, []byte(ty.Pos33TicketX), priv, "")
@@ -506,8 +507,8 @@ func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey
 	}
 
 	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
-	count := acc.Balance / cfg.Pos33TicketPrice
+	cfg := ty.GetPos33MineParam(chain33Cfg, height)
+	count := acc.Balance / cfg.GetTicketPrice()
 	if count > 0 {
 		txhash, err := policy.openticket(addr, raddr, priv, int32(count))
 		return txhash, int(count), err
@@ -524,9 +525,9 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 		return nil, 0, err
 	}
 	chain33Cfg := policy.walletOperate.GetAPI().GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, height)
+	cfg := ty.GetPos33MineParam(chain33Cfg, height)
 	fee := chain33Cfg.GetCoinPrecision() * 100
-	amount := acc1.Balance / cfg.Pos33TicketPrice * cfg.Pos33TicketPrice
+	amount := acc1.Balance / cfg.GetTicketPrice() * cfg.GetTicketPrice()
 
 	bizlog.Info("buyPos33TicketOne deposit", "addr", addr, "amount", amount)
 
@@ -550,7 +551,7 @@ func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey)
 		bizlog.Error("buyPos33TicketOne", "addr", addr, "err", err)
 		return nil, 0, err
 	}
-	count := acc.Balance / cfg.Pos33TicketPrice
+	count := acc.Balance / cfg.GetTicketPrice()
 	bizlog.Info("buyPos33TicketOne open", "addr", addr, "amount", count)
 	if count > 0 {
 		txhash, err := policy.openticket(addr, raddr, priv, int32(count))
@@ -566,7 +567,7 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 	}
 
 	chain33Cfg := policy.getAPI().GetConfig()
-	if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "UseEntrust") {
+	if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "Migrate") {
 		hash, err := policy.blsBind(minerPriv)
 		if err != nil {
 			bizlog.Error("bls bind error", "height", height, "eror", err)
@@ -592,15 +593,15 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 		hashes = append(hashes, hash)
 	}
 
-	// return addr buy
-	hash, n, err = policy.buyPos33TicketBind(height, minerPriv)
-	if err != nil {
-		return nil, 0, err
-	}
-	count += n
-	if hash != nil {
-		hashes = append(hashes, hash)
-	}
+	// // return addr buy
+	// hash, n, err = policy.buyPos33TicketBind(height, minerPriv)
+	// if err != nil {
+	// 	return nil, 0, err
+	// }
+	// count += n
+	// if hash != nil {
+	// 	hashes = append(hashes, hash)
+	// }
 	return hashes, count, err
 }
 

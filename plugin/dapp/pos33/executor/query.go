@@ -14,6 +14,15 @@ func (ticket *Pos33Ticket) Query_AllPos33TicketCount(*types.ReqNil) (types.Messa
 	return &types.Int64{Data: int64(count)}, nil
 }
 
+// Query_AllPos33TicketAmount query all ticket count
+func (ticket *Pos33Ticket) Query_AllPos33TicketAmount(*types.ReqNil) (types.Message, error) {
+	amount, err := getAllAmount(ticket.GetStateDB())
+	if err != nil {
+		return nil, err
+	}
+	return &types.Int64{Data: amount}, nil
+}
+
 // Query_Pos33TicketCount query tick info
 func (ticket *Pos33Ticket) Query_Pos33TicketCount(param *types.ReqAddr) (types.Message, error) {
 	count := getCount(ticket.GetStateDB(), param.Addr)

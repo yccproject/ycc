@@ -34,6 +34,7 @@ type Client struct {
 
 	mlock sync.Mutex
 	acMap map[int64]int
+	tcMap map[int64]map[string]int64
 
 	done chan struct{}
 }
@@ -73,7 +74,14 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	// plog.Debug("subcfg", "cfg", string(sub))
 
 	n := newNode(&subcfg)
-	client := &Client{BaseClient: c, n: n, conf: &subcfg, acMap: make(map[int64]int), done: make(chan struct{})}
+	client := &Client{
+		BaseClient: c,
+		n:          n,
+		conf:       &subcfg,
+		acMap:      make(map[int64]int),
+		tcMap:      make(map[int64]map[string]int64),
+		done:       make(chan struct{}),
+	}
 	client.n.Client = client
 	c.SetChild(client)
 	return client
@@ -154,7 +162,8 @@ func (c *Client) AddBlock(b *types.Block) error {
 func (c *Client) updateTicketCount(height int64) {
 	c.mlock.Lock()
 	defer c.mlock.Unlock()
-	ac := c.queryAllPos33Count()
+	ac := c.queryAllPos33Count(height)
+	// tc := c.queryTicketCount()
 	c.acMap[height] = ac
 	c.mycount = c.getMyCount()
 	plog.Info("AllCount", "count", ac, "height", height)
@@ -184,14 +193,60 @@ func (c *Client) getMyCount() int {
 	return c.mycount
 }
 
-func (c *Client) queryAllPos33Count() int {
-	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketCount", &types.ReqNil{})
+func (c *Client) queryEntrustCount(miner string) int64 {
+	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33ConsigneeEntrust", &types.ReqAddr{Addr: miner})
 	if err != nil {
-		plog.Debug("query Pos33AllPos33TicketCount error", "error", err)
+		plog.Debug("query Pos33Consignee error", "error", err)
 		return 0
 	}
-	count := int(msg.(*types.Int64).Data)
+	consignee := msg.(*pt.Pos33Consignee)
+	return consignee.Amount
+}
+
+func (c *Client) queryTicketCount(addr string, height int64) int64 {
+	mp, ok := c.tcMap[height]
+	if ok {
+		return mp[addr]
+	}
+
+	count := int64(0)
+	cfg := c.GetAPI().GetConfig()
+	if cfg.IsDappFork(height, pt.Pos33TicketX, "UseEntrust") {
+		count = c.queryEntrustCount(addr)
+	} else {
+		msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
+		if err != nil {
+			plog.Debug("query Pos33AllPos33TicketCount error", "error", err)
+			count = 0
+		} else {
+			count = msg.(*types.Int64).Data
+		}
+	}
+	mp = make(map[string]int64)
+	c.tcMap[height] = mp
+	mp[addr] = count
 	return count
+}
+
+func (c *Client) queryAllPos33Count(height int64) int {
+	var msg types.Message
+	var err error
+	cfg := c.GetAPI().GetConfig()
+	useAmount := cfg.IsDappFork(height, pt.Pos33TicketX, "UseEntrust")
+	if useAmount {
+		msg, err = c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketAmount", &types.ReqNil{})
+	} else {
+		msg, err = c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketCount", &types.ReqNil{})
+	}
+	if err != nil {
+		plog.Error("query all tickets count error", "error", err, "height", height, "useAmount", useAmount)
+		return 0
+	}
+	count := msg.(*types.Int64).Data
+	if useAmount {
+		return int(count / pt.GetPos33MineParam(cfg, height).GetTicketPrice())
+	}
+	return int(count)
 }
 
 // CreateBlock will start run
@@ -246,7 +301,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 	tx2.Execer = []byte("coins")
 	tx2.To = driver.ExecAddress(pt.Pos33TicketX)
 	g = &ct.CoinsAction_Genesis{}
-	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice, ReturnAddress: returnAddr}
+	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33MineParam(cfg, height).GetTicketPrice(), ReturnAddress: returnAddr}
 	tx2.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 
@@ -259,7 +314,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 		gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, BlsAddress: blsAddr, Count: count}
 		tx3.Payload = types.Encode(&pt.Pos33TicketAction{Value: gticket, Ty: pt.Pos33TicketActionGenesis})
 		ret = append(ret, &tx3)
-		plog.Debug("genesis miner", "execaddr", tx3.To)
+		plog.Info("genesis miner", "execaddr", tx3.To, "genesistx", g.Genesis)
 	} else {
 		entrustAct := &pt.Pos33TicketAction_Entrust{
 			Entrust: &pt.Pos33Entrust{

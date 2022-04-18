@@ -4,12 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
+
+// mine param key
+func MineParamKey() []byte {
+	return []byte("mavl-pos33-mine-param")
+}
 
 // Consignee key
 func ConsigneeKey(addr string) (key []byte) {
@@ -19,6 +25,22 @@ func ConsigneeKey(addr string) (key []byte) {
 // Consignor  key
 func ConsignorKey(addr string) (key []byte) {
 	return []byte("mavl-pos33-consignor-" + addr)
+}
+
+func AllFrozenAmount() []byte {
+	return []byte("mavl-pos33-all-frozen")
+}
+
+func getAllAmount(db dbm.KV) (int64, error) {
+	val, err := db.Get(AllFrozenAmount())
+	if err != nil {
+		return 0, err
+	}
+	n, err := strconv.Atoi(string(val))
+	if err != nil {
+		return 0, err
+	}
+	return int64(n), nil
 }
 
 func (act *Action) updateConsignee(addr string, consignee *ty.Pos33Consignee) []*types.KeyValue {
@@ -77,7 +99,7 @@ func (action *Action) getConsignee(addr string) (*ty.Pos33Consignee, error) {
 
 func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, error) {
 	chain33Cfg := act.api.GetConfig()
-	mp := ty.GetPos33TicketMinerParam(chain33Cfg, act.height)
+	mp := ty.GetPos33MineParam(chain33Cfg, act.height)
 	needTransfer := float64(mp.RewardTransfer)
 
 	var kvs []*types.KeyValue
@@ -114,7 +136,7 @@ func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, e
 
 func (act *Action) voteReward(rds []*rewards, voteReward int64) (*types.Receipt, error) {
 	chain33Cfg := act.api.GetConfig()
-	mp := ty.GetPos33TicketMinerParam(chain33Cfg, act.height)
+	mp := ty.GetPos33MineParam(chain33Cfg, act.height)
 	needTransfer := float64(mp.RewardTransfer)
 	// needFee := needTransfer * float64(mp.MinerFeePersent) / 100
 
@@ -190,7 +212,7 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 		Pos33MakerReward /= 2
 	}
 	if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		mp := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
+		mp := ty.GetPos33MineParam(chain33Cfg, action.height)
 		Pos33BlockReward = mp.BlockReward
 		Pos33VoteReward = mp.VoteReward
 		Pos33MakerReward = mp.MineReward
@@ -269,12 +291,12 @@ func (action *Action) Pos33BlsBind(pm *ty.Pos33BlsBind) (*types.Receipt, error) 
 
 func (action *Action) migrateAllCount() *types.KeyValue {
 	chain33Cfg := action.api.GetConfig()
-	mp := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
-	old := getAllCount(action.db)
-	new := old / int(mp.Pos33TicketPrice) * int(mp.NewPos33TicketPrice)
-	value := []byte(fmt.Sprintf("%d", new))
-	tlog.Info("Pos33 update All tickets Count", "height", action.height, "allCount", new)
-	return &types.KeyValue{Key: Key(allCountID), Value: value}
+	mp := ty.GetPos33MineParam(chain33Cfg, action.height)
+	count := getAllCount(action.db)
+	amount := mp.GetTicketPrice() * int64(count)
+	value := []byte(fmt.Sprintf("%d", amount))
+	tlog.Info("Pos33 mirate All tickets Count to frozen ycc", "height", action.height, "allAmount", amount)
+	return &types.KeyValue{Key: AllFrozenAmount(), Value: value}
 }
 
 func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) {
@@ -286,8 +308,6 @@ func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) 
 	if err != nil {
 		return nil, err
 	}
-	// delete old deposit
-	kvs := []*types.KeyValue{{Key: Key(pm.Miner), Value: nil}}
 
 	// use new price calculate amount
 	req := &types.ReqBalance{Addresses: []string{d.Raddr}, Execer: ty.Pos33TicketX}
@@ -296,30 +316,26 @@ func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) 
 		tlog.Error("GetBalance error", "err", err, "height", action.height)
 		return nil, err
 	}
-	retAcc := accs[0]
+	acc := accs[0]
 	chain33Cfg := action.api.GetConfig()
-	price := ty.GetPos33TicketMinerParam(chain33Cfg, action.height).NewPos33TicketPrice
-	amount := retAcc.Frozen / price
-
-	// remain should unfreeze
-	remain := retAcc.Frozen - amount*price
-	receipt, err := action.coinsAccount.ExecActive(d.Raddr, action.execaddr, remain)
-	if err != nil {
-		return nil, err
-	}
-	kvs = append(kvs, receipt.KV...)
+	mp := ty.GetPos33MineParam(chain33Cfg, action.height)
+	feeRate := mp.MinerFeePersent
+	amount := acc.Frozen
 
 	// set net entrust
 	consignor := &ty.Consignor{Address: d.Raddr, Amount: amount, Reward: d.Reward}
 	consignee, err := action.getConsignee(pm.Miner)
 	if err != nil {
-		consignee = &ty.Pos33Consignee{Address: pm.Miner, Amount: d.Count}
+		consignee = &ty.Pos33Consignee{Address: pm.Miner, FeeRatePersent: int32(feeRate)}
 	}
+	consignee.Amount += amount
 	consignee.Consignors = append(consignee.Consignors, consignor)
-	tlog.Info("Pos33Migrate", "miner", pm.Miner, "raddr", d.Raddr, "amount", d.Count)
+	tlog.Info("Pos33Migrate", "miner", pm.Miner, "raddr", d.Raddr, "amount", amount)
+
+	var kvs []*types.KeyValue
 	kvs = append(kvs, action.updateConsignee(pm.Miner, consignee)...)
 	kvs = append(kvs, action.migrateAllCount())
-	return &types.Receipt{KV: kvs}, nil
+	return &types.Receipt{KV: kvs, Ty: types.ExecOk}, nil
 }
 
 func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) {
@@ -354,19 +370,15 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 		consignee.Consignors = append(consignee.Consignors, consignor)
 	}
 
-	chain33Cfg := action.api.GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
-	realAmount := cfg.Pos33TicketPrice * pe.Amount
-
 	var receipt *types.Receipt
 	if pe.Amount > 0 {
-		receipt, err = action.coinsAccount.ExecFrozen(pe.Consignor, action.execaddr, realAmount)
+		receipt, err = action.coinsAccount.ExecFrozen(pe.Consignor, action.execaddr, pe.Amount)
 		if err != nil {
 			tlog.Error("Pos33Entrust error", "err", err, "height", action.height, "consignor", pe.Consignor, "fromaddr", action.fromaddr)
 			return nil, err
 		}
 	} else {
-		receipt, err = action.coinsAccount.ExecActive(pe.Consignor, action.execaddr, -realAmount)
+		receipt, err = action.coinsAccount.ExecActive(pe.Consignor, action.execaddr, pe.Amount)
 		if err != nil {
 			return nil, err
 		}
@@ -380,7 +392,6 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 	receipt.KV = append(receipt.KV, kvs...)
 
 	tlog.Info("Pos33Entrust set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount, "consignor amount", consignor.Amount, "consignee amount", consignee.Amount)
-	// tlog.Info("pos33 entrust", "receipt", receipt)
 	return receipt, nil
 }
 

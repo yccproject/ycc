@@ -188,17 +188,10 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	}
 
 	addr := address.PubKeyToAddr(address.DefaultID, m.Proof.Pubkey)
-	// d, err := n.queryDeposit(addr)
-	// if err != nil {
-	// 	return err
-	// }
-	// count := d.Count
-	// if d.CloseHeight >= height-pt.Pos33SortBlocks {
-	// 	count = d.PreCount
-	// }
-	// if count <= m.SortHash.Index {
-	// 	return fmt.Errorf("sort index %d > %d your count, height %d, close-height %d, precount %d", m.SortHash.Index, count, height, d.CloseHeight, d.PreCount)
-	// }
+	count := n.queryTicketCount(addr, height-pt.Pos33SortBlocks)
+	if count <= m.SortHash.Index {
+		return fmt.Errorf("sort index %d > %d your count, height %d", m.SortHash.Index, count, height)
+	}
 
 	if m.Proof.Input.Height != height {
 		return fmt.Errorf("verifySort error, height NOT match: %d!=%d", m.Proof.Input.Height, height)

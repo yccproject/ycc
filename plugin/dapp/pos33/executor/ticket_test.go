@@ -39,13 +39,13 @@ func TestMain(m *testing.M) {
 func TestCheckFork(t *testing.T) {
 	cfg := mock33.GetAPI().GetConfig()
 	assert.Equal(t, int64(1), cfg.GetFork("ForkChainParamV2"))
-	p1 := ty.GetPos33TicketMinerParam(cfg, 0)
+	p1 := ty.GetPos33MineParam(cfg, 0)
 	assert.Equal(t, 10000*types.Coin, p1.Pos33TicketPrice)
-	p1 = ty.GetPos33TicketMinerParam(cfg, 1)
+	p1 = ty.GetPos33MineParam(cfg, 1)
 	assert.Equal(t, 3000*types.Coin, p1.Pos33TicketPrice)
-	p1 = ty.GetPos33TicketMinerParam(cfg, 2)
+	p1 = ty.GetPos33MineParam(cfg, 2)
 	assert.Equal(t, 3000*types.Coin, p1.Pos33TicketPrice)
-	p1 = ty.GetPos33TicketMinerParam(cfg, 3)
+	p1 = ty.GetPos33MineParam(cfg, 3)
 	assert.Equal(t, 3000*types.Coin, p1.Pos33TicketPrice)
 }
 

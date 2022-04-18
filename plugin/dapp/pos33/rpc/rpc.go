@@ -203,11 +203,11 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindPos33
 		if err != nil {
 			return nil, err
 		}
-		price := ty.GetPos33TicketMinerParam(cfg, header.Height).Pos33TicketPrice
+		price := ty.GetPos33MineParam(cfg, header.Height).GetTicketPrice()
 		if price == 0 {
 			return nil, types.ErrInvalidParam
 		}
-		if in.Amount%ty.GetPos33TicketMinerParam(cfg, header.Height).Pos33TicketPrice != 0 || in.Amount < 0 {
+		if in.Amount%price != 0 || in.Amount < 0 {
 			return nil, types.ErrAmount
 		}
 

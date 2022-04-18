@@ -64,13 +64,14 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-ticketPrice=10000
-newTicketPrice=100000
-minerFeePersent=5 
+ticketPrice1=10000
+ticketPrice2=100000
+minerFeePersent=10 
 rewardTransfer=10
 blockReward=15
 voteRewardPersent=25
 mineRewardPersent=11
+managerAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 
 [store]
@@ -137,7 +138,8 @@ Enable=0
 Enable=0
 ForkReward15=0
 ForkFixReward=0
-UseEntrust=60
+Migrate=20
+UseEntrust=30
 
 
 [fork.sub.evm]

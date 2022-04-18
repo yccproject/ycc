@@ -97,6 +97,7 @@ func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(Pos33TicketX, "ForkReward15", 725000)
 	cfg.RegisterDappFork(Pos33TicketX, "ForkFixReward", 5000000)
 	cfg.RegisterDappFork(Pos33TicketX, "UseEntrust", 7000000)
+	cfg.RegisterDappFork(Pos33TicketX, "Migrate", 7000000)
 }
 
 func InitExecutor(cfg *types.Chain33Config) {
@@ -162,46 +163,55 @@ func (ticket *Pos33TicketType) GetName() string {
 // GetTypeMap get type map
 func (ticket *Pos33TicketType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Genesis":        Pos33TicketActionGenesis,
-		"Topen":          Pos33TicketActionOpen,
-		"Tbind":          Pos33TicketActionBind,
-		"Tclose":         Pos33TicketActionClose,
-		"Miner":          Pos33TicketActionMiner,
-		"Entrust":        Pos33ActionEntrust,
-		"Migrate":        Pos33ActionMigrate,
-		"BlsBind":        Pos33ActionBlsBind,
-		"FeeRate":        Pos33ActionMinerFeeRate,
-		"WithdrawReward": Pos33ActionWithdrawReward,
+		"Genesis": Pos33TicketActionGenesis,
+		"Topen":   Pos33TicketActionOpen,
+		"Tbind":   Pos33TicketActionBind,
+		"Tclose":  Pos33TicketActionClose,
+		"Miner":   Pos33TicketActionMiner,
+		"Entrust": Pos33ActionEntrust,
+		"Migrate": Pos33ActionMigrate,
+		"BlsBind": Pos33ActionBlsBind,
+		// "FeeRate":   Pos33ActionMinerFeeRate,
+		"Withdraw": Pos33ActionWithdrawReward,
 	}
 }
 
-// Pos33TicketMinerParam is ...
-type Pos33TicketMinerParam struct {
-	Pos33TicketPrice    int64
-	NewPos33TicketPrice int64
-	MinerFeePersent     int64
-	RewardTransfer      int64
-	BlockReward         int64
-	VoteReward          int64
-	MineReward          int64
+type Pos33MineParam struct {
+	TicketPrice1    int64
+	TicketPrice2    int64
+	MinerFeePersent int64
+	RewardTransfer  int64
+	BlockReward     int64
+	VoteReward      int64
+	MineReward      int64
+
+	cfg    *types.Chain33Config
+	height int64
 }
 
-// GetPos33TicketMinerParam 获取ticket miner config params
-func GetPos33TicketMinerParam(cfg *types.Chain33Config, height int64) *Pos33TicketMinerParam {
+// GetPos33MineParam 获取ticket miner config params
+func GetPos33MineParam(cfg *types.Chain33Config, height int64) *Pos33MineParam {
 	conf := types.Conf(cfg, "mver.consensus.pos33")
-	c := &Pos33TicketMinerParam{}
-	c.Pos33TicketPrice = conf.MGInt("ticketPrice", height) * cfg.GetCoinPrecision()
-	c.NewPos33TicketPrice = conf.MGInt("newTicketPrice", height) * cfg.GetCoinPrecision()
+	c := &Pos33MineParam{}
+	c.TicketPrice1 = conf.MGInt("ticketPrice1", height) * cfg.GetCoinPrecision()
+	c.TicketPrice2 = conf.MGInt("ticketPrice2", height) * cfg.GetCoinPrecision()
 	c.MinerFeePersent = conf.MGInt("minerFeePersent", height)
 	c.RewardTransfer = conf.MGInt("rewardTransfer", height) * cfg.GetCoinPrecision()
 	c.BlockReward = conf.MGInt("blockReward", height) * cfg.GetCoinPrecision()
 	c.VoteReward = conf.MGInt("voteRewardPersent", height) * cfg.GetCoinPrecision() / 100
 	c.MineReward = conf.MGInt("mineRewardPersent", height) * cfg.GetCoinPrecision() / 100
+	c.cfg = cfg
+	c.height = height
 	return c
 }
 
-// Pos33AllTicketCountKeyPrefix for query all ticket count
-const Pos33AllTicketCountKeyPrefix = "LODB-pos33-all:"
+func (mp *Pos33MineParam) GetTicketPrice() int64 {
+	price := mp.TicketPrice1
+	if mp.cfg.IsDappFork(mp.height, Pos33TicketX, "UseEntrust") {
+		price = mp.TicketPrice2
+	}
+	return price
+}
 
 const (
 	// Pos33SortBlocks 多少区块做一次抽签
