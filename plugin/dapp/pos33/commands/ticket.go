@@ -143,7 +143,16 @@ func getConsignee(cmd *cobra.Command, args []string) {
 
 	var res ty.Pos33Consignee
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33ConsigneeEntrust", &types.ReqAddr{Addr: addr}, &res)
-	ctx.Run()
+	result, err := ctx.RunResult()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(result)
+	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(data))
 }
 
 func getConsignor(cmd *cobra.Command, args []string) {

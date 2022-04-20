@@ -256,7 +256,7 @@ message Pos33Consignee {
   string address = 1;
   int64 amount = 2;
   int64 fee_reward = 3;
-  int32 fee_rate_persent = 4;
+  int64 fee_persent = 4;
   repeated Consignor consignors = 5; // 委托人列表
 }
 
