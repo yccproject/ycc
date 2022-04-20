@@ -9,7 +9,7 @@ ChainID=999
 
 [blockchain]
 maxFetchBlockNum=128
-timeoutSeconds=5
+timeoutSeconds=1
 batchBlockNum=128
 driver="leveldb"
 isStrongConsistency=false
