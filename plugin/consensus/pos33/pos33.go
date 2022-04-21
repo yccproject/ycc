@@ -204,7 +204,10 @@ func (c *Client) queryEntrustCount(miner string, height int64) int64 {
 
 func (c *Client) queryTicketCount(addr string, height int64) int64 {
 	mp, ok := c.tcMap[height]
-	if ok {
+	if !ok {
+		mp = make(map[string]int64)
+		c.tcMap[height] = mp
+	} else {
 		count, ok := mp[addr]
 		if ok {
 			return count
@@ -227,10 +230,8 @@ func (c *Client) queryTicketCount(addr string, height int64) int64 {
 			count = msg.(*types.Int64).Data
 		}
 	}
-	mp = make(map[string]int64)
-	c.tcMap[height] = mp
 	mp[addr] = count
-	plog.Info("query ticket count", "height", height, "addr", addr)
+	plog.Info("query ticket count", "height", height, "addr", addr, "count", count)
 	return count
 }
 

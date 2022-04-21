@@ -308,8 +308,4 @@ service pos33 {
   rpc GetAllPos33TicketCount(types.ReqNil) returns (Int64) {}
   //设置自动挖矿
   rpc SetAutoMining(Pos33MinerFlag) returns (Reply) {}
-  //设置自动挖矿
-  rpc BlsBind(types.ReqNil) returns (Reply) {}
-  //设置自动挖矿
-  rpc Magrate(types.ReqNil) returns (Reply) {}
 }

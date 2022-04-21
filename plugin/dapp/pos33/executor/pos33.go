@@ -331,12 +331,13 @@ func (action *Action) freeze(addr string, amount int64) (*types.Receipt, error) 
 	if amount > 0 {
 		receipt, err = action.coinsAccount.ExecFrozen(addr, action.execaddr, amount)
 		if err != nil {
-			tlog.Error("Pos33Entrust error", "err", err, "height", action.height, "consignor", addr)
+			tlog.Error("freeze error", "err", err, "height", action.height, "consignor", addr)
 			return nil, err
 		}
 	} else {
-		receipt, err = action.coinsAccount.ExecActive(addr, action.execaddr, amount)
+		receipt, err = action.coinsAccount.ExecActive(addr, action.execaddr, -amount)
 		if err != nil {
+			tlog.Error("freeze error", "err", err, "height", action.height, "consignor", addr)
 			return nil, err
 		}
 	}
