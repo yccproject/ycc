@@ -27,10 +27,9 @@ type Client struct {
 	conf *subConfig
 	n    *node
 
-	clock   sync.Mutex
-	priv    crypto.PrivKey
-	myAddr  string
-	mycount int
+	clock  sync.Mutex
+	priv   crypto.PrivKey
+	myAddr string
 
 	mlock sync.Mutex
 	acMap map[int64]int
@@ -113,11 +112,16 @@ func (client *Client) BlockCheck(parent *types.Block, current *types.Block) erro
 	return client.n.checkBlock(current, parent)
 }
 
-func (client *Client) myCount() int {
-	client.clock.Lock()
-	defer client.clock.Unlock()
-	return client.mycount
-}
+// func (client *Client) myCount(height int64) int {
+// 	if height < 0 {
+// 		height = 0
+// 	}
+// 	c, ok := client.tcMap[height]
+// 	if !ok {
+// 		// c = client.tcMap[client.GetCurrentHeight()]
+// 	}
+// 	return c
+// }
 
 func (client *Client) allCount(height int64) int {
 	client.mlock.Lock()
@@ -154,65 +158,66 @@ func (client *Client) getPriv() crypto.PrivKey {
 }
 
 func (c *Client) AddBlock(b *types.Block) error {
-	c.updateTicketCount(b.Height)
 	c.n.addBlock(b)
+	c.updateAllTicketCount(b.Height)
 	return nil
 }
 
-func (c *Client) updateTicketCount(height int64) {
-	c.mlock.Lock()
-	defer c.mlock.Unlock()
+func (c *Client) updateAllTicketCount(height int64) {
+	c.clock.Lock()
+	defer c.clock.Unlock()
 	ac := c.queryAllPos33Count(height)
-	// tc := c.queryTicketCount()
 	c.acMap[height] = ac
-	c.mycount = c.getMyCount()
+	if c.myAddr == "" {
+		c.getMiner()
+	}
 	plog.Info("AllCount", "count", ac, "height", height)
 	delete(c.acMap, height-pt.Pos33SortBlocks-1)
 }
 
-func (c *Client) getMyCount() int {
-	c.clock.Lock()
-	defer c.clock.Unlock()
-	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Count", &types.ReqNil{})
+func (c *Client) getMiner() {
+	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetMiner", &types.ReqNil{})
 	if err != nil {
-		plog.Debug("WalletGetPos33Count", "err", err)
-		return 0
+		plog.Debug("WalletGetMinerAddr", "err", err)
+		return
 	}
-	w := resp.(*pt.ReplyWalletPos33Count)
-	// if c.mycount != int(w.Count) {
-	// 	c.n.changeMyCount()
-	// }
-	c.mycount = int(w.Count)
-	c.priv, err = privFromBytes(w.Privkey)
+	w := resp.(*types.ReplyString)
+	c.priv, err = privFromBytes([]byte(w.Data))
 	if err != nil {
 		plog.Error("privFromBytes", "err", err)
-		return 0
+		return
 	}
 	c.myAddr = address.PubKeyToAddr(address.DefaultID, c.priv.PubKey().Bytes())
-	plog.Debug("getMyCount", "count", c.mycount)
-	return c.mycount
+	plog.Info("getMiner", "addr", c.myAddr)
 }
 
-func (c *Client) queryEntrustCount(miner string) int64 {
+func (c *Client) queryEntrustCount(miner string, height int64) int64 {
 	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33ConsigneeEntrust", &types.ReqAddr{Addr: miner})
 	if err != nil {
-		plog.Debug("query Pos33Consignee error", "error", err)
+		plog.Error("query Pos33Consignee error", "error", err, "height", height, "miner", miner)
 		return 0
 	}
 	consignee := msg.(*pt.Pos33Consignee)
-	return consignee.Amount
+	price := pt.GetPos33MineParam(c.GetAPI().GetConfig(), c.GetCurrentHeight()).GetTicketPrice()
+	return consignee.Amount / price
 }
 
 func (c *Client) queryTicketCount(addr string, height int64) int64 {
 	mp, ok := c.tcMap[height]
 	if ok {
-		return mp[addr]
+		count, ok := mp[addr]
+		if ok {
+			return count
+		}
+	}
+	if height < 0 {
+		height = 0
 	}
 
 	count := int64(0)
 	cfg := c.GetAPI().GetConfig()
 	if cfg.IsDappFork(height, pt.Pos33TicketX, "UseEntrust") {
-		count = c.queryEntrustCount(addr)
+		count = c.queryEntrustCount(addr, height)
 	} else {
 		msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
 		if err != nil {
@@ -225,6 +230,7 @@ func (c *Client) queryTicketCount(addr string, height int64) int64 {
 	mp = make(map[string]int64)
 	c.tcMap[height] = mp
 	mp[addr] = count
+	plog.Info("query ticket count", "height", height, "addr", addr)
 	return count
 }
 
@@ -249,12 +255,25 @@ func (c *Client) queryAllPos33Count(height int64) int {
 	return int(count)
 }
 
+func (client *Client) myCount() int {
+	height := client.GetCurrentHeight()
+	client.mlock.Lock()
+	defer client.mlock.Unlock()
+	if client.myAddr == "" {
+		client.getMiner()
+		return 0
+	}
+
+	return int(client.queryTicketCount(client.myAddr, height))
+}
+
 // CreateBlock will start run
 func (client *Client) CreateBlock() {
 	b, err := client.RequestBlock(0)
 	if err != nil {
 		panic(err)
 	}
+	client.getMiner()
 	gtm := client.GetGenesisBlockTime()
 	plog.Info("CreateBlock", "block 0 time", b.BlockTime, "genesis time", gtm)
 	if b.BlockTime != gtm {
@@ -368,17 +387,6 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	return ret
 }
 
-// func (client *Client) setOthersBlock(b *types.Block, pid string) error {
-// 	bp := &types.BlockPid{Pid: pid, Block: b}
-// 	qc := client.GetQueueClient()
-// 	err := qc.Send(qc.NewMessage("blockchain", types.EventBroadcastAddBlock, bp), true)
-// 	if err != nil {
-// 		plog.Error("BreadcastAddBlock error", "err", err)
-// 		return err
-// 	}
-// 	return nil
-// }
-
 // write block to chain
 func (client *Client) setBlock(b *types.Block) error {
 	cb := client.GetCurrentBlock()
@@ -469,50 +477,7 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 	// return vw1 > vw2
 }
 
-// Query_GetTicketCount ticket query ticket count function
-func (client *Client) Query_GetPos33TicketCount(req *types.ReqNil) (types.Message, error) {
-	var ret types.Int64
-	ret.Data = int64(client.myCount())
-	return &ret, nil
-}
-
 // Query_FlushTicket ticket query flush ticket function
 func (client *Client) Query_FlushPos33Ticket(req *types.ReqNil) (types.Message, error) {
-	client.getMyCount()
 	return &types.Reply{IsOk: true, Msg: []byte("OK")}, nil
 }
-
-// func (client *Client) Query_GetPos33Reward(req *pt.Pos33TicketReward) (types.Message, error) {
-// 	var b *types.Block
-// 	var err error
-// 	if req.Height <= 0 {
-// 		b, err = client.n.RequestLastBlock()
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	} else {
-// 		b, err = client.RequestBlock(req.Height)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	m, err := getMiner(b)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	br := int64(0)
-// 	vr := int64(0)
-// 	addr := req.Addr
-// 	if addr == "" {
-// 		addr = saddr(b.Signature)
-// 	}
-// 	if saddr(b.Signature) == addr {
-// 		br = pt.Pos33MakerReward * int64(len(m.Vs))
-// 	}
-// 	for _, v := range m.Vs {
-// 		if saddr(v.Sig) == addr {
-// 			vr += pt.Pos33VoteReward
-// 		}
-// 	}
-// 	return &pt.ReplyPos33TicketReward{VoterReward: vr, MinerReward: br}, nil
-// }

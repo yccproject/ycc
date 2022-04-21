@@ -284,11 +284,11 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 }
 
 func (action *Action) Pos33BlsBind(pm *ty.Pos33BlsBind) (*types.Receipt, error) {
-	tlog.Info("Pos33BlsBind", "blsaddr", pm.BlsAddr, "minerAddr", pm.MinerAddr)
 	miner := action.fromaddr
 	if action.height == 0 {
 		miner = pm.MinerAddr
 	}
+	tlog.Info("bls bind", "blsaddr", pm.BlsAddr, "minerAddr", miner)
 	return &types.Receipt{KV: []*types.KeyValue{{Key: BlsKey(pm.BlsAddr), Value: []byte(miner)}}, Ty: types.ExecOk}, nil
 }
 
@@ -325,7 +325,7 @@ func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) 
 	return action.setEntrust(&ty.Pos33Entrust{Consignee: action.fromaddr, Consignor: acc.Addr, Amount: amount})
 }
 
-func (action *Action) frozen(addr string, amount int64) (*types.Receipt, error) {
+func (action *Action) freeze(addr string, amount int64) (*types.Receipt, error) {
 	var receipt *types.Receipt
 	var err error
 	if amount > 0 {
@@ -340,6 +340,7 @@ func (action *Action) frozen(addr string, amount int64) (*types.Receipt, error) 
 			return nil, err
 		}
 	}
+	tlog.Info("freeze", "height", action.height, "addr", addr, "amount", amount)
 	return receipt, nil
 }
 
@@ -348,7 +349,7 @@ func (action *Action) Pos33Entrust(pe *ty.Pos33Entrust) (*types.Receipt, error) 
 	if err != nil {
 		return nil, err
 	}
-	receipt1, err := action.frozen(pe.Consignor, pe.Amount)
+	receipt1, err := action.freeze(pe.Consignor, pe.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +374,7 @@ func (action *Action) setEntrust(pe *ty.Pos33Entrust) (*types.Receipt, error) {
 
 	consignee, err := action.getConsignee(pe.Consignee)
 	if err != nil {
-		tlog.Error("Pos33Entrust error", "err", err, "height", action.height, "consignee", pe.Consignee)
+		tlog.Error("setEntrust error", "err", err, "height", action.height, "consignee", pe.Consignee)
 		consignee = &ty.Pos33Consignee{Address: pe.Consignee, FeePersent: mp.MinerFeePersent}
 	}
 	var consignor *ty.Consignor

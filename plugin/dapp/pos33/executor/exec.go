@@ -85,20 +85,20 @@ func (t *Pos33Ticket) Exec_Entrust(payload *ty.Pos33Entrust, tx *types.Transacti
 // Exec_Migrate exec migrate
 func (t *Pos33Ticket) Exec_Migrate(payload *ty.Pos33Migrate, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := NewAction(t, tx)
-	chain33Cfg := action.api.GetConfig()
-	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "Migrate") {
-		return nil, errors.New("config exec.ycc.Migrate error")
-	}
+	// chain33Cfg := action.api.GetConfig()
+	// if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "Migrate") {
+	// 	return nil, errors.New("config exec.ycc.Migrate error")
+	// }
 	return action.Pos33Migrate(payload)
 }
 
 // Exec_BlsBind exec bls bind
 func (t *Pos33Ticket) Exec_BlsBind(payload *ty.Pos33BlsBind, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := NewAction(t, tx)
-	chain33Cfg := action.api.GetConfig()
-	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
-	}
+	// chain33Cfg := action.api.GetConfig()
+	// if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
+	// 	return nil, errors.New("config exec.ycc.UseEntrust error")
+	// }
 	return action.Pos33BlsBind(payload)
 }
 

@@ -34,7 +34,7 @@ func init() {
 
 // New new instance
 func New() wcom.WalletBizPolicy {
-	return &ticketPolicy{mtx: &sync.Mutex{}, blsMap: make(map[string]bool)}
+	return &ticketPolicy{mtx: &sync.Mutex{}}
 }
 
 type ticketPolicy struct {
@@ -47,8 +47,6 @@ type ticketPolicy struct {
 	isPos33TicketLocked     int32
 	minertimeout            *time.Timer
 	cfg                     *subConfig
-	blsMap                  map[string]bool
-	migrated                bool
 }
 
 type subConfig struct {
@@ -321,7 +319,7 @@ func (policy *ticketPolicy) checkNeedFlushPos33Ticket(tx *types.Transaction, rec
 	return policy.needFlushPos33Ticket(tx, receipt)
 }
 
-func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33MinerFeeRate) (*types.ReplyHashes, error) {
+func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33MinerFeeRate) (*types.ReplyHash, error) {
 	feeRate := float64(fr.FeeRatePersent) / 100.
 	bizlog.Info("setMinerFeeRate", "maddr", fr.MinerAddr, "fee rate", feeRate)
 	ta := &ty.Pos33TicketAction{}
@@ -331,10 +329,10 @@ func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33Min
 	if err != nil {
 		return nil, err
 	}
-	return &types.ReplyHashes{Hashes: [][]byte{hash}}, nil
+	return &types.ReplyHash{Hash: hash}, nil
 }
 
-func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, maddr string, count int) (*types.ReplyHashes, error) {
+func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, maddr string, count int) (*types.ReplyHash, error) {
 	bizlog.Info("closePos33Tickets", "maddr", maddr, "count", count)
 	// max := 1000
 	// if count == 0 || count > max {
@@ -348,7 +346,7 @@ func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, maddr string,
 	if err != nil {
 		return nil, err
 	}
-	return &types.ReplyHashes{Hashes: [][]byte{hash}}, nil
+	return &types.ReplyHash{Hash: hash}, nil
 }
 
 func (policy *ticketPolicy) setAutoMining(flag int32) {
@@ -419,14 +417,10 @@ func (policy *ticketPolicy) isAutoMining() bool {
 // }
 
 func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
-	if policy.migrated {
-		return nil, nil
-	}
 	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
 	_, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33ConsigneeEntrust", &types.ReqAddr{Addr: addr})
 	if err == nil {
 		bizlog.Info("already migrate", "addr", addr)
-		policy.migrated = true
 		return nil, nil
 	} else {
 		bizlog.Error("migrate query error", "err", err, "addr", addr)
@@ -440,15 +434,11 @@ func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
 	}
 	act.Ty = ty.Pos33ActionMigrate
 	bizlog.Info("pos33 migrate", "miner", addr)
-	policy.migrated = true
 	return policy.walletOperate.SendTransaction(act, []byte(ty.Pos33TicketX), priv, "")
 }
 
 func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
-	if policy.blsMap[addr] {
-		return nil, nil
-	}
 	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
 	blsaddr := address.PubKeyToAddr(address.DefaultID, blsPk.Bytes())
 	m, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsaddr})
@@ -459,7 +449,6 @@ func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 			return nil, errors.New("blsbind error")
 		}
 		bizlog.Info("already bind blsaddr", "blsaddr", blsaddr, "addr", addr)
-		policy.blsMap[addr] = true
 		return nil, nil
 	}
 
@@ -468,7 +457,6 @@ func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 		Ty:    ty.Pos33ActionBlsBind,
 	}
 	bizlog.Info("bind blsaddr", "blsaddr", blsaddr, "addr", addr)
-	policy.blsMap[addr] = true
 	return policy.walletOperate.SendTransaction(act, []byte(ty.Pos33TicketX), priv, "")
 }
 
@@ -566,22 +554,22 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 		return nil, 0, err
 	}
 
-	chain33Cfg := policy.getAPI().GetConfig()
-	if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "Migrate") {
-		hash, err := policy.blsBind(minerPriv)
-		if err != nil {
-			bizlog.Error("bls bind error", "height", height, "eror", err)
-			return nil, 0, err
-		}
-		bizlog.Info("bls bind OK", "height", height)
-		hash1, err := policy.migrate(minerPriv)
-		if err != nil {
-			bizlog.Error("migrate error", "height", height, "eror", err)
-			return [][]byte{hash}, 1, err
-		}
-		bizlog.Info("migrate ok", "height", height)
-		return [][]byte{hash, hash1}, 2, nil
-	}
+	// chain33Cfg := policy.getAPI().GetConfig()
+	// if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "Migrate") {
+	// 	hash, err := policy.blsBind(minerPriv)
+	// 	if err != nil {
+	// 		bizlog.Error("bls bind error", "height", height, "eror", err)
+	// 		return nil, 0, err
+	// 	}
+	// 	bizlog.Info("bls bind OK", "height", height)
+	// 	hash1, err := policy.migrate(minerPriv)
+	// 	if err != nil {
+	// 		bizlog.Error("migrate error", "height", height, "eror", err)
+	// 		return [][]byte{hash}, 1, err
+	// 	}
+	// 	bizlog.Info("migrate ok", "height", height)
+	// 	return [][]byte{hash, hash1}, 2, nil
+	// }
 
 	count := 0
 	var hashes [][]byte

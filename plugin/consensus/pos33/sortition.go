@@ -95,7 +95,7 @@ func (n *node) doSort(vrfHash []byte, count, num int, diff float64, proof *pt.Ha
 }
 
 func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Pos33SortMsg {
-	count := n.myCount()
+	count := n.queryTicketCount(n.myAddr, height-10)
 	priv := n.getPriv()
 	if priv == nil {
 		return nil
@@ -112,13 +112,13 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	msgs := n.doSort(vrfHash, count, num, diff, proof)
+	msgs := n.doSort(vrfHash, int(count), num, diff, proof)
 	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(address.DefaultID, proof.Pubkey)[:16])
 	return msgs
 }
 
 func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg {
-	count := n.myCount()
+	count := n.queryTicketCount(n.myAddr, height-10)
 	priv := n.getPriv()
 	if priv == nil {
 		return nil
@@ -133,7 +133,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		VrfProof: vrfProof,
 		Pubkey:   priv.PubKey().Bytes(),
 	}
-	msgs := n.doSort(vrfHash, count, 0, diff, proof)
+	msgs := n.doSort(vrfHash, int(count), 0, diff, proof)
 	var minSort *pt.Pos33SortMsg
 	for _, m := range msgs {
 		if minSort == nil {

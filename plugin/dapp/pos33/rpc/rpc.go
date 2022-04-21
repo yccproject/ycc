@@ -40,27 +40,61 @@ func (g *channelClient) GetPos33TicketCount(ctx context.Context, in *types.ReqAd
 	return msg.(*types.Int64), nil
 }
 
+// BlsBind
+func (c *Jrpc) Pos33Migrate(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.Migrate(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	*result = &resp
+	return nil
+}
+
+// BlsBind
+func (g *channelClient) Migrate(ctx context.Context, in *types.ReqNil) (*types.ReplyHash, error) {
+	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "Migrate", in)
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.ReplyHash), nil
+}
+
+// BlsBind
+func (c *Jrpc) BlsBind(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.BlsBind(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	*result = &resp
+	return nil
+}
+
+// BlsBind
+func (g *channelClient) BlsBind(ctx context.Context, in *types.ReqNil) (*types.ReplyHash, error) {
+	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "BlsBind", in)
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.ReplyHash), nil
+}
+
 // SetMinerFeeRate
 func (c *Jrpc) SetMinerFeeRate(in *ty.Pos33MinerFeeRate, result *interface{}) error {
 	resp, err := c.cli.SetMinerFeeRate(context.Background(), in)
 	if err != nil {
 		return err
 	}
-	var hashes rpctypes.ReplyHashes
-	for _, has := range resp.Hashes {
-		hashes.Hashes = append(hashes.Hashes, common.ToHex(has))
-	}
-	*result = &hashes
+	*result = &resp.Hash
 	return nil
 }
 
 // SetMinerFeeRate
-func (g *channelClient) SetMinerFeeRate(ctx context.Context, in *ty.Pos33MinerFeeRate) (*types.ReplyHashes, error) {
+func (g *channelClient) SetMinerFeeRate(ctx context.Context, in *ty.Pos33MinerFeeRate) (*types.ReplyHash, error) {
 	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "SetMinerFeeRate", in)
 	if err != nil {
 		return nil, err
 	}
-	return data.(*types.ReplyHashes), nil
+	return data.(*types.ReplyHash), nil
 }
 
 // ClosePos33Tickets close ticket
@@ -69,22 +103,18 @@ func (c *Jrpc) ClosePos33Tickets(in *ty.Pos33TicketClose, result *interface{}) e
 	if err != nil {
 		return err
 	}
-	var hashes rpctypes.ReplyHashes
-	for _, has := range resp.Hashes {
-		hashes.Hashes = append(hashes.Hashes, common.ToHex(has))
-	}
-	*result = &hashes
+	*result = &resp
 	return nil
 }
 
 // ClosePos33Tickets close ticket
-func (g *channelClient) ClosePos33Tickets(ctx context.Context, in *ty.Pos33TicketClose) (*types.ReplyHashes, error) {
+func (g *channelClient) ClosePos33Tickets(ctx context.Context, in *ty.Pos33TicketClose) (*types.ReplyHash, error) {
 	// inn := *in
 	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "ClosePos33Tickets", in)
 	if err != nil {
 		return nil, err
 	}
-	return data.(*types.ReplyHashes), nil
+	return data.(*types.ReplyHash), nil
 }
 
 // GetAllPos33TicketCount get ticket count

@@ -375,7 +375,7 @@ func (n *node) prepareOK(height int64) bool {
 	if height < 10 {
 		return true
 	}
-	return n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.myCount() > 0
+	return n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.queryTicketCount(n.myAddr, height) > 0
 }
 
 func (n *node) checkBlock(b, pb *types.Block) error {
@@ -572,10 +572,10 @@ func (n *node) sortition(b *types.Block, round int) {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return
 	}
-	if height > 10 && len(n.mmp) > 10 || n.GetAPI().GetConfig().GetModuleConfig().BlockChain.SingleMode {
-		n.sortMaker(seed, height, round)
-		n.sortCommittee(seed, height, round)
-	}
+	// if height > 10 && len(n.mmp) > 10 || n.GetAPI().GetConfig().GetModuleConfig().BlockChain.SingleMode {
+	n.sortMaker(seed, height, round)
+	n.sortCommittee(seed, height, round)
+	// }
 }
 
 func (n *node) firstSortition() {
@@ -1131,7 +1131,7 @@ func (n *node) runLoop() {
 		n.gss.bootstrap(n.conf.BootPeers...)
 	}
 
-	n.updateTicketCount(lb.Height)
+	n.updateAllTicketCount(lb.Height)
 
 	if lb.Height > 0 {
 		time.AfterFunc(time.Second, func() {
