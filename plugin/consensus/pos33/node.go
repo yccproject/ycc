@@ -375,7 +375,7 @@ func (n *node) prepareOK(height int64) bool {
 	if height < 10 {
 		return true
 	}
-	return n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.queryTicketCount(n.myAddr, height) > 0
+	return n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.queryTicketCount(n.myAddr, height-10) > 0
 }
 
 func (n *node) checkBlock(b, pb *types.Block) error {
@@ -974,7 +974,7 @@ func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
 	}
 	seed, err := n.getSortSeed(height - pt.Pos33SortBlocks)
 	if err != nil {
-		plog.Error("getSeed error", "err", err)
+		plog.Error("getSeed error", "err", err, "height", height)
 		return err
 	}
 	if s == nil {
@@ -1131,7 +1131,7 @@ func (n *node) runLoop() {
 		n.gss.bootstrap(n.conf.BootPeers...)
 	}
 
-	n.updateAllTicketCount(lb.Height)
+	n.updateTicketCount(lb)
 
 	if lb.Height > 0 {
 		time.AfterFunc(time.Second, func() {
@@ -1148,8 +1148,8 @@ func (n *node) runLoop() {
 	nch := make(chan int64, 1)
 
 	round := 0
-	blockTimeout := time.Second * 5
-	resortTimeout := time.Second * 5
+	blockTimeout := time.Second * 3
+	resortTimeout := time.Second * 2
 	blockD := int64(900)
 
 	for {

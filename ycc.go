@@ -139,7 +139,7 @@ Enable=0
 ForkReward15=0
 ForkFixReward=0
 Migrate=15
-UseEntrust=25
+UseEntrust=11
 
 
 [fork.sub.evm]
