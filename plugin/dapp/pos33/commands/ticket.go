@@ -152,15 +152,73 @@ func getConsignee(cmd *cobra.Command, args []string) {
 
 	var res ty.Pos33Consignee
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33ConsigneeEntrust", &types.ReqAddr{Addr: addr}, &res)
-	result, err := ctx.RunResult()
+	ctx.SetResultCbExt(parseConsigneeRes)
+	cfg, err := cmdtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
-	data, err := json.MarshalIndent(result, "", "    ")
-	if err != nil {
-		panic(err)
+	ctx.RunExt(cfg)
+}
+
+type Pos33Consignor struct {
+	Address string
+	Miners  []*Consignee
+}
+
+type Consignee struct {
+	Address string
+	Amount  string
+}
+
+type Consignor struct {
+	Address      string
+	Amount       string
+	Reward       string
+	RemainReward string
+}
+
+type Pos33Consignee struct {
+	Address    string
+	Amount     string
+	FeeReward  string
+	FeePensent string
+	Consignors []*Consignor
+}
+
+func parseConsigneeRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*ty.Pos33Consignee)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	result := new(Pos33Consignee)
+	result.Address = res.Address
+	result.FeeReward = types.FormatAmount2FloatDisplay(res.FeeReward, cfg.CoinPrecision, false)
+	result.Amount = types.FormatAmount2FloatDisplay(res.Amount, cfg.CoinPrecision, false)
+	result.FeePensent = fmt.Sprintf("%d%%", res.FeePersent)
+	for _, co := range res.Consignors {
+		sco := &Consignor{
+			Address:      co.Address,
+			Amount:       types.FormatAmount2FloatDisplay(co.Amount, cfg.CoinPrecision, false),
+			Reward:       types.FormatAmount2FloatDisplay(co.Reward, cfg.CoinPrecision, false),
+			RemainReward: types.FormatAmount2FloatDisplay(co.RemainReward, cfg.CoinPrecision, false),
+		}
+		result.Consignors = append(result.Consignors, sco)
 	}
-	fmt.Println(string(data))
+	return result, nil
+}
+
+func parseConsignorRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*ty.Pos33Consignor)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	result := new(Pos33Consignor)
+	result.Address = res.Address
+	for _, co := range res.Consignees {
+		sco := &Consignee{
+			Address: co.Address,
+			Amount:  types.FormatAmount2FloatDisplay(co.Amount, cfg.CoinPrecision, false),
+		}
+		result.Miners = append(result.Miners, sco)
+	}
+	return result, nil
 }
 
 func getConsignor(cmd *cobra.Command, args []string) {
@@ -169,7 +227,13 @@ func getConsignor(cmd *cobra.Command, args []string) {
 
 	var res ty.Pos33Consignor
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33ConsignorEntrust", &types.ReqAddr{Addr: addr}, &res)
-	ctx.Run()
+	ctx.SetResultCbExt(parseConsignorRes)
+	cfg, err := cmdtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
 func addGetConsigneeFlags(cmd *cobra.Command) {
@@ -500,8 +564,8 @@ func rpcCall(rpcLaddr, method string, param interface{}) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res rpctypes.ReplyHash
-	err = rpc.Call(method, param, &res)
+	res := new(rpctypes.ReplyHash)
+	err = rpc.Call(method, param, res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
