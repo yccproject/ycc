@@ -7,13 +7,11 @@ package wallet
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
@@ -89,7 +87,8 @@ func (policy *ticketPolicy) getAPI() client.QueueProtocolAPI {
 
 // IsAutoMining check auto mining
 func (policy *ticketPolicy) IsAutoMining() bool {
-	return policy.isAutoMining()
+	// return policy.isAutoMining()
+	return false
 }
 
 // IsPos33TicketLocked check lock status
@@ -126,7 +125,7 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
 	walletBiz.RegisterMineStatusReporter(policy)
 	// 启动自动挖矿
 	walletBiz.GetWaitGroup().Add(1)
-	go policy.autoMining()
+	// go policy.autoMining()
 }
 
 // OnClose close
@@ -250,7 +249,7 @@ func (policy *ticketPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqSi
 func (policy *ticketPolicy) OnWalletLocked() {
 	// 钱包锁住时，不允许挖矿
 	atomic.CompareAndSwapInt32(&policy.isPos33TicketLocked, 0, 1)
-	FlushPos33Ticket(policy.getAPI())
+	// FlushPos33Ticket(policy.getAPI())
 }
 
 //解锁超时处理，需要区分整个钱包的解锁或者只挖矿的解锁
@@ -274,7 +273,7 @@ func (policy *ticketPolicy) OnWalletUnlocked(param *types.WalletUnLock) {
 		}
 	}
 	// 钱包解锁时，需要刷新，通知挖矿
-	FlushPos33Ticket(policy.getAPI())
+	// FlushPos33Ticket(policy.getAPI())
 }
 
 // OnCreateNewAccount process create new account event
@@ -283,28 +282,28 @@ func (policy *ticketPolicy) OnCreateNewAccount(acc *types.Account) {
 
 // OnImportPrivateKey 导入key的时候flush ticket
 func (policy *ticketPolicy) OnImportPrivateKey(acc *types.Account) {
-	FlushPos33Ticket(policy.getAPI())
+	// FlushPos33Ticket(policy.getAPI())
 }
 
 // OnAddBlockFinish process finish block
 func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {
-	FlushPos33Ticket(policy.getAPI())
+	// FlushPos33Ticket(policy.getAPI())
 }
 
 // OnDeleteBlockFinish process finish block
 func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
-	FlushPos33Ticket(policy.getAPI())
+	// FlushPos33Ticket(policy.getAPI())
 }
 
 // FlushPos33Ticket flush ticket
-func FlushPos33Ticket(api client.QueueProtocolAPI) {
-	bizlog.Debug("wallet FLUSH TICKET")
-	api.Notify("consensus", types.EventConsensusQuery, &types.ChainExecutor{
-		Driver:   "pos33",
-		FuncName: "FlushPos33Ticket",
-		Param:    types.Encode(&types.ReqNil{}),
-	})
-}
+// func FlushPos33Ticket(api client.QueueProtocolAPI) {
+// 	bizlog.Debug("wallet FLUSH TICKET")
+// 	api.Notify("consensus", types.EventConsensusQuery, &types.ChainExecutor{
+// 		Driver:   "pos33",
+// 		FuncName: "FlushPos33Ticket",
+// 		Param:    types.Encode(&types.ReqNil{}),
+// 	})
+// }
 
 func (policy *ticketPolicy) needFlushPos33Ticket(tx *types.Transaction, receipt *types.ReceiptData) bool {
 	pubkey := tx.Signature.GetPubkey()
@@ -349,13 +348,13 @@ func (policy *ticketPolicy) closePos33Tickets(priv crypto.PrivKey, maddr string,
 	return &types.ReplyHash{Hash: hash}, nil
 }
 
-func (policy *ticketPolicy) setAutoMining(flag int32) {
-	atomic.StoreInt32(&policy.autoMinerFlag, flag)
-}
+// func (policy *ticketPolicy) setAutoMining(flag int32) {
+// 	atomic.StoreInt32(&policy.autoMinerFlag, flag)
+// }
 
-func (policy *ticketPolicy) isAutoMining() bool {
-	return atomic.LoadInt32(&policy.autoMinerFlag) == 1
-}
+// func (policy *ticketPolicy) isAutoMining() bool {
+// 	return atomic.LoadInt32(&policy.autoMinerFlag) == 1
+// }
 
 // func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 // 	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
@@ -460,6 +459,7 @@ func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 	return policy.walletOperate.SendTransaction(act, []byte(ty.Pos33TicketX), priv, "")
 }
 
+/*
 func (policy *ticketPolicy) openticket(mineraddr, raddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
 	bizlog.Info("openticket", "mineraddr", mineraddr, "count", count)
 	// if count > ty.Pos33TicketCountOpenOnce {
@@ -554,23 +554,6 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 		return nil, 0, err
 	}
 
-	// chain33Cfg := policy.getAPI().GetConfig()
-	// if chain33Cfg.IsDappFork(height, ty.Pos33TicketX, "Migrate") {
-	// 	hash, err := policy.blsBind(minerPriv)
-	// 	if err != nil {
-	// 		bizlog.Error("bls bind error", "height", height, "eror", err)
-	// 		return nil, 0, err
-	// 	}
-	// 	bizlog.Info("bls bind OK", "height", height)
-	// 	hash1, err := policy.migrate(minerPriv)
-	// 	if err != nil {
-	// 		bizlog.Error("migrate error", "height", height, "eror", err)
-	// 		return [][]byte{hash}, 1, err
-	// 	}
-	// 	bizlog.Info("migrate ok", "height", height)
-	// 	return [][]byte{hash, hash1}, 2, nil
-	// }
-
 	count := 0
 	var hashes [][]byte
 
@@ -592,6 +575,7 @@ func (policy *ticketPolicy) buyPos33Ticket(height int64) ([][]byte, int, error) 
 	// }
 	return hashes, count, err
 }
+*/
 
 func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, error) {
 	accs, err := policy.getWalletOperate().GetWalletAccounts()
@@ -657,6 +641,7 @@ func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, 
 //1. 自动把成熟的ticket关闭
 //2. 查找ticket 可取的余额
 //3. 取出ticket 里面的钱
+/*
 func (policy *ticketPolicy) autoMining() {
 	bizlog.Debug("Begin auto mining")
 	defer bizlog.Debug("End auto mining")
@@ -699,16 +684,16 @@ func (policy *ticketPolicy) autoMining() {
 				// if err != nil {
 				// 	bizlog.Error("processFees", "err", err)
 				// }
-				hashs, n, err := policy.buyPos33Ticket(lastHeight + 1)
-				if err != nil {
-					bizlog.Error("buyPos33Ticket", "err", err)
-				}
-				if len(hashs) > 0 {
-					operater.WaitTxs(hashs)
-				}
-				if n > 0 {
-					FlushPos33Ticket(policy.getAPI())
-				}
+				// hashs, n, err := policy.buyPos33Ticket(lastHeight + 1)
+				// if err != nil {
+				// 	bizlog.Error("buyPos33Ticket", "err", err)
+				// }
+				// if len(hashs) > 0 {
+				// 	operater.WaitTxs(hashs)
+				// }
+				// if n > 0 {
+				// 	FlushPos33Ticket(policy.getAPI())
+				// }
 				// } else {
 				// err := policy.processFees()
 				// if err != nil {
@@ -728,3 +713,4 @@ func (policy *ticketPolicy) autoMining() {
 		}
 	}
 }
+*/

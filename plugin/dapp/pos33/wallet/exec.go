@@ -112,9 +112,9 @@ func (policy *ticketPolicy) On_WalletGetMiner(req *types.ReqNil) (types.Message,
 }
 
 // On_WalletAutoMiner auto mine
-func (policy *ticketPolicy) On_WalletAutoMiner(req *ty.Pos33MinerFlag) (types.Message, error) {
-	policy.store.SetAutoMinerFlag(req.Flag)
-	policy.setAutoMining(req.Flag)
-	FlushPos33Ticket(policy.getAPI())
-	return &types.Reply{IsOk: true}, nil
-}
+// func (policy *ticketPolicy) On_WalletAutoMiner(req *ty.Pos33MinerFlag) (types.Message, error) {
+// 	policy.store.SetAutoMinerFlag(req.Flag)
+// 	policy.setAutoMining(req.Flag)
+// 	FlushPos33Ticket(policy.getAPI())
+// 	return &types.Reply{IsOk: true}, nil
+// }
