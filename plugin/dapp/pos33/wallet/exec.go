@@ -77,29 +77,29 @@ func (policy *ticketPolicy) On_SetMinerFeeRate(req *ty.Pos33MinerFeeRate) (types
 }
 
 // On_ClosePos33Tickets close ticket
-func (policy *ticketPolicy) On_ClosePos33Tickets(req *ty.Pos33TicketClose) (types.Message, error) {
-	operater := policy.getWalletOperate()
-	bizlog.Info("On_ClosePos33Tickets", "maddr", req.MinerAddress, "count", req.Count)
-	priv, maddr, err := policy.getMiner("")
-	if err != nil {
-		return nil, err
-	}
-	if req.MinerAddress != "" {
-		maddr = req.MinerAddress
-	}
-	reply, err := policy.closePos33Tickets(priv, maddr, int(req.Count))
-	if err != nil || reply == nil {
-		bizlog.Error("onClosePos33Tickets", "forceClosePos33Ticket error", err.Error())
-	} else {
-		go func() {
-			if reply != nil {
-				operater.WaitTxs([][]byte{reply.Hash})
-				// FlushPos33Ticket(policy.getAPI())
-			}
-		}()
-	}
-	return reply, err
-}
+// func (policy *ticketPolicy) On_ClosePos33Tickets(req *ty.Pos33TicketClose) (types.Message, error) {
+// 	operater := policy.getWalletOperate()
+// 	bizlog.Info("On_ClosePos33Tickets", "maddr", req.MinerAddress, "count", req.Count)
+// 	priv, maddr, err := policy.getMiner("")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if req.MinerAddress != "" {
+// 		maddr = req.MinerAddress
+// 	}
+// 	reply, err := policy.closePos33Tickets(priv, maddr, int(req.Count))
+// 	if err != nil || reply == nil {
+// 		bizlog.Error("onClosePos33Tickets", "forceClosePos33Ticket error", err.Error())
+// 	} else {
+// 		go func() {
+// 			if reply != nil {
+// 				operater.WaitTxs([][]byte{reply.Hash})
+// 				// FlushPos33Ticket(policy.getAPI())
+// 			}
+// 		}()
+// 	}
+// 	return reply, err
+// }
 
 // On_WalletGetPos33Tickets get ticket
 func (policy *ticketPolicy) On_WalletGetMiner(req *types.ReqNil) (types.Message, error) {
