@@ -204,8 +204,8 @@ func (c *Client) updateTicketCount(b *types.Block) {
 		}
 	}
 	chain33Cfg := c.GetAPI().GetConfig()
-	if chain33Cfg.GetDappFork("pos33", "UseEntrust") == height {
-		plog.Info("update ticket count, use entrust", "height", height)
+	if pt.GetPos33MineParam(chain33Cfg, height).ChangeTicketPrice() {
+		plog.Info("update ticket count because price changed", "height", height)
 		c.queryAllPos33Count(height)
 		for k := range c.tcMap[height-1] {
 			c.queryMinerTicketCount(k, height)
