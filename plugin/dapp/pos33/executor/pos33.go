@@ -161,16 +161,17 @@ func (act *Action) voteReward(rds []*rewards, voteReward int64) (*types.Receipt,
 			cr.Reward += crr
 			cr.RemainReward += crr
 			if cr.RemainReward >= int64(needTransfer+needFee) {
-				receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, mp.RewardTransfer)
+				fee := cr.RemainReward * mp.MinerFeePersent / 100
+				consignee.FeeReward += fee
+				receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, cr.RemainReward-fee)
 				if err != nil {
-					tlog.Error("Pos33Miner.ExecDeposit error", "voter", addr, "execaddr", act.execaddr)
+					tlog.Error("transfer reward error", "height", act.height, "to", cr.Address, "amount", cr.RemainReward-fee)
 					return nil, err
 				}
-				cr.RemainReward -= int64(needTransfer + needFee)
-				consignee.FeeReward += int64(needFee)
+				cr.RemainReward = 0
 				logs = append(logs, receipt.Logs...)
 				kvs = append(kvs, receipt.KV...)
-				tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height)
+				tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "transfer", cr.RemainReward-fee, "fee", fee)
 			}
 		}
 		kvs = append(kvs, act.updateConsignee(consignee)...)

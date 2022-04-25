@@ -97,7 +97,6 @@ func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(Pos33TicketX, "ForkReward15", 725000)
 	cfg.RegisterDappFork(Pos33TicketX, "ForkFixReward", 5000000)
 	cfg.RegisterDappFork(Pos33TicketX, "UseEntrust", 7000000)
-	cfg.RegisterDappFork(Pos33TicketX, "ChangePrice3", 1000000)
 }
 
 func InitExecutor(cfg *types.Chain33Config) {
@@ -196,7 +195,6 @@ func GetPos33MineParam(cfg *types.Chain33Config, height int64) *Pos33MineParam {
 	c := &Pos33MineParam{}
 	c.TicketPrice1 = conf.MGInt("ticketPrice1", height) * cfg.GetCoinPrecision()
 	c.TicketPrice2 = conf.MGInt("ticketPrice2", height) * cfg.GetCoinPrecision()
-	c.TicketPrice3 = conf.MGInt("ticketPrice3", height) * cfg.GetCoinPrecision()
 	c.MinerFeePersent = conf.MGInt("minerFeePersent", height)
 	c.RewardTransfer = conf.MGInt("rewardTransfer", height) * cfg.GetCoinPrecision()
 	c.BlockReward = conf.MGInt("blockReward", height) * cfg.GetCoinPrecision()
@@ -208,19 +206,10 @@ func GetPos33MineParam(cfg *types.Chain33Config, height int64) *Pos33MineParam {
 }
 
 func (mp *Pos33MineParam) ChangeTicketPrice() bool {
-	if mp.cfg.GetDappFork("pos33", "UseEntrust") == mp.height {
-		return true
-	}
-	if mp.cfg.GetDappFork("pos33", "ChangePrice3") == mp.height {
-		return true
-	}
-	return false
+	return mp.cfg.GetDappFork("pos33", "UseEntrust") == mp.height
 }
 
 func (mp *Pos33MineParam) GetTicketPrice() int64 {
-	if mp.cfg.IsDappFork(mp.height, Pos33TicketX, "ChangePrice3") {
-		return mp.TicketPrice3
-	}
 	if mp.cfg.IsDappFork(mp.height, Pos33TicketX, "UseEntrust") {
 		return mp.TicketPrice2
 	}

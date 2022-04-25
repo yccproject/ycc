@@ -9,7 +9,7 @@ ChainID=999
 
 [blockchain]
 maxFetchBlockNum=128
-timeoutSeconds=5
+timeoutSeconds=1
 batchBlockNum=128
 driver="leveldb"
 isStrongConsistency=false
@@ -66,9 +66,8 @@ powLimitBits="0x1f2fffff"
 [mver.consensus.pos33]
 ticketPrice1=10000
 ticketPrice2=100000
-ticketPrice3=5000
 minerFeePersent=10 
-rewardTransfer=10
+rewardTransfer=1
 blockReward=15
 voteRewardPersent=25
 mineRewardPersent=11
@@ -139,8 +138,7 @@ Enable=0
 Enable=0
 ForkReward15=0
 ForkFixReward=0
-UseEntrust=11
-ChangePrice3=23250
+UseEntrust=0
 
 
 [fork.sub.evm]

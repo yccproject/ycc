@@ -387,7 +387,7 @@ func (client *Client) CreateBlock() {
 		}
 		if client.myCount() == 0 {
 			plog.Info("createblock.myCount is 0")
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 10)
 			continue
 		}
 		break
@@ -425,11 +425,12 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 		ret = append(ret, &tx3)
 		plog.Info("genesis miner", "execaddr", tx3.To, "genesistx", g.Genesis)
 	} else {
+		amount := int64(count) * pt.GetPos33MineParam(cfg, 0).GetTicketPrice()
 		entrustAct := &pt.Pos33TicketAction_Entrust{
 			Entrust: &pt.Pos33Entrust{
 				Consignee: minerAddr,
 				Consignor: returnAddr,
-				Amount:    int64(count),
+				Amount:    amount,
 			},
 		}
 		tx := &types.Transaction{
@@ -451,6 +452,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 			Payload: types.Encode(&pt.Pos33TicketAction{Value: blsBindAct, Ty: pt.Pos33ActionBlsBind}),
 		}
 		ret = append(ret, tx)
+		plog.Info("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount")
 	}
 	return ret
 }
