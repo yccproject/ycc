@@ -90,7 +90,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 func (client *Client) Close() {
 	client.done <- struct{}{}
 	client.BaseClient.Close()
-	plog.Debug("pos33 consensus closed")
+	plog.Info("pos33 consensus closed")
 }
 
 // ProcEvent do nothing?
@@ -372,7 +372,7 @@ func (client *Client) CreateBlock() {
 	for {
 		select {
 		case <-client.done:
-			plog.Debug("pos33 client done!!!")
+			plog.Info("pos33 client done!!!")
 			return
 		default:
 		}
@@ -387,7 +387,7 @@ func (client *Client) CreateBlock() {
 		}
 		if client.myCount() == 0 {
 			plog.Info("createblock.myCount is 0")
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 3)
 			continue
 		}
 		break

@@ -22,8 +22,8 @@ import (
 )
 
 var (
-	minerAddrWhiteList = make(map[string]bool)
-	bizlog             = log15.New("module", "wallet.pos33")
+	// minerAddrWhiteList = make(map[string]bool)
+	bizlog = log15.New("module", "wallet.pos33")
 )
 
 func init() {
@@ -36,15 +36,15 @@ func New() wcom.WalletBizPolicy {
 }
 
 type ticketPolicy struct {
-	mtx                     *sync.Mutex
-	walletOperate           wcom.WalletOperate
-	store                   *ticketStore
-	needFlush               bool
-	miningPos33TicketTicker *time.Ticker
-	autoMinerFlag           int32
-	isPos33TicketLocked     int32
-	minertimeout            *time.Timer
-	cfg                     *subConfig
+	mtx           *sync.Mutex
+	walletOperate wcom.WalletOperate
+	// store         *ticketStore
+	// needFlush     bool
+	// miningPos33TicketTicker *time.Ticker
+	// autoMinerFlag           int32
+	isPos33TicketLocked int32
+	// minertimeout            *time.Timer
+	cfg *subConfig
 }
 
 type subConfig struct {
@@ -55,17 +55,17 @@ type subConfig struct {
 }
 
 func (policy *ticketPolicy) initMingPos33TicketTicker(wait time.Duration) {
-	policy.mtx.Lock()
-	defer policy.mtx.Unlock()
-	bizlog.Debug("initMingPos33TicketTicker", "Duration", wait)
-	policy.miningPos33TicketTicker = time.NewTicker(wait)
+	// policy.mtx.Lock()
+	// defer policy.mtx.Unlock()
+	// bizlog.Debug("initMingPos33TicketTicker", "Duration", wait)
+	// policy.miningPos33TicketTicker = time.NewTicker(wait)
 }
 
-func (policy *ticketPolicy) getMingPos33TicketTicker() *time.Ticker {
-	policy.mtx.Lock()
-	defer policy.mtx.Unlock()
-	return policy.miningPos33TicketTicker
-}
+// func (policy *ticketPolicy) getMingPos33TicketTicker() *time.Ticker {
+// 	// policy.mtx.Lock()
+// 	// defer policy.mtx.Unlock()
+// 	// return policy.miningPos33TicketTicker
+// }
 
 func (policy *ticketPolicy) setWalletOperate(walletBiz wcom.WalletOperate) {
 	policy.mtx.Lock()
@@ -104,33 +104,33 @@ func (policy *ticketPolicy) PolicyName() string {
 // Init initial
 func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate, sub []byte) {
 	policy.setWalletOperate(walletBiz)
-	policy.store = newStore(walletBiz.GetDBStore())
-	policy.needFlush = false
+	// policy.store = newStore(walletBiz.GetDBStore())
+	// policy.needFlush = false
 	policy.isPos33TicketLocked = 1
-	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
+	// policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
 	var subcfg subConfig
 	if sub != nil {
 		types.MustDecode(sub, &subcfg)
 	}
 	policy.cfg = &subcfg
 	// policy.initMinerWhiteList(walletBiz.GetConfig())
-	wait := 10 * time.Second
-	if subcfg.MinerWaitTime != "" {
-		d, err := time.ParseDuration(subcfg.MinerWaitTime)
-		if err == nil {
-			wait = d
-		}
-	}
-	policy.initMingPos33TicketTicker(wait)
+	// wait := 10 * time.Second
+	// if subcfg.MinerWaitTime != "" {
+	// 	d, err := time.ParseDuration(subcfg.MinerWaitTime)
+	// 	if err == nil {
+	// 		wait = d
+	// 	}
+	// }
+	// policy.initMingPos33TicketTicker(wait)
 	walletBiz.RegisterMineStatusReporter(policy)
 	// 启动自动挖矿
-	walletBiz.GetWaitGroup().Add(1)
+	// walletBiz.GetWaitGroup().Add(1)
 	// go policy.autoMining()
 }
 
 // OnClose close
 func (policy *ticketPolicy) OnClose() {
-	policy.getMingPos33TicketTicker().Stop()
+	// policy.getMingPos33TicketTicker().Stop()
 }
 
 // OnSetQueueClient on set queue client
