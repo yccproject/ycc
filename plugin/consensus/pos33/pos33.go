@@ -289,11 +289,6 @@ func (c *Client) queryMinerTicketCount(addr string, height int64) int64 {
 	if !ok {
 		mp = make(map[string]int64)
 		c.tcMap[height] = mp
-	} else {
-		count, ok := mp[addr]
-		if ok {
-			return count
-		}
 	}
 	if height < 0 {
 		height = 0
@@ -306,7 +301,7 @@ func (c *Client) queryMinerTicketCount(addr string, height int64) int64 {
 	} else {
 		msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
 		if err != nil {
-			plog.Error("query all count error", "error", err)
+			plog.Error("query count error", "error", err)
 			count = 0
 		} else {
 			count = msg.(*types.Int64).Data

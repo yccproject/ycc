@@ -101,7 +101,7 @@ func (action *Action) getConsignee(addr string) (*ty.Pos33Consignee, error) {
 func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, error) {
 	chain33Cfg := act.api.GetConfig()
 	mp := ty.GetPos33MineParam(chain33Cfg, act.height)
-	needTransfer := float64(mp.RewardTransfer)
+	needTransfer := mp.RewardTransfer
 	tprice := mp.GetTicketPrice()
 
 	var kvs []*types.KeyValue
@@ -111,8 +111,6 @@ func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, e
 	if err != nil {
 		return nil, err
 	}
-	feeRate := float64(consignee.FeePersent) / 100.
-	needFee := float64(needTransfer) * feeRate
 
 	r1 := float64(mineReward) / float64(consignee.Amount/tprice)
 	for _, cr := range consignee.Consignors {
@@ -120,17 +118,19 @@ func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, e
 		cr.Reward += crr
 		cr.RemainReward += crr
 		tlog.Info("reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
-		if cr.RemainReward >= int64(needTransfer+needFee) {
-			receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, mp.RewardTransfer)
+		if cr.RemainReward >= needTransfer {
+			fee := cr.RemainReward * mp.MinerFeePersent / 100
+			consignee.FeeReward += fee
+			transferAmount := cr.RemainReward - fee
+			receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, transferAmount)
 			if err != nil {
 				tlog.Error("Pos33Miner.ExecDeposit error", "voter", addr, "execaddr", act.execaddr)
 				return nil, err
 			}
-			cr.RemainReward -= int64(needTransfer + needFee)
-			consignee.FeeReward += int64(needFee)
+			cr.RemainReward = 0
 			logs = append(logs, receipt.Logs...)
 			kvs = append(kvs, receipt.KV...)
-			tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height)
+			tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "amount", transferAmount, "fee", fee)
 		}
 	}
 	kvs = append(kvs, act.updateConsignee(consignee)...)
@@ -140,7 +140,7 @@ func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, e
 func (act *Action) voteReward(rds []*rewards, voteReward int64) (*types.Receipt, error) {
 	chain33Cfg := act.api.GetConfig()
 	mp := ty.GetPos33MineParam(chain33Cfg, act.height)
-	needTransfer := float64(mp.RewardTransfer)
+	needTransfer := mp.RewardTransfer
 	tprice := mp.GetTicketPrice()
 
 	var kvs []*types.KeyValue
@@ -152,26 +152,25 @@ func (act *Action) voteReward(rds []*rewards, voteReward int64) (*types.Receipt,
 		if err != nil {
 			return nil, err
 		}
-		feeRate := float64(consignee.FeePersent) / 100.
-		needFee := float64(needTransfer) * feeRate
 		vr := voteReward * int64(rd.count)
 		r1 := float64(vr) / float64(consignee.Amount/tprice)
 		for _, cr := range consignee.Consignors {
 			crr := int64(r1 * float64(cr.Amount/tprice))
 			cr.Reward += crr
 			cr.RemainReward += crr
-			if cr.RemainReward >= int64(needTransfer+needFee) {
+			if cr.RemainReward >= needTransfer {
 				fee := cr.RemainReward * mp.MinerFeePersent / 100
 				consignee.FeeReward += fee
-				receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, cr.RemainReward-fee)
+				transferAmount := cr.RemainReward - fee
+				receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, transferAmount)
 				if err != nil {
-					tlog.Error("transfer reward error", "height", act.height, "to", cr.Address, "amount", cr.RemainReward-fee)
+					tlog.Error("transfer reward error", "height", act.height, "to", cr.Address, "amount", transferAmount)
 					return nil, err
 				}
 				cr.RemainReward = 0
 				logs = append(logs, receipt.Logs...)
 				kvs = append(kvs, receipt.KV...)
-				tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "transfer", cr.RemainReward-fee, "fee", fee)
+				tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "transfer", transferAmount, "fee", fee)
 			}
 		}
 		kvs = append(kvs, act.updateConsignee(consignee)...)
@@ -401,7 +400,7 @@ func (action *Action) setEntrust(pe *ty.Pos33Entrust) (*types.Receipt, error) {
 	kvs = append(kvs, action.updateConsignee(consignee)...)
 	kvs = append(kvs, action.updateAllAmount(pe.Amount))
 
-	tlog.Info("pos33 set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount, "consignor amount", consignor.Amount, "consignee amount", consignee.Amount)
+	tlog.Info("pos33 set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount)
 	return &types.Receipt{KV: kvs, Ty: types.ExecOk}, nil
 }
 
