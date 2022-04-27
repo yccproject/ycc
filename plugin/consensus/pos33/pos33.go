@@ -452,7 +452,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 			Payload: types.Encode(&pt.Pos33TicketAction{Value: blsBindAct, Ty: pt.Pos33ActionBlsBind}),
 		}
 		ret = append(ret, tx)
-		plog.Info("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount")
+		plog.Info("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount", amount)
 	}
 	return ret
 }
