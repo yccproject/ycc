@@ -6,8 +6,7 @@ package rpc
 
 import (
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/common/address"
-	rpctypes "github.com/33cn/chain33/rpc/types"
+	// rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 	"golang.org/x/net/context"
@@ -140,47 +139,47 @@ func (c *Jrpc) GetPos33TicketCount(in *types.ReqAddr, result *int64) error {
 }
 
 // CreateBindMiner create bind miner
-func (c *Jrpc) CreateBindMiner(in *ty.ReqBindPos33Miner, result *interface{}) error {
-	reply, err := c.cli.CreateBindMiner(context.Background(), in)
-	if err != nil {
-		return err
-	}
-	*result = reply
-	return nil
-}
+// func (c *Jrpc) CreateBindMiner(in *ty.ReqBindPos33Miner, result *interface{}) error {
+// 	reply, err := c.cli.CreateBindMiner(context.Background(), in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*result = reply
+// 	return nil
+// }
 
-// SetAutoMining set auto mining
-func (c *Jrpc) SetAutoMining(in *ty.Pos33MinerFlag, result *rpctypes.Reply) error {
-	resp, err := c.cli.SetAutoMining(context.Background(), in)
-	if err != nil {
-		return err
-	}
-	var reply rpctypes.Reply
-	reply.IsOk = resp.GetIsOk()
-	reply.Msg = string(resp.GetMsg())
-	*result = reply
-	return nil
-}
-
-// GetPos33Deposit get ticket list info
-func (g *channelClient) GetPos33Deposit(ctx context.Context, in *types.ReqAddr) (*ty.Pos33DepositMsg, error) {
-	data, err := g.Query(ty.Pos33TicketX, "Pos33Deposit", in)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.(*ty.Pos33DepositMsg), nil
-}
+// // SetAutoMining set auto mining
+// func (c *Jrpc) SetAutoMining(in *ty.Pos33MinerFlag, result *rpctypes.Reply) error {
+// 	resp, err := c.cli.SetAutoMining(context.Background(), in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	var reply rpctypes.Reply
+// 	reply.IsOk = resp.GetIsOk()
+// 	reply.Msg = string(resp.GetMsg())
+// 	*result = reply
+// 	return nil
+// }
 
 // GetPos33Deposit get ticket list info
-func (c *Jrpc) GetPos33Deposit(in *types.ReqAddr, result *interface{}) error {
-	resp, err := c.cli.GetPos33Deposit(context.Background(), in)
-	if err != nil {
-		return err
-	}
-	*result = resp
-	return nil
-}
+// func (g *channelClient) GetPos33Deposit(ctx context.Context, in *types.ReqAddr) (*ty.Pos33DepositMsg, error) {
+// 	data, err := g.Query(ty.Pos33TicketX, "Pos33Deposit", in)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return data.(*ty.Pos33DepositMsg), nil
+// }
+
+// // GetPos33Deposit get ticket list info
+// func (c *Jrpc) GetPos33Deposit(in *types.ReqAddr, result *interface{}) error {
+// 	resp, err := c.cli.GetPos33Deposit(context.Background(), in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*result = resp
+// 	return nil
+// }
 
 // // GetPos33TicketList get ticket list info
 // func (g *channelClient) GetPos33TicketReward(ctx context.Context, in *ty.Pos33TicketReward) (*ty.ReplyPos33TicketReward, error) {
@@ -201,6 +200,7 @@ func (c *Jrpc) GetPos33Deposit(in *types.ReqAddr, result *interface{}) error {
 // 	return nil
 // }
 
+/*
 func bindMiner(cfg *types.Chain33Config, param *ty.ReqBindPos33Miner) (*ty.ReplyBindPos33Miner, error) {
 	tBind := &ty.Pos33TicketBind{
 		MinerAddress:  param.BindAddr,
@@ -255,6 +255,7 @@ func (g *channelClient) CreateBindMiner(ctx context.Context, in *ty.ReqBindPos33
 	}
 	return bindMiner(cfg, in)
 }
+*/
 
 // query consignor entrust info
 func (g *channelClient) GetPos33ConsignorEntrust(ctx context.Context, in *types.ReqAddr) (*ty.Pos33Consignor, error) {

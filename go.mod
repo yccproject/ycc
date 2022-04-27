@@ -25,4 +25,4 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-// replace github.com/33cn/chain33 => /Users/w/pos33/chain33
+replace github.com/33cn/chain33 => /Users/w/pos33/chain33

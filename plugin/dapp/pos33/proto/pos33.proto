@@ -2,7 +2,7 @@ syntax = "proto3";
 package types;
 option go_package = "../types";
 
-import "common.proto";
+// import "common.proto";
 import "transaction.proto";
 import "blockchain.proto";
 
@@ -36,10 +36,10 @@ message Pos33TicketAction {
     Pos33Entrust entrust = 7;
     Pos33Migrate migrate = 8;
     Pos33BlsBind blsBind = 9;
-    Pos33MinerFeeRate feeRate = 10;
+    Pos33MinerFeeRate feeRate = 12;
     Pos33WithdrawReward withdraw = 11;
   }
-  int32 ty = 12;
+  int32 ty = 10;
 }
 
 message Pos33Msg {

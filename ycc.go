@@ -56,7 +56,7 @@ checkFutureBlockHeight=1500000
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 blsAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
-count=1000
+count=10000
 
 
 [mver.consensus.ForkChainParamV2]
@@ -136,9 +136,9 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkReward15=0
-ForkFixReward=0
-UseEntrust=0
+ForkReward15=725000 
+ForkFixReward=5000000
+UseEntrust=9870000
 
 
 [fork.sub.evm]
