@@ -313,7 +313,7 @@ func (n *node) broadcastComm(height int64, round int, msg types.Message) {
 			continue
 		}
 		mp[string(pub)] = true
-		if string(pub) == string(n.priv.PubKey().Bytes()) {
+		if string(pub) == string(n.getPriv().PubKey().Bytes()) {
 			continue
 		}
 		n.gss.sendMsg(pub, msg)
@@ -847,7 +847,7 @@ func (n *node) voteCommittee(height int64, round int) {
 		Height:      height,
 		Round:       int32(round),
 	}
-	m.Sign(n.priv)
+	m.Sign(n.getPriv())
 
 	plog.Info("voteCommittee", "height", height, "nmySelect", len(ss), "nv", len(m.MySorts))
 	n.handleCommittee(m, true)
@@ -911,7 +911,7 @@ func (n *node) voteMaker(height int64, round int) {
 		if len(vs) == 0 {
 			continue
 		}
-		signVotes(n.priv, vs)
+		signVotes(n.getPriv(), vs)
 		mvs = append(mvs, &pt.Pos33Votes{Vs: vs})
 		plog.Info("vote maker", "addr", address.PubKeyToAddr(address.DefaultID, s.Proof.Pubkey)[:16], "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
 		break

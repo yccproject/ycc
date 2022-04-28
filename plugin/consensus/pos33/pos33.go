@@ -27,7 +27,7 @@ type Client struct {
 	conf *subConfig
 	n    *node
 
-	clock  sync.Mutex
+	// clock  sync.Mutex
 	priv   crypto.PrivKey
 	myAddr string
 
@@ -112,17 +112,6 @@ func (client *Client) BlockCheck(parent *types.Block, current *types.Block) erro
 	return client.n.checkBlock(current, parent)
 }
 
-// func (client *Client) myCount(height int64) int {
-// 	if height < 0 {
-// 		height = 0
-// 	}
-// 	c, ok := client.tcMap[height]
-// 	if !ok {
-// 		// c = client.tcMap[client.GetCurrentHeight()]
-// 	}
-// 	return c
-// }
-
 func (client *Client) allCount(height int64) int {
 	client.mlock.Lock()
 	defer client.mlock.Unlock()
@@ -149,9 +138,6 @@ func privFromBytes(privkey []byte) (crypto.PrivKey, error) {
 }
 
 func (client *Client) getPriv() crypto.PrivKey {
-	client.clock.Lock()
-	defer client.clock.Unlock()
-
 	if client.priv == nil {
 		plog.Error("Wallet LOCKED or not Set mining account")
 		return nil
@@ -161,18 +147,14 @@ func (client *Client) getPriv() crypto.PrivKey {
 
 func (c *Client) AddBlock(b *types.Block) error {
 	c.n.addBlock(b)
-
-	c.clock.Lock()
-	defer c.clock.Unlock()
-
-	if c.myAddr == "" {
-		c.getMiner()
-	}
 	c.updateTicketCount(b)
 	return nil
 }
 
 func (c *Client) updateTicketCount(b *types.Block) {
+	c.mlock.Lock()
+	defer c.mlock.Unlock()
+
 	height := b.Height
 	if b.Height == 0 {
 		height = 0
@@ -218,7 +200,6 @@ func (c *Client) updateTicketCount(b *types.Block) {
 
 	if c.acMap[height] == 0 {
 		c.queryAllPos33Count(height)
-		c.queryMinerTicketCount(c.myAddr, height)
 	}
 
 	mp, ok := c.tcMap[height]
@@ -238,6 +219,10 @@ func (c *Client) updateTicketCount(b *types.Block) {
 }
 
 func (c *Client) getMiner() {
+	if c.myAddr != "" {
+		return
+	}
+
 	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetMiner", &types.ReqNil{})
 	if err != nil {
 		plog.Debug("WalletGetMinerAddr", "err", err)
@@ -265,8 +250,8 @@ func (c *Client) queryEntrustCount(miner string, height int64) int64 {
 }
 
 func (c *Client) queryTicketCount(addr string, height int64) int64 {
-	c.clock.Lock()
-	defer c.clock.Unlock()
+	c.mlock.Lock()
+	defer c.mlock.Unlock()
 
 	if height < 0 {
 		height = 0
@@ -336,19 +321,8 @@ func (c *Client) queryAllPos33Count(height int64) int {
 }
 
 func (client *Client) myCount() int {
-	b := client.GetCurrentBlock()
-
-	client.mlock.Lock()
-	defer client.mlock.Unlock()
-
-	if client.myAddr == "" {
-		client.getMiner()
-		return 0
-	}
-
-	height := b.Height
-	client.updateTicketCount(b)
-
+	client.getMiner()
+	height := client.GetCurrentHeight()
 	return int(client.queryTicketCount(client.myAddr, height))
 }
 
