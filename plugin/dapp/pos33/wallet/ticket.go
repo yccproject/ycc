@@ -420,7 +420,7 @@ func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
 	_, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33ConsigneeEntrust", &types.ReqAddr{Addr: addr})
 	if err == nil {
 		bizlog.Info("already migrate", "addr", addr)
-		return nil, nil
+		return nil, errors.New("already migtated")
 	} else {
 		bizlog.Error("migrate query error", "err", err, "addr", addr)
 	}
@@ -448,7 +448,7 @@ func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
 			return nil, errors.New("blsbind error")
 		}
 		bizlog.Info("already bind blsaddr", "blsaddr", blsaddr, "addr", addr)
-		return nil, nil
+		return nil, errors.New("already binded")
 	}
 
 	act := &ty.Pos33TicketAction{

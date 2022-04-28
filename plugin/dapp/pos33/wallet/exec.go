@@ -20,6 +20,7 @@ func (policy *ticketPolicy) On_Migrate(req *types.ReqNil) (types.Message, error)
 	hash, err := policy.migrate(priv)
 	if err != nil || hash == nil {
 		bizlog.Error("migrate error", "err", err.Error())
+		return nil, err
 	} else {
 		go func() {
 			if hash != nil {
@@ -41,6 +42,7 @@ func (policy *ticketPolicy) On_BlsBind(req *types.ReqNil) (types.Message, error)
 	hash, err := policy.blsBind(priv)
 	if err != nil || hash == nil {
 		bizlog.Error("BlsBind error", "err", err.Error())
+		return nil, err
 	} else {
 		go func() {
 			if hash != nil {
@@ -66,6 +68,7 @@ func (policy *ticketPolicy) On_SetMinerFeeRate(req *ty.Pos33MinerFeeRate) (types
 	hash, err := policy.setMinerFeeRate(priv, req)
 	if err != nil || hash == nil {
 		bizlog.Error("onClosePos33Tickets", "forceClosePos33Ticket error", err.Error())
+		return nil, err
 	} else {
 		go func() {
 			if hash != nil {

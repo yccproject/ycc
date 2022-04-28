@@ -6,7 +6,7 @@ package rpc
 
 import (
 	"github.com/33cn/chain33/common"
-	// rpctypes "github.com/33cn/chain33/rpc/types"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 	"golang.org/x/net/context"
@@ -45,7 +45,7 @@ func (c *Jrpc) Pos33Migrate(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = &resp
+	*result = &rpctypes.ReplyHash{Hash: common.ToHex(resp.Hash)}
 	return nil
 }
 
@@ -64,7 +64,7 @@ func (c *Jrpc) BlsBind(in *types.ReqNil, result *interface{}) error {
 	if err != nil {
 		return err
 	}
-	*result = &resp
+	*result = &rpctypes.ReplyHash{Hash: common.ToHex(resp.Hash)}
 	return nil
 }
 
@@ -83,7 +83,7 @@ func (c *Jrpc) SetMinerFeeRate(in *ty.Pos33MinerFeeRate, result *interface{}) er
 	if err != nil {
 		return err
 	}
-	*result = &resp.Hash
+	*result = &rpctypes.ReplyHash{Hash: common.ToHex(resp.Hash)}
 	return nil
 }
 
@@ -96,25 +96,25 @@ func (g *channelClient) SetMinerFeeRate(ctx context.Context, in *ty.Pos33MinerFe
 	return data.(*types.ReplyHash), nil
 }
 
-// ClosePos33Tickets close ticket
-func (c *Jrpc) ClosePos33Tickets(in *ty.Pos33TicketClose, result *interface{}) error {
-	resp, err := c.cli.ClosePos33Tickets(context.Background(), in)
-	if err != nil {
-		return err
-	}
-	*result = &resp
-	return nil
-}
+// // ClosePos33Tickets close ticket
+// func (c *Jrpc) ClosePos33Tickets(in *ty.Pos33TicketClose, result *interface{}) error {
+// 	resp, err := c.cli.ClosePos33Tickets(context.Background(), in)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*result = &rpctypes.ReplyHash{Hash: common.ToHex(resp.Hash)}
+// 	return nil
+// }
 
-// ClosePos33Tickets close ticket
-func (g *channelClient) ClosePos33Tickets(ctx context.Context, in *ty.Pos33TicketClose) (*types.ReplyHash, error) {
-	// inn := *in
-	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "ClosePos33Tickets", in)
-	if err != nil {
-		return nil, err
-	}
-	return data.(*types.ReplyHash), nil
-}
+// // ClosePos33Tickets close ticket
+// func (g *channelClient) ClosePos33Tickets(ctx context.Context, in *ty.Pos33TicketClose) (*types.ReplyHash, error) {
+// 	// inn := *in
+// 	data, err := g.ExecWalletFunc(ty.Pos33TicketX, "ClosePos33Tickets", in)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return data.(*types.ReplyHash), nil
+// }
 
 // GetAllPos33TicketCount get ticket count
 func (c *Jrpc) GetAllPos33TicketCount(in *types.ReqNil, result *int64) error {
