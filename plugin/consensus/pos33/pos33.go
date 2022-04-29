@@ -256,6 +256,9 @@ func (c *Client) queryTicketCount(addr string, height int64) int64 {
 	if height < 0 {
 		height = 0
 	}
+	if addr == "" {
+		return 0
+	}
 
 	count := int64(0)
 	mp, ok := c.tcMap[height]
@@ -271,10 +274,11 @@ func (c *Client) queryTicketCount(addr string, height int64) int64 {
 
 func (c *Client) queryMinerTicketCount(addr string, height int64) int64 {
 	mp, ok := c.tcMap[height]
-	if !ok {
+	if !ok || mp == nil {
 		mp = make(map[string]int64)
 		c.tcMap[height] = mp
 	}
+	plog.Info("query miner ticket count", "map", mp, "ok", ok)
 	if height < 0 {
 		height = 0
 	}
