@@ -261,7 +261,9 @@ func (n *node) newBlock(lastBlock *types.Block, txs []*types.Transaction, height
 	}
 
 	maxTxs := int(cfg.GetP(height).MaxTxNumber)
+	t := time.Now()
 	txs = append(txs, n.RequestTx(maxTxs, nil)...)
+	plog.Info("request txs", "height", height, "cost", time.Since(t))
 	txs = n.AddTxsToBlock(nb, txs)
 
 	nb.Txs = txs
@@ -283,6 +285,7 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 		return nil, err
 	}
 
+	plog.Info("block make0", "height", height, "round", round)
 	nb, err := n.newBlock(lb, []*Tx{tx}, height)
 	if err != nil {
 		return nil, err
