@@ -807,11 +807,11 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 		if string(m.Sig.Pubkey) != string(s.Proof.Pubkey) {
 			return
 		}
-		err := n.checkSort(s, Voter)
-		if err != nil {
-			plog.Error("checkSort error", "err", err, "height", height)
-			return
-		}
+		// err := n.checkSort(s, Voter)
+		// if err != nil {
+		// 	plog.Error("checkSort error", "err", err, "height", height)
+		// 	return
+		// }
 		found := false
 		for _, h := range m.SelectSorts {
 			if string(s.SortHash.Hash) == string(h) {
@@ -1175,8 +1175,13 @@ func (n *node) runLoop() {
 				round++
 				plog.Info("block timeout", "height", height, "round", round)
 				n.reSortition(height, round)
+				tt := time.Now()
 				time.AfterFunc(resortTimeout, func() {
 					nh := n.lastBlock().Height + 1
+					if nh > height {
+						return
+					}
+					plog.Info("block timeout", "height", height, "round", round, "cost", time.Since(tt))
 					nch <- nh
 				})
 			}
@@ -1185,13 +1190,18 @@ func (n *node) runLoop() {
 			cb := n.GetCurrentBlock()
 			if cb.Height == height-1 {
 				n.makeNewBlock(height, round)
+				tt := time.Now()
 				time.AfterFunc(blockTimeout, func() {
+					if n.GetCurrentHeight() >= height {
+						return
+					}
+					plog.Info("block timeout", "height", height, "round", round, "cost", time.Since(tt))
 					tch <- height
 				})
 			}
 		case b := <-n.bch: // new block add to chain
 			if b.Height < n.GetCurrentHeight() {
-				continue
+				break
 			}
 			round = 0
 			n.handleNewBlock(b)

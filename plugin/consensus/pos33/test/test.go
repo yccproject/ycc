@@ -188,16 +188,19 @@ func generateTxs(privs []crypto.PrivKey, hch <-chan int64) chan *Tx {
 
 func sendTxs(txs []*Tx) error {
 	ts := &types.Transactions{Txs: txs}
-	var err error
 	if *useGrpc {
-		_, err = gClient.SendTransactions(context.Background(), ts)
+		rs, err := gClient.SendTransactions(context.Background(), ts)
+		if err != nil {
+			return err
+		}
+		for _, r := range rs.ReplyList {
+			if string(r.Msg) == types.ErrMemFull.Error() {
+				time.Sleep(time.Second * 5)
+			}
+		}
 	} else {
 		return errors.New("not support grpc in batch send txs")
 		// err = jClient.Call("Chain33.SendTransaction", &rpctypes.RawParm{Data: common.ToHex(types.Encode(tx))}, &txHash)
-	}
-	if err != nil {
-		log.Println("@@@ rpc error: ", err)
-		return err
 	}
 	return nil
 }
@@ -222,6 +225,9 @@ func sendTx(tx *Tx) error {
 		// 	continue
 		// }
 		log.Println("@@@ rpc error: ", err, common.HashHex(tx.Hash()))
+		if err.Error() == types.ErrMemFull.Error() {
+			time.Sleep(time.Second)
+		}
 	}
 	return nil
 }

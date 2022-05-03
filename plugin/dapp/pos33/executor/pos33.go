@@ -98,7 +98,7 @@ func (action *Action) getConsignee(addr string) (*ty.Pos33Consignee, error) {
 	return getConsignee(action.db, addr)
 }
 
-func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, error) {
+func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (*types.Receipt, error) {
 	chain33Cfg := act.api.GetConfig()
 	mp := ty.GetPos33MineParam(chain33Cfg, act.height)
 	needTransfer := mp.RewardTransfer
@@ -107,24 +107,19 @@ func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, e
 	var kvs []*types.KeyValue
 	var logs []*types.ReceiptLog
 
-	consignee, err := act.getConsignee(addr)
-	if err != nil {
-		return nil, err
-	}
-
 	r1 := float64(mineReward) / float64(consignee.Amount/tprice)
 	for _, cr := range consignee.Consignors {
 		crr := int64(r1 * float64(cr.Amount/tprice))
 		cr.Reward += crr
+		tlog.Debug("mine reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
 		cr.RemainReward += crr
-		tlog.Info("reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
 		if cr.RemainReward >= needTransfer {
 			fee := cr.RemainReward * mp.MinerFeePersent / 100
 			consignee.FeeReward += fee
 			transferAmount := cr.RemainReward - fee
 			receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, transferAmount)
 			if err != nil {
-				tlog.Error("Pos33Miner.ExecDeposit error", "voter", addr, "execaddr", act.execaddr)
+				tlog.Error("reward transfer error", "to", cr.Address, "execaddr", act.execaddr, "amount", transferAmount)
 				return nil, err
 			}
 			cr.RemainReward = 0
@@ -133,11 +128,10 @@ func (act *Action) minerReward(addr string, mineReward int64) (*types.Receipt, e
 			tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "amount", transferAmount, "fee", fee)
 		}
 	}
-	kvs = append(kvs, act.updateConsignee(consignee)...)
 	return &types.Receipt{KV: kvs, Logs: logs, Ty: types.ExecOk}, nil
 }
 
-func (act *Action) voteReward(rds []*rewards, voteReward int64) (*types.Receipt, error) {
+func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receipt, error) {
 	chain33Cfg := act.api.GetConfig()
 	mp := ty.GetPos33MineParam(chain33Cfg, act.height)
 	needTransfer := mp.RewardTransfer
@@ -146,17 +140,17 @@ func (act *Action) voteReward(rds []*rewards, voteReward int64) (*types.Receipt,
 	var kvs []*types.KeyValue
 	var logs []*types.ReceiptLog
 
-	for _, rd := range rds {
-		addr := rd.addr
-		consignee, err := act.getConsignee(addr)
-		if err != nil {
-			return nil, err
+	for _, mi := range mis {
+		if mi.nv == 0 {
+			continue
 		}
-		vr := voteReward * int64(rd.count)
+		consignee := mi.miner
+		vr := voteReward * int64(mi.nv)
 		r1 := float64(vr) / float64(consignee.Amount/tprice)
 		for _, cr := range consignee.Consignors {
 			crr := int64(r1 * float64(cr.Amount/tprice))
 			cr.Reward += crr
+			tlog.Debug("vote reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
 			cr.RemainReward += crr
 			if cr.RemainReward >= needTransfer {
 				fee := cr.RemainReward * mp.MinerFeePersent / 100
@@ -170,10 +164,9 @@ func (act *Action) voteReward(rds []*rewards, voteReward int64) (*types.Receipt,
 				cr.RemainReward = 0
 				logs = append(logs, receipt.Logs...)
 				kvs = append(kvs, receipt.KV...)
-				tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "transfer", transferAmount, "fee", fee)
+				tlog.Debug("reward transfer to", "addr", cr.Address, "height", act.height, "transfer", transferAmount, "fee", fee)
 			}
 		}
-		kvs = append(kvs, act.updateConsignee(consignee)...)
 	}
 	return &types.Receipt{KV: kvs, Logs: logs, Ty: types.ExecOk}, nil
 }
@@ -187,9 +180,10 @@ func (act *Action) getFromBls(pk []byte) (string, error) {
 	return string(val), nil
 }
 
-type rewards struct {
+type minerInfo struct {
+	miner *ty.Pos33Consignee
 	addr  string
-	count int
+	nv    int
 }
 
 func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.Receipt, error) {
@@ -245,13 +239,25 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 		}
 		mp[addr]++
 	}
-	rds := make([]*rewards, 0, len(miner.BlsPkList))
-	for k, v := range mp {
-		rds = append(rds, &rewards{k, v})
+	_, ok := mp[action.fromaddr]
+	if !ok {
+		mp[action.fromaddr] = 0
 	}
-	sort.Slice(rds, func(i, j int) bool { return rds[i].addr < rds[j].addr })
-	tlog.Info("Pos33MinerNew", "map", mp, "height", action.height)
-	receipt, err := action.voteReward(rds, Pos33VoteReward)
+
+	var bm *ty.Pos33Consignee
+	mis := make([]*minerInfo, 0, len(mp))
+	for k, v := range mp {
+		consignee, err := getConsignee(action.db, k)
+		if err != nil {
+			return nil, err
+		}
+		if k == action.fromaddr {
+			bm = consignee
+		}
+		mis = append(mis, &minerInfo{addr: k, nv: v, miner: consignee})
+	}
+	sort.Slice(mis, func(i, j int) bool { return mis[i].addr < mis[j].addr })
+	receipt, err := action.voteReward(mis, Pos33VoteReward)
 	if err != nil {
 		tlog.Error("Pos33MinerNew error", "err", err, "height", action.height)
 		return nil, err
@@ -260,17 +266,21 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 
 	// bp reward
 	bpReward := Pos33MakerReward * int64(len(miner.BlsPkList))
-	receipt, err = action.minerReward(action.fromaddr, bpReward)
+	receipt, err = action.minerReward(bm, bpReward)
 	if err != nil {
 		tlog.Error("Pos33MinerNew error", "err", err, "height", action.height)
 		return nil, err
 	}
 	kvs = append(kvs, receipt.KV...)
 
+	for _, mi := range mis {
+		kvs = append(kvs, action.updateConsignee(mi.miner)...)
+	}
+
 	// fund reward
 	fundReward := Pos33BlockReward - (Pos33VoteReward+Pos33MakerReward)*int64(len(miner.BlsPkList))
 	fundaddr := chain33Cfg.MGStr("mver.consensus.fundKeyAddr", action.height)
-	tlog.Info("fund rerward", "fundaddr", fundaddr, "height", action.height, "reward", fundReward)
+	tlog.Debug("fund rerward", "fundaddr", fundaddr, "height", action.height, "reward", fundReward)
 
 	receipt, err = action.coinsAccount.Transfer(action.execaddr, fundaddr, fundReward)
 	if err != nil {
