@@ -4,9 +4,10 @@ go 1.15
 
 require (
 	github.com/33cn/chain33 v1.67.3-0.20220429040542-b673a0ec0b30
-	github.com/33cn/plugin v1.66.4-0.20220311090914-c5832efb1bd3
+	github.com/33cn/plugin v1.67.3-0.20220505093913-d2271d709e8b
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/golang/protobuf v1.5.2
+	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/libp2p/go-libp2p v0.15.0
 	github.com/libp2p/go-libp2p-autonat v0.4.2
 	github.com/libp2p/go-libp2p-circuit v0.4.0
@@ -20,7 +21,9 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
+	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f // indirect
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 )
