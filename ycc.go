@@ -56,7 +56,7 @@ checkFutureBlockHeight=1500000
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 blsAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
-count=1000
+count=10000
 
 
 [mver.consensus.ForkChainParamV2]
