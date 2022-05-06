@@ -159,14 +159,14 @@ func minerReceipt(t int, raddr string, newReward int64) *types.ReceiptLog {
 // GenesisInit init genesis
 func (action *Action) GenesisInit(genesis *ty.Pos33TicketGenesis) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
+	cfg := ty.GetPos33MineParam(chain33Cfg, action.height)
 
 	Coin := chain33Cfg.GetCoinPrecision()
 	// Pos33BlockReward 区块奖励
 	var Pos33BlockReward = Coin * 30
 
 	//冻结子账户资金
-	receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice*int64(genesis.Count))
+	receipt, err := action.coinsAccount.ExecFrozen(genesis.ReturnAddress, action.execaddr, cfg.GetTicketPrice()*int64(genesis.Count))
 	if err != nil {
 		tlog.Error("GenesisInit.Frozen", "addr", genesis.MinerAddress, "execaddr", action.execaddr)
 		panic(err)
@@ -201,10 +201,10 @@ func (action *Action) Pos33TicketOpen(topen *ty.Pos33TicketOpen) (*types.Receipt
 	}
 
 	chain33Cfg := action.api.GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
+	cfg := ty.GetPos33MineParam(chain33Cfg, action.height)
 
 	//冻结子账户资金
-	receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, cfg.Pos33TicketPrice*int64(topen.Count))
+	receipt, err := action.coinsAccount.ExecFrozen(topen.ReturnAddress, action.execaddr, cfg.GetTicketPrice()*int64(topen.Count))
 	if err != nil {
 		tlog.Error("Pos33TicketOpen.Frozen", "addr", topen.ReturnAddress, "execaddr", action.execaddr, "n", topen.Count)
 		return nil, err
@@ -334,8 +334,8 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 // Pos33TicketClose close tick
 func (action *Action) Pos33TicketClose(tclose *ty.Pos33TicketClose) (*types.Receipt, error) {
 	chain33Cfg := action.api.GetConfig()
-	cfg := ty.GetPos33TicketMinerParam(chain33Cfg, action.height)
-	price := cfg.Pos33TicketPrice
+	cfg := ty.GetPos33MineParam(chain33Cfg, action.height)
+	price := cfg.GetTicketPrice()
 
 	d, err := getDeposit(action.db, action.fromaddr)
 	if err != nil {

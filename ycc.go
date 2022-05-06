@@ -3,7 +3,7 @@ package main
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TestNet=true
-version="6.4.2.7"
+version="6.6.0.0"
 CoinSymbol="ycc"
 ChainID=999
 
@@ -56,7 +56,7 @@ checkFutureBlockHeight=1500000
 minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 blsAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
-count=10000
+count=1000
 
 
 [mver.consensus.ForkChainParamV2]
@@ -64,16 +64,15 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-#coinReward=15
-#coinDevFund=15
-ticketPrice=10000
-#retargetAdjustmentFactor=4
-#futureBlockTime=5
-#ticketFrozenTime=43200
-#ticketWithdrawTime=10
-#ticketMinerWaitTime=7200
-#targetTimespan=2160
-#targetTimePerBlock=15
+ticketPrice1=10000
+ticketPrice2=100000
+minerFeePersent=10 
+rewardTransfer=1
+blockReward=15
+voteRewardPersent=25
+mineRewardPersent=11
+managerAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+
 
 [store]
 
@@ -108,7 +107,7 @@ useBalance=false
 [fork.system]
 ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash=5000000
+ForkBlockHash=0
 ForkMinerTime=0
 ForkTransferExec=0
 ForkExecKey=0
@@ -137,8 +136,13 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-ForkReward15=725000 
-ForkFixReward=5000000
+#ForkReward15=725000 
+#ForkFixReward=5000000
+#UseEntrust=9870000
+ForkReward15=0 
+ForkFixReward=0
+UseEntrust=0
+
 
 [fork.sub.evm]
 Enable=0

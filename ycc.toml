@@ -1,5 +1,7 @@
-FxTime = true
-Title = "ycc"
+FixTime = false
+Title = "ycc-dev"
+TxHeight = true
+#TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -24,16 +26,16 @@ callerFunction = false
 
 [blockchain]
 batchsync = false
-dbCache = 128
+dbCache = 512
 dbPath = "datadir"
-defCacheSize = 128
-enableTxQuickIndex = true
+defCacheSize = 512
+enableTxQuickIndex = false
 isRecordBlockSequence = false
 # 升级storedb是否重新执行localdb，bityuan主链升级不需要开启，平行链升级需要开启
 enableReExecLocal = false
 # 使能精简localdb
 enableReduceLocaldb = false
-singleMode = false
+singleMode = true
 
 [mempool]
 # 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
@@ -41,10 +43,10 @@ minTxFeeRate = 100000
 # 最大的交易手续费率, 0.1 coins
 maxTxFeeRate = 10000000
 # 单笔交易最大的手续费, 10 coins
+disableExecCheck = true
+isLevelFee = false
 maxTxFee = 1000000000
-# disableExecCheck = true
-isLevelFee = true
-maxTxNumPerAccount = 1000
+maxTxNumPerAccount = 10000
 name = "price"
 poolCacheSize = 102400
 
@@ -65,13 +67,10 @@ useGithub = false
 
 [p2p.sub.dht]
 #可以自定义设置连接节点
-channel = 9
+channel = 7
 port = 13701
 seeds = [
-  #  "/ip4/121.36.202.4/tcp/13701/p2p/16Uiu2HAm6nTX7ym4BnTQhkBrrgpmuR5LRmWSb17DKJ4jigEN31qi",
-  "/ip4/119.13.111.72/tcp/13701/p2p/16Uiu2HAmUCikPAhPSxGEXQp38G7nazFnrUyfnWZ4VkfyPj9jXtzj",
-  "/ip4/49.0.204.116/tcp/13701/p2p/16Uiu2HAmVC8yWQTG63jPU9b7KXPqyuCL5EWvvNBufHFSvdLCy8Di",
-  "/ip4/119.8.181.121/tcp/13701/p2p/16Uiu2HAmRaE9M2yiVSYaMfMWymM38TTmoKXpBDwUmaXYZzzHXKFU",
+  #"/ip4/172.16.103.42/tcp/13701/p2p/16Uiu2HAkzrn3rYjvX8YVwevKw9rwFt5Yf6xG6wQFYMiihcYGKphZ",
 ]
 
 #dht 版本还不稳定，暂时限定较小的连接数
@@ -105,11 +104,8 @@ whitelist = ["127.0.0.1"]
 
 [consensus.sub.pos33]
 bootPeers = [
-  "/ip4/119.13.111.72/tcp/10801/p2p/16Uiu2HAmGZvHvrw1ddgXnQNKToL8KPftWG71NvANpsbxDeGZjepj",
-  "/ip4/49.0.204.116/tcp/10801/p2p/16Uiu2HAmBGtD7jP2xYXRByRKNQhqd9z71oJDxE4h19LBMn3ZKmCe",
-  "/ip4/119.8.181.121/tcp/10801/p2p/16Uiu2HAmPrzqAao2NFwHjj4q7A3w6Xqtsq1jga5kDPhLrw79gywY",
+  #"/ip4/172.16.103.42/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
 ]
-forwardServers = ["124.71.10.240:10902"]
 listenPort = 10801
 onlyVoter = false
 #forwardPeers = true
@@ -117,18 +113,22 @@ onlyVoter = false
 [mver.consensus]
 addWalletTx = false
 fundKeyAddr = "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt"
-maxTxNumber = 1000
+maxTxNumber = 10000
 powLimitBits = "0x1f00ffff"
 
 [mver.consensus.ForkChainParamV1]
-maxTxNumber = 1000
+maxTxNumber = 10000
 
 [store]
-dbCache = 128
-dbPath = "datadir/mavltree"
+# 联盟链推荐使用kvmvcc
+dbCache = 512
+dbPath = "datadir/kvmvcc"
 driver = "leveldb"
-name = "kvmvccmavl"
-storedbVersion = "2.0.0"
+name = "kvmvcc"
+
+[store.sub.kvmvcc]
+enableMVCC = false
+enableMavlPrefix = false
 
 [store.sub.mavl]
 enableMVCC = false
@@ -161,9 +161,15 @@ minFee = 100000
 signType = "secp256k1"
 
 [exec]
-#disableAddrIndex = true
+disableAddrIndex = true
+disableFeeIndex = true
+disableTxIndex = true
 enableMVCC = false
 enableStat = false
+
+[exec.sub.coins]
+disableAddrReceiver = true
+disableCheckTxAmount = true
 
 [exec.sub.token]
 saveTokenTxList = false

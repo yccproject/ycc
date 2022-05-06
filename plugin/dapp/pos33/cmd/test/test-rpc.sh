@@ -36,13 +36,52 @@ pos33_CreateBindMiner() {
 #     echo_rst "$FUNCNAME" "$rst"
 # }
 
-# pos33_GetPos33TicketCount() {
-#     resp=$(curl -ksd '{"method":"pos33.GetPos33TicketCount","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
-#     ok=$(jq '(.error|not) and (.result > 0)' <<<"$resp")
-#     [[ $ok == true ]]
-#     rst=$?
-#     echo_rst "$FUNCNAME" "$rst"
-# }
+pos33_SetPos33Entrust() {
+    consignee=$1
+    consignor=$2
+    amount=$3
+
+    resp=$(curl -ksd '{"method":"pos33.SetPos33Entrust","params":[{"consignee":"'"$consignee"'", "consignor":"'"$consignor"'", "amount":"'"$amount"'"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    ok=$(jq '(.error|not) and (.result > 0)' <<<"$resp")
+    [[ $ok == true ]]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+pos33_GetConsigneeEntrust() {
+    addr=$1
+    resp=$(curl -ksd '{"method":"pos33.GetPos33ConsigneeEntruct","params":[{"addr":"'"$addr"'"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    ok=$(jq '(.error|not) and (.result > 0)' <<<"$resp")
+    [[ $ok == true ]]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+pos33_GetConsignorEntrust() {
+    addr=$1
+    resp=$(curl -ksd '{"method":"pos33.GetPos33ConsignorEntruct","params":[{"addr":"'"$addr"'"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    ok=$(jq '(.error|not) and (.result > 0)' <<<"$resp")
+    [[ $ok == true ]]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+pos33_GetPos33TicketCount() {
+    addr=$1
+    resp=$(curl -ksd '{"method":"pos33.GetPos33TicketCount","params":[{"addr":"'"$addr"'"}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    ok=$(jq '(.error|not) and (.result > 0)' <<<"$resp")
+    [[ $ok == true ]]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
+
+pos33_GetAllPos33TicketCount() {
+    resp=$(curl -ksd '{"method":"pos33.GetAllPos33TicketCount","params":[{}]}' -H 'content-type:text/plain;' ${MAIN_HTTP})
+    ok=$(jq '(.error|not) and (.result > 0)' <<<"$resp")
+    [[ $ok == true ]]
+    rst=$?
+    echo_rst "$FUNCNAME" "$rst"
+}
 
 # pos33_ClosePos33Tickets() {
 #     addr=$1
