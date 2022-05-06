@@ -71,7 +71,6 @@ rewardTransfer=1
 blockReward=15
 voteRewardPersent=25
 mineRewardPersent=11
-managerAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 
 [store]
@@ -136,12 +135,9 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-#ForkReward15=725000 
-#ForkFixReward=5000000
-#UseEntrust=9870000
-ForkReward15=0 
-ForkFixReward=0
-UseEntrust=0
+ForkReward15=725000 
+ForkFixReward=5000000
+UseEntrust=10700000
 
 
 [fork.sub.evm]
@@ -204,6 +200,7 @@ ForkParaFullMinerHeight=-1
 ForkParaRootHash=0
 ForkParaSupervision=0
 ForkParaAutonomySuperGroup = 0
+ForkParaFreeRegister=10700000
 
 [fork.sub.multisig]
 Enable=0

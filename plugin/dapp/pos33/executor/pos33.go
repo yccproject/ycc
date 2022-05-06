@@ -125,7 +125,7 @@ func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (
 			cr.RemainReward = 0
 			logs = append(logs, receipt.Logs...)
 			kvs = append(kvs, receipt.KV...)
-			tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "amount", transferAmount, "fee", fee)
+			tlog.Debug("reward transfer to", "addr", cr.Address, "height", act.height, "amount", transferAmount, "fee", fee)
 		}
 	}
 	return &types.Receipt{KV: kvs, Logs: logs, Ty: types.ExecOk}, nil
