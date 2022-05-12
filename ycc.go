@@ -106,7 +106,7 @@ useBalance=false
 [fork.system]
 ForkChainParamV1=0
 ForkCheckTxDup=0
-ForkBlockHash=0
+ForkBlockHash=5000000
 ForkMinerTime=0
 ForkTransferExec=0
 ForkExecKey=0
