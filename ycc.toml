@@ -39,13 +39,13 @@ singleMode = true
 
 [mempool]
 # 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
-minTxFeeRate = 100000
+minTxFeeRate = 10
 # 最大的交易手续费率, 0.1 coins
-maxTxFeeRate = 10000000
+maxTxFeeRate = 1000
 # 单笔交易最大的手续费, 10 coins
 disableExecCheck = true
 isLevelFee = false
-maxTxFee = 1000000000
+maxTxFee = 100000
 maxTxNumPerAccount = 10000
 name = "price"
 poolCacheSize = 102400

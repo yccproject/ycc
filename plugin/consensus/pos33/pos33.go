@@ -202,16 +202,16 @@ func (c *Client) updateTicketCount(b *types.Block) {
 		c.queryAllPos33Count(height)
 	}
 
-	mp, ok := c.tcMap[height]
+	_, ok = c.tcMap[height]
 	if !ok {
 		c.tcMap[height] = c.tcMap[height-1]
-	} else {
-		last := c.tcMap[height-1]
-		for k, v := range last {
-			if mp[k] == 0 {
-				mp[k] = v
-			}
-		}
+		// } else {
+		// 	last := c.tcMap[height-1]
+		// 	for k, v := range last {
+		// 		if mp[k] == 0 {
+		// 			mp[k] = v
+		// 		}
+		// 	}
 	}
 	plog.Info("update ticket count", "height", b.Height, "all count", c.acMap[b.Height])
 	delete(c.acMap, height-pt.Pos33SortBlocks*2-1)
@@ -263,9 +263,9 @@ func (c *Client) queryTicketCount(addr string, height int64) int64 {
 	count := int64(0)
 	mp, ok := c.tcMap[height]
 	if ok {
-		count = mp[addr]
+		count, ok = mp[addr]
 	}
-	if count == 0 {
+	if !ok {
 		count = c.queryMinerTicketCount(addr, height)
 	}
 	// plog.Info("query ticket count", "height", height, "addr", addr, "count", count)
@@ -276,9 +276,7 @@ func (c *Client) queryMinerTicketCount(addr string, height int64) int64 {
 	mp, ok := c.tcMap[height]
 	if !ok || mp == nil {
 		mp = make(map[string]int64)
-		c.tcMap[height] = mp
 	}
-	plog.Info("query miner ticket count", "map", mp, "ok", ok)
 	if height < 0 {
 		height = 0
 	}
@@ -296,8 +294,9 @@ func (c *Client) queryMinerTicketCount(addr string, height int64) int64 {
 			count = msg.(*types.Int64).Data
 		}
 	}
-	plog.Info("query miner ticket count", "height", height, "miner", addr, "count", count)
+	// plog.Info("query miner ticket count", "height", height, "miner", addr, "count", count)
 	mp[addr] = count
+	c.tcMap[height] = mp
 	return count
 }
 

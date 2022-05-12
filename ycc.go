@@ -6,6 +6,7 @@ TestNet=true
 version="6.6.0.0"
 CoinSymbol="ycc"
 ChainID=999
+CoinPrecision=10000
 
 [blockchain]
 maxFetchBlockNum=128
@@ -136,7 +137,7 @@ Enable=0
 
 [fork.sub.pos33]
 Enable=0
-#ForkReward15=725000 
+#ForkReward15=0 
 #ForkFixReward=5000000
 #UseEntrust=9870000
 ForkReward15=0 
@@ -192,18 +193,19 @@ ForkTradeFixAssetDB=0
 ForkTradePrice=0
 
 [fork.sub.paracross]
-Enable=725000
-ForkParacrossWithdrawFromParachain=725000
-ForkParacrossCommitTx=725000
-ForkLoopCheckCommitTxDone=725000
+Enable=0
+ForkParacrossWithdrawFromParachain=0
+ForkParacrossCommitTx=0
+ForkLoopCheckCommitTxDone=0
 #fork for 6.4
-ForkParaAssetTransferRbk=725000
-ForkParaSelfConsStages=725000
+ForkParaAssetTransferRbk=0
+ForkParaSelfConsStages=0
 #仅平行链适用
 ForkParaFullMinerHeight=-1
 ForkParaRootHash=0
 ForkParaSupervision=0
-ForkParaAutonomySuperGroup = 0
+ForkParaAutonomySuperGroup = -1
+ForkParaFreeRegister = 0
 
 [fork.sub.multisig]
 Enable=0

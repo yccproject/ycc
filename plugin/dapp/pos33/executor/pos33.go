@@ -99,6 +99,9 @@ func (action *Action) getConsignee(addr string) (*ty.Pos33Consignee, error) {
 }
 
 func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (*types.Receipt, error) {
+	if consignee.Amount == 0 {
+		return nil, nil
+	}
 	chain33Cfg := act.api.GetConfig()
 	mp := ty.GetPos33MineParam(chain33Cfg, act.height)
 	needTransfer := mp.RewardTransfer
@@ -109,6 +112,9 @@ func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (
 
 	r1 := float64(mineReward) / float64(consignee.Amount/tprice)
 	for _, cr := range consignee.Consignors {
+		if cr.Amount == 0 {
+			continue
+		}
 		crr := int64(r1 * float64(cr.Amount/tprice))
 		cr.Reward += crr
 		tlog.Debug("mine reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
@@ -145,9 +151,15 @@ func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receip
 			continue
 		}
 		consignee := mi.miner
+		if consignee.Amount == 0 {
+			continue
+		}
 		vr := voteReward * int64(mi.nv)
 		r1 := float64(vr) / float64(consignee.Amount/tprice)
 		for _, cr := range consignee.Consignors {
+			if cr.Amount == 0 {
+				continue
+			}
 			crr := int64(r1 * float64(cr.Amount/tprice))
 			cr.Reward += crr
 			tlog.Debug("vote reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
