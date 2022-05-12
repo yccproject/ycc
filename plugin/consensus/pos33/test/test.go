@@ -21,6 +21,7 @@ import (
 	grpc "github.com/33cn/chain33/rpc/grpcclient"
 	jrpc "github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/system/crypto/none"
 	ctypes "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	_ "github.com/33cn/plugin/plugin"
@@ -30,11 +31,12 @@ import (
 // test auto generate tx and send to the node
 //
 
-var rootKey crypto.PrivKey
+var rootKey, noUseKey crypto.PrivKey
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
 	rootKey = HexToPrivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+	noUseKey = HexToPrivkey("c207ae827ccd7dfbe2b0d24d639d131300f26f8a176cf7f3752b5b454d62ed1f")
 }
 
 var rpcURL = flag.String("u", "http://localhost:7901", "rpc url")
@@ -43,11 +45,13 @@ var pnodes = flag.Bool("n", false, "only print node private keys")
 var ini = flag.Bool("i", false, "send init tx")
 var maxacc = flag.Int("a", 10000, "max account")
 var maxaccF = flag.Int("m", 1000000, "max account in a file")
-var rn = flag.Int("r", 3000, "sleep in Microsecond")
+
+// var rn = flag.Int("r", 3000, "sleep in Microsecond")
 var conf = flag.String("c", "ycc.toml", "chain33 config file")
 var useGrpc = flag.Bool("G", false, "if use grpc")
 var sign = flag.Bool("s", true, "signature tx")
 var accFile = flag.String("f", "acc.dat", "acc file")
+var noUseTx = flag.Bool("n", false, "send no use tx")
 
 var gClient types.Chain33Client
 var jClient *jrpc.JSONClient
@@ -177,7 +181,11 @@ func generateTxs(privs []crypto.PrivKey, hch <-chan int64) chan *Tx {
 		for {
 			i := rand.Intn(len(privs))
 			signer := privs[l-i]
-			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(address.DefaultID, privs[i].PubKey().Bytes()), <-hch)
+			if *noUseTx {
+				ch <- newNoUseTx()
+			} else {
+				ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(address.DefaultID, privs[i].PubKey().Bytes()), <-hch)
+			}
 		}
 	}
 	for i := 0; i < N; i++ {
@@ -274,6 +282,34 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	if *sign {
 		tx.Sign(types.SECP256K1, priv)
 	}
+	return tx
+}
+
+func RandStringBytes(n int) []byte {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789-=_+=/<>!@#$%^&"
+	b := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return b
+}
+
+func newNoUseTx() *Tx {
+	execAddr := address.ExecAddress("user.write")
+	//构造存证交易
+	tx := &types.Transaction{Execer: []byte("user.write")}
+	tx.To = execAddr
+	tx.Fee = 1e6
+	tx.Nonce = time.Now().UnixNano()
+	//tx.Expire = types.TxHeightFlag + txHeight
+	tx.Expire = 0
+	tx.Payload = RandStringBytes(32)
+	//交易签名
+	//tx.Sign(types.SECP256K1, priv)
+	// tx.Signature = &types.Signature{Ty: none.ID, Pubkey: priv.PubKey().Bytes()}
+	tx.Signature = &types.Signature{Ty: none.ID, Pubkey: noUseKey.PubKey().Bytes()}
+	tx.ChainID = 999
 	return tx
 }
 
