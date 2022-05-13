@@ -512,7 +512,8 @@ func (n *node) blockCheck(b *types.Block) error {
 	}
 
 	act, err := getMiner(b)
-	if err != nil {
+	if act == nil || err != nil {
+		plog.Error("block check getMiner error", "err", err, "height", b.Height)
 		return err
 	}
 	if act.Sort == nil || act.Sort.Proof == nil || act.Sort.Proof.Input == nil {

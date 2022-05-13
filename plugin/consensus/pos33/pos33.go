@@ -483,7 +483,11 @@ func getMiner(b *types.Block) (*pt.Pos33MinerMsg, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pact.GetMiner(), nil
+	miner := pact.GetMiner()
+	if miner == nil {
+		return nil, errors.New("tx0 is NOT miner tx")
+	}
+	return miner, nil
 }
 
 // Get used search block store db
