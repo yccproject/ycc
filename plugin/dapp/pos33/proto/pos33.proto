@@ -292,6 +292,10 @@ message Pos33MinerFeeRate {
 
 // message ReplyBindPos33Miner { string txHex = 1; }
 message ReplyTxHex { string txHex = 1; }
+message ReplyPos33Info {
+  int64 price = 1;
+  int64 all_count = 2;
+}
 
 service pos33 {
   // 创建entrust
