@@ -32,6 +32,8 @@ import (
 
 var rootKey crypto.PrivKey
 
+const ethID = 2
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 	rootKey = HexToPrivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
@@ -177,7 +179,7 @@ func generateTxs(privs []crypto.PrivKey, hch <-chan int64) chan *Tx {
 		for {
 			i := rand.Intn(len(privs))
 			signer := privs[l-i]
-			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(address.DefaultID, privs[i].PubKey().Bytes()), <-hch)
+			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(ethID, privs[i].PubKey().Bytes()), <-hch)
 		}
 	}
 	for i := 0; i < N; i++ {
@@ -272,7 +274,8 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	tx.ChainID = 999
 	tx.Fee *= 100
 	if *sign {
-		tx.Sign(types.SECP256K1, priv)
+		signID := types.EncodeSignID(types.SECP256K1, ethID)
+		tx.Sign(signID, priv)
 	}
 	return tx
 }
@@ -292,7 +295,8 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	tx.To = to
 	tx.ChainID = 999
 	if *sign {
-		tx.Sign(types.SECP256K1, priv)
+		signID := types.EncodeSignID(types.SECP256K1, 2)
+		tx.Sign(signID, priv)
 	}
 	return tx
 }
@@ -323,7 +327,7 @@ func runGenerateInitTxs(privCh chan crypto.PrivKey, ch chan *Tx) {
 			return
 		}
 		m := 100 * types.DefaultCoinPrecision
-		to := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+		to := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 		ch <- newTx(rootKey, m, to)
 	}
 }
@@ -336,7 +340,7 @@ func generateInitTxs(n int, privs []crypto.PrivKey, ch chan *Tx, done chan struc
 		}
 
 		m := 100 * types.DefaultCoinPrecision
-		ch <- newTx(rootKey, m, address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
+		ch <- newTx(rootKey, m, address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 	}
 	log.Println(n, len(privs))
 }
@@ -447,7 +451,7 @@ func loadAccounts(filename string, max int) []crypto.PrivKey {
 		if i%10000 == 0 {
 			log.Println("load acc:", i)
 		}
-		log.Println("account: ", address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
+		log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 	}
 	log.Println("loadAccount: ", len(privs))
 	return privs
@@ -513,7 +517,7 @@ func runLoadAccounts(filename string, max int) chan crypto.PrivKey {
 			if i%10000 == 0 {
 				log.Println("load acc:", i)
 			}
-			log.Println("account: ", address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()))
+			log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 		}
 		close(privCh)
 	}()

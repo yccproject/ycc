@@ -184,7 +184,7 @@ func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receip
 }
 
 func (act *Action) getFromBls(pk []byte) (string, error) {
-	val, err := act.db.Get(BlsKey(address.PubKeyToAddr(address.DefaultID, pk)))
+	val, err := act.db.Get(BlsKey(address.PubKeyToAddr(ethID, pk)))
 	if err != nil {
 		tlog.Error("getFromBls error", "err", err, "height", act.height)
 		return "", err

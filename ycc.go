@@ -28,8 +28,12 @@ serverStart=true
 [p2p.sub.dht]
 #bootstraps是内置不能修改的引导节点
 
-[mempool]
+[address]
+defaultDriver="eth"
+[address.enableHeight]
+eth=0
 
+[mempool]
 
 [mempool.sub.score]
 poolCacheSize=102400
@@ -46,7 +50,7 @@ poolCacheSize=102400
 name="pos33"
 minerstart=true
 genesisBlockTime=1604449783
-genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesis="0xf39e69a8f2c1041edd7616cf079c7084bb7a5242"
 minerExecs=["pos33"]
 
 [consensus.sub.pos33]
@@ -54,9 +58,9 @@ genesisBlockTime=1611627559
 checkFutureBlockHeight=1500000
 
 [[consensus.sub.pos33.genesis]]
-minerAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-returnAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-blsAddr="1HD3KyzUqMKT3fnKCXsFx91PZ1R2tiegXk"
+minerAddr="0x991fb09dc31a44b3177673f330c582ac2ea168e0"
+returnAddr="0xf39e69a8f2c1041edd7616cf079c7084bb7a5242"
+blsAddr="0x6da47c11230e44adb384fed56554bfd55dde1750"
 count=1000
 
 
@@ -72,7 +76,6 @@ rewardTransfer=1
 blockReward=15
 voteRewardPersent=25
 mineRewardPersent=11
-managerAddr="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
 
 [store]
@@ -87,7 +90,7 @@ enableTypes = ["secp256k1", "none", "bls"]
 #配置一个空值，防止配置文件被覆盖
 tokenApprs=[]
 [exec.sub.relay]
-genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+genesis="0xf39e69a8f2c1041edd7616cf079c7084bb7a5242"
 
 [exec.sub.manage]
 superManager=[

@@ -57,7 +57,11 @@ func (t *Pos33Ticket) Exec_Miner(payload *ty.Pos33MinerMsg, tx *types.Transactio
 	if !chain33Cfg.IsDappFork(actiondb.height, ty.Pos33TicketX, "UseEntrust") {
 		return actiondb.Pos33Miner(payload, index)
 	}
-	return actiondb.Pos33MinerNew(payload, index)
+	r, err := actiondb.Pos33MinerNew(payload, index)
+	if err != nil {
+		panic(err)
+	}
+	return r, nil
 }
 
 // Exec_Tbind exec bind

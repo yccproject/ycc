@@ -110,7 +110,7 @@ func (policy *ticketPolicy) On_WalletGetMiner(req *types.ReqNil) (types.Message,
 	if err != nil {
 		return nil, err
 	}
-	// addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+	// addr := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 	return &types.ReplyString{Data: string(priv.Bytes())}, nil
 }
 

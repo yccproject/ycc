@@ -36,6 +36,7 @@ import (
 
 const fee = 1e6
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789-=_+=/<>!@#$%^&"
+const ethID = 2
 
 var r *rand.Rand
 
@@ -542,11 +543,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-<<<<<<< HEAD
-	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
-=======
-	addrto := address.PubKeyToAddr(address.DefaultID, privto.PubKey().Bytes())
->>>>>>> master
+	addrto := address.PubKeyToAddr(ethID, privto.PubKey().Bytes())
 	fmt.Println("addr:", addrto.String())
 	return addrto.String(), privto
 }

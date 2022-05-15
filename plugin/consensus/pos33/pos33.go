@@ -234,7 +234,7 @@ func (c *Client) getMiner() {
 		plog.Error("privFromBytes", "err", err)
 		return
 	}
-	c.myAddr = address.PubKeyToAddr(address.DefaultID, c.priv.PubKey().Bytes())
+	c.myAddr = address.PubKeyToAddr(ethID, c.priv.PubKey().Bytes())
 	plog.Info("getMiner", "addr", c.myAddr)
 }
 

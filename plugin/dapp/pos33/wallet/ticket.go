@@ -21,6 +21,8 @@ import (
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
+const ethID = 2
+
 var (
 	// minerAddrWhiteList = make(map[string]bool)
 	bizlog = log15.New("module", "wallet.pos33")
@@ -170,7 +172,7 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 	isMaker := false
 	if len(wtxdetail.Fromaddr) <= 0 {
 		pubkey := tx.Signature.GetPubkey()
-		address := address.PubKeyToAddr(address.DefaultID, pubkey)
+		address := address.PubKeyToAddr(ethID, pubkey)
 		//from addr
 		fromaddress := address
 		if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
@@ -197,7 +199,7 @@ func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *t
 		mact := pact.GetMiner()
 		n := int64(0)
 		for _, pk := range mact.BlsPkList {
-			addr := address.PubKeyToAddr(address.DefaultID, pk)
+			addr := address.PubKeyToAddr(ethID, pk)
 			msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: addr})
 			if err != nil {
 				break
@@ -307,7 +309,7 @@ func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 
 // func (policy *ticketPolicy) needFlushPos33Ticket(tx *types.Transaction, receipt *types.ReceiptData) bool {
 // 	pubkey := tx.Signature.GetPubkey()
-// 	addr := address.PubKeyToAddr(address.DefaultID, pubkey)
+// 	addr := address.PubKeyToAddr(ethID, pubkey)
 // 	return policy.store.checkAddrIsInWallet(addr)
 // }
 
@@ -357,7 +359,7 @@ func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33Min
 // }
 
 // func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
-// 	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+// 	addr := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 // 	operater := policy.getWalletOperate()
 // 	acc1, err := operater.GetBalance(addr, "coins")
 // 	if err != nil {
@@ -396,7 +398,7 @@ func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33Min
 // }
 
 // func (policy *ticketPolicy) withdrawFromPos33TicketOne(priv crypto.PrivKey) ([]byte, error) {
-// 	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+// 	addr := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 // 	operater := policy.getWalletOperate()
 // 	acc, err := operater.GetBalance(addr, ty.Pos33TicketX)
 // 	if err != nil {
@@ -416,7 +418,7 @@ func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33Min
 // }
 
 func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
-	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
+	addr := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 	_, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33ConsigneeEntrust", &types.ReqAddr{Addr: addr})
 	if err == nil {
 		bizlog.Info("already migrate", "addr", addr)
@@ -437,9 +439,9 @@ func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {
 }
 
 func (policy *ticketPolicy) blsBind(priv crypto.PrivKey) ([]byte, error) {
-	addr := address.PubKeyToAddr(address.GetDefaultAddressID(), priv.PubKey().Bytes())
+	addr := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
-	blsaddr := address.PubKeyToAddr(address.DefaultID, blsPk.Bytes())
+	blsaddr := address.PubKeyToAddr(ethID, blsPk.Bytes())
 	m, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsaddr})
 	if err == nil {
 		retAddr := string(m.(*types.ReplyString).Data)
@@ -468,7 +470,7 @@ func (policy *ticketPolicy) openticket(mineraddr, raddr string, priv crypto.Priv
 	// }
 
 	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
-	blsaddr := address.PubKeyToAddr(address.DefaultID, blsPk.Bytes())
+	blsaddr := address.PubKeyToAddr(ethID, blsPk.Bytes())
 	ta := &ty.Pos33TicketAction{}
 	topen := &ty.Pos33TicketOpen{MinerAddress: mineraddr, BlsAddress: blsaddr, ReturnAddress: raddr, Count: count}
 	ta.Value = &ty.Pos33TicketAction_Topen{Topen: topen}
@@ -477,7 +479,7 @@ func (policy *ticketPolicy) openticket(mineraddr, raddr string, priv crypto.Priv
 }
 
 func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey) ([]byte, int, error) {
-	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+	addr := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 	msg, err := policy.getAPI().Query(ty.Pos33TicketX, "Pos33Deposit", &types.ReqAddr{Addr: addr})
 	if err != nil {
 		bizlog.Error("openticket query bind addr error", "error", err, "maddr", addr)
@@ -505,7 +507,7 @@ func (policy *ticketPolicy) buyPos33TicketBind(height int64, priv crypto.PrivKey
 }
 
 func (policy *ticketPolicy) buyPos33TicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
-	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+	addr := address.PubKeyToAddr(ethID, priv.PubKey().Bytes())
 	operater := policy.getWalletOperate()
 
 	acc1, err := operater.GetBalance(addr, "coins")
@@ -604,7 +606,7 @@ func (policy *ticketPolicy) getMiner(minerAddr string) (crypto.PrivKey, string, 
 	}
 	var minerPriv crypto.PrivKey
 	for _, priv := range privs {
-		if address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()) == minerAddr {
+		if address.PubKeyToAddr(ethID, priv.PubKey().Bytes()) == minerAddr {
 			minerPriv = priv
 			break
 		}
