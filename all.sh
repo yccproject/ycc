@@ -76,7 +76,7 @@ function init() {
 
     sleep 1
     echo "=========== # transfer_account deposit to pos33  ============="
-    deposit_hash=$( ./ycc-cli --rpc_laddr=${main_jrpc} send coins transfer -a=100000000 -t 1Wj2mPoBwJMVwAQLKPNDseGpDNibDt9Vq -k ${transfer_prikey})
+    deposit_hash=$( ./ycc-cli --rpc_laddr=${main_jrpc} send coins transfer -a=100000000 -t 0x79a69527dd0d62dcfd3eae90eb6c3134c57489eb -k ${transfer_prikey})
     echo "${deposit_hash}"
     if [ -z "${deposit_hash}" ]; then
         exit 1

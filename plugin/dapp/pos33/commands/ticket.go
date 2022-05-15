@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	cmdtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -92,6 +92,7 @@ func GetPos33Info() *cobra.Command {
 }
 
 type Pos33Info struct {
+	DappAddress    string
 	TicketPrice    string
 	AllTicketCount int64
 }
@@ -102,6 +103,11 @@ func parsePos33Info(arg ...interface{}) (interface{}, error) {
 	result := new(Pos33Info)
 	result.TicketPrice = types.FormatAmount2FloatDisplay(res.Price, cfg.CoinPrecision, false)
 	result.AllTicketCount = res.AllCount
+	dappAddr, err := address.GetExecAddress(ty.Pos33TicketX, 2)
+	if err != nil {
+		return nil, err
+	}
+	result.DappAddress = dappAddr
 	return result, nil
 }
 
