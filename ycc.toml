@@ -29,12 +29,14 @@ batchsync = false
 dbCache = 512
 dbPath = "datadir"
 defCacheSize = 512
-enableTxQuickIndex = false
-isRecordBlockSequence = false
+isParaChain = false
+isRecordBlockSequence = true
+timeoutSeconds = 1
 # 升级storedb是否重新执行localdb，bityuan主链升级不需要开启，平行链升级需要开启
 enableReExecLocal = false
 # 使能精简localdb
-enableReduceLocaldb = false
+enablePushSubscribe = false
+enableReduceLocaldb = true
 singleMode = true
 
 [mempool]
@@ -112,7 +114,7 @@ onlyVoter = false
 
 [mver.consensus]
 addWalletTx = false
-fundKeyAddr = "15m3SZWnMFB9yhUfn1h5miiZbPp6bEvyQt"
+fundKeyAddr = "0x92dd51393c77fd07c5840ae28076b7e0f072c289"
 maxTxNumber = 10000
 powLimitBits = "0x1f00ffff"
 
