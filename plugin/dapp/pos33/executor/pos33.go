@@ -122,6 +122,7 @@ func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (
 		if cr.RemainReward >= needTransfer {
 			fee := cr.RemainReward * mp.MinerFeePersent / 100
 			consignee.FeeReward += fee
+			consignee.RemainFeeReward += fee
 			transferAmount := cr.RemainReward - fee
 			receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, transferAmount)
 			if err != nil {
@@ -131,7 +132,19 @@ func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (
 			cr.RemainReward = 0
 			logs = append(logs, receipt.Logs...)
 			kvs = append(kvs, receipt.KV...)
-			tlog.Info("reward transfer to", "addr", cr.Address, "height", act.height, "amount", transferAmount, "fee", fee)
+			tlog.Debug("reward transfer to", "addr", cr.Address, "height", act.height, "amount", transferAmount, "fee", fee)
+
+			if consignee.RemainFeeReward >= needTransfer*10 {
+				receipt, err := act.coinsAccount.Transfer(act.execaddr, consignee.Address, consignee.RemainFeeReward)
+				if err != nil {
+					tlog.Error("fee reward transfer error", "to", consignee.Address, "execaddr", act.execaddr, "amount", consignee.RemainFeeReward)
+					return nil, err
+				}
+				tlog.Info("fee reward transfer to", "addr", consignee.Address, "height", act.height, "amount", consignee.RemainFeeReward, "fee", fee)
+				consignee.RemainFeeReward = 0
+				logs = append(logs, receipt.Logs...)
+				kvs = append(kvs, receipt.KV...)
+			}
 		}
 	}
 	return &types.Receipt{KV: kvs, Logs: logs, Ty: types.ExecOk}, nil
@@ -167,6 +180,7 @@ func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receip
 			if cr.RemainReward >= needTransfer {
 				fee := cr.RemainReward * mp.MinerFeePersent / 100
 				consignee.FeeReward += fee
+				consignee.RemainFeeReward += fee
 				transferAmount := cr.RemainReward - fee
 				receipt, err := act.coinsAccount.Transfer(act.execaddr, cr.Address, transferAmount)
 				if err != nil {
@@ -177,6 +191,18 @@ func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receip
 				logs = append(logs, receipt.Logs...)
 				kvs = append(kvs, receipt.KV...)
 				tlog.Debug("reward transfer to", "addr", cr.Address, "height", act.height, "transfer", transferAmount, "fee", fee)
+
+				if consignee.RemainFeeReward >= needTransfer*10 {
+					receipt, err := act.coinsAccount.Transfer(act.execaddr, consignee.Address, consignee.RemainFeeReward)
+					if err != nil {
+						tlog.Error("fee reward transfer error", "to", consignee.Address, "execaddr", act.execaddr, "amount", consignee.RemainFeeReward)
+						return nil, err
+					}
+					tlog.Info("fee reward transfer to", "addr", consignee.Address, "height", act.height, "amount", consignee.RemainFeeReward, "fee", fee)
+					consignee.RemainFeeReward = 0
+					logs = append(logs, receipt.Logs...)
+					kvs = append(kvs, receipt.KV...)
+				}
 			}
 		}
 	}

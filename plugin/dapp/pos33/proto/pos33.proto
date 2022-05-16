@@ -256,8 +256,9 @@ message Pos33Consignee {
   string address = 1;
   int64 amount = 2;
   int64 fee_reward = 3;
-  int64 fee_persent = 4;
-  repeated Consignor consignors = 5; // 委托人列表
+  int64 remain_fee_reward = 4; // 返给后的剩余奖励
+  int64 fee_persent = 5;
+  repeated Consignor consignors = 6; // 委托人列表
 }
 
 message Pos33Entrust {
