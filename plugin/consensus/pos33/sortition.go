@@ -113,7 +113,7 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 	}
 
 	msgs := n.doSort(vrfHash, int(count), num, diff, proof)
-	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(ethID, proof.Pubkey)[:16])
+	plog.Debug("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(ethID, proof.Pubkey)[:16])
 	return msgs
 }
 
@@ -145,7 +145,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		}
 	}
 
-	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(ethID, proof.Pubkey)[:16], "sortHash", minSort != nil)
+	plog.Debug("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(ethID, proof.Pubkey)[:16], "sortHash", minSort != nil)
 	return minSort
 }
 
@@ -208,7 +208,7 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	in := types.Encode(input)
 	err := vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
 	if err != nil {
-		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "ty", ty, "who", addr[:16])
+		plog.Debug("vrfVerify error", "err", err, "height", height, "round", round, "ty", ty, "who", addr[:16])
 		return err
 	}
 	data := fmt.Sprintf("%x+%d+%d", m.Proof.VrfHash, m.SortHash.Index, m.SortHash.Num)

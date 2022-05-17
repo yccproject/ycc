@@ -90,7 +90,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 func (client *Client) Close() {
 	client.done <- struct{}{}
 	client.BaseClient.Close()
-	plog.Info("pos33 consensus closed")
+	plog.Debug("pos33 consensus closed")
 }
 
 // ProcEvent do nothing?
@@ -179,7 +179,7 @@ func (c *Client) updateTicketCount(b *types.Block) {
 				miner = entrust.Consignee
 			}
 			if miner != "" {
-				plog.Info("set entrust", "height", height, "miner", miner)
+				plog.Debug("set entrust", "height", height, "miner", miner)
 				c.queryMinerTicketCount(miner, height)
 				c.queryAllPos33Count(height)
 			}
@@ -187,7 +187,7 @@ func (c *Client) updateTicketCount(b *types.Block) {
 	}
 	chain33Cfg := c.GetAPI().GetConfig()
 	if pt.GetPos33MineParam(chain33Cfg, height).ChangeTicketPrice() {
-		plog.Info("update ticket count because price changed", "height", height)
+		plog.Debug("update ticket count because price changed", "height", height)
 		c.queryAllPos33Count(height)
 		for k := range c.tcMap[height-1] {
 			c.queryMinerTicketCount(k, height)
@@ -213,7 +213,7 @@ func (c *Client) updateTicketCount(b *types.Block) {
 		// 		}
 		// 	}
 	}
-	plog.Info("update ticket count", "height", b.Height, "all count", c.acMap[b.Height])
+	plog.Debug("update ticket count", "height", b.Height, "all count", c.acMap[b.Height])
 	delete(c.acMap, height-pt.Pos33SortBlocks*2-1)
 	delete(c.tcMap, height-pt.Pos33SortBlocks*2-1)
 }
@@ -235,7 +235,7 @@ func (c *Client) getMiner() {
 		return
 	}
 	c.myAddr = address.PubKeyToAddr(ethID, c.priv.PubKey().Bytes())
-	plog.Info("getMiner", "addr", c.myAddr)
+	plog.Debug("getMiner", "addr", c.myAddr)
 }
 
 func (c *Client) queryEntrustCount(miner string, height int64) int64 {
@@ -268,7 +268,7 @@ func (c *Client) queryTicketCount(addr string, height int64) int64 {
 	if !ok {
 		count = c.queryMinerTicketCount(addr, height)
 	}
-	// plog.Info("query ticket count", "height", height, "addr", addr, "count", count)
+	// plog.Debug("query ticket count", "height", height, "addr", addr, "count", count)
 	return count
 }
 
@@ -294,7 +294,7 @@ func (c *Client) queryMinerTicketCount(addr string, height int64) int64 {
 			count = msg.(*types.Int64).Data
 		}
 	}
-	// plog.Info("query miner ticket count", "height", height, "miner", addr, "count", count)
+	// plog.Debug("query miner ticket count", "height", height, "miner", addr, "count", count)
 	mp[addr] = count
 	c.tcMap[height] = mp
 	return count
@@ -305,7 +305,7 @@ func (c *Client) queryAllPos33Count(height int64) int {
 	var err error
 	cfg := c.GetAPI().GetConfig()
 	useAmount := cfg.IsDappFork(height, pt.Pos33TicketX, "UseEntrust")
-	// plog.Info("query all ticket count", "height", height, "useAmount", useAmount)
+	// plog.Debug("query all ticket count", "height", height, "useAmount", useAmount)
 	if useAmount {
 		msg, err = c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketAmount", &types.ReqNil{})
 	} else {
@@ -337,14 +337,14 @@ func (client *Client) CreateBlock() {
 	}
 	client.getMiner()
 	gtm := client.GetGenesisBlockTime()
-	plog.Info("CreateBlock", "block 0 time", b.BlockTime, "genesis time", gtm)
+	plog.Debug("CreateBlock", "block 0 time", b.BlockTime, "genesis time", gtm)
 	if b.BlockTime != gtm {
 		panic("block 0 is NOT match config, remove old data or change the config file")
 	}
 	for {
 		select {
 		case <-client.done:
-			plog.Info("pos33 client done!!!")
+			plog.Debug("pos33 client done!!!")
 			return
 		default:
 		}
@@ -353,12 +353,12 @@ func (client *Client) CreateBlock() {
 			break
 		}
 		if !client.IsMining() || !(client.IsCaughtUp() || client.Cfg.ForceMining) {
-			plog.Info("createblock.ismining is disable or client is caughtup is false")
+			plog.Debug("createblock.ismining is disable or client is caughtup is false")
 			time.Sleep(time.Second)
 			continue
 		}
 		if client.myCount() == 0 {
-			plog.Info("createblock.myCount is 0")
+			plog.Debug("createblock.myCount is 0")
 			time.Sleep(time.Second * 3)
 			continue
 		}
@@ -395,7 +395,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 		gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, BlsAddress: blsAddr, Count: count}
 		tx3.Payload = types.Encode(&pt.Pos33TicketAction{Value: gticket, Ty: pt.Pos33TicketActionGenesis})
 		ret = append(ret, &tx3)
-		plog.Info("genesis miner", "execaddr", tx3.To, "genesistx", g.Genesis)
+		plog.Debug("genesis miner", "execaddr", tx3.To, "genesistx", g.Genesis)
 	} else {
 		amount := int64(count) * pt.GetPos33MineParam(cfg, 0).GetTicketPrice()
 		entrustAct := &pt.Pos33TicketAction_Entrust{
@@ -424,7 +424,7 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 			Payload: types.Encode(&pt.Pos33TicketAction{Value: blsBindAct, Ty: pt.Pos33ActionBlsBind}),
 		}
 		ret = append(ret, tx)
-		plog.Info("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount", amount)
+		plog.Debug("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount", amount)
 	}
 	return ret
 }
@@ -534,7 +534,7 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 		return false
 	}
 
-	plog.Info("block cmp", "nv1", len(m1.BlsPkList), "nv2", len(m2.BlsPkList))
+	plog.Debug("block cmp", "nv1", len(m1.BlsPkList), "nv2", len(m2.BlsPkList))
 	return true
 
 	// vw1 := voteWeight(m1.Votes)

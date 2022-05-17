@@ -57,11 +57,6 @@ type gossip2 struct {
 	peersTopic string
 }
 
-const remoteAddrID = "ycc-pos33-addr"
-const pos33Peerstore = "ycc-pos33-peerstore"
-const sendtoID = "ycc-pos33-sendto"
-const pos33MsgID = "ycc-pos33-msg"
-
 func (g *gossip2) bootstrap(addrs ...string) error {
 	g.bootPeers = addrs
 	for _, addr := range addrs {

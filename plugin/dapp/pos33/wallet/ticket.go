@@ -20,7 +20,7 @@ import (
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
-const ethID = 2
+const ethID = ty.EthAddrID
 
 var (
 	bizlog = log15.New("module", "wallet.pos33")

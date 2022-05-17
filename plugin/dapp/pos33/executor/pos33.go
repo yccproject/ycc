@@ -140,7 +140,7 @@ func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (
 					tlog.Error("fee reward transfer error", "to", consignee.Address, "execaddr", act.execaddr, "amount", consignee.RemainFeeReward)
 					return nil, err
 				}
-				tlog.Info("fee reward transfer to", "addr", consignee.Address, "height", act.height, "amount", consignee.RemainFeeReward, "fee", fee)
+				tlog.Debug("fee reward transfer to", "addr", consignee.Address, "height", act.height, "amount", consignee.RemainFeeReward, "fee", fee)
 				consignee.RemainFeeReward = 0
 				logs = append(logs, receipt.Logs...)
 				kvs = append(kvs, receipt.KV...)
@@ -198,7 +198,7 @@ func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receip
 						tlog.Error("fee reward transfer error", "to", consignee.Address, "execaddr", act.execaddr, "amount", consignee.RemainFeeReward)
 						return nil, err
 					}
-					tlog.Info("fee reward transfer to", "addr", consignee.Address, "height", act.height, "amount", consignee.RemainFeeReward, "fee", fee)
+					tlog.Debug("fee reward transfer to", "addr", consignee.Address, "height", act.height, "amount", consignee.RemainFeeReward, "fee", fee)
 					consignee.RemainFeeReward = 0
 					logs = append(logs, receipt.Logs...)
 					kvs = append(kvs, receipt.KV...)
@@ -336,7 +336,7 @@ func (action *Action) Pos33BlsBind(pm *ty.Pos33BlsBind) (*types.Receipt, error) 
 	if action.height == 0 {
 		miner = pm.MinerAddr
 	}
-	tlog.Info("bls bind", "blsaddr", pm.BlsAddr, "minerAddr", miner)
+	tlog.Debug("bls bind", "blsaddr", pm.BlsAddr, "minerAddr", miner)
 	return &types.Receipt{KV: []*types.KeyValue{{Key: BlsKey(pm.BlsAddr), Value: []byte(miner)}}, Ty: types.ExecOk}, nil
 }
 
@@ -347,7 +347,7 @@ func (action *Action) updateAllAmount(newAmount int64) *types.KeyValue {
 	}
 	allAmount += newAmount
 	value := []byte(fmt.Sprintf("%d", allAmount))
-	tlog.Info("updateAllAmount", "height", action.height, "allAmount", allAmount, "newAmount", newAmount)
+	tlog.Debug("updateAllAmount", "height", action.height, "allAmount", allAmount, "newAmount", newAmount)
 	return &types.KeyValue{Key: AllFrozenAmount(), Value: value}
 }
 
@@ -369,7 +369,7 @@ func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) 
 	}
 	acc := accs[0]
 	amount := acc.Frozen
-	tlog.Info("pos33 migrate", "miner", action.fromaddr, "consignor", acc.Addr, "amount", amount)
+	tlog.Debug("pos33 migrate", "miner", action.fromaddr, "consignor", acc.Addr, "amount", amount)
 	return action.setEntrust(&ty.Pos33Entrust{Consignee: action.fromaddr, Consignor: acc.Addr, Amount: amount})
 }
 
@@ -389,7 +389,7 @@ func (action *Action) freeze(addr string, amount int64) (*types.Receipt, error) 
 			return nil, err
 		}
 	}
-	tlog.Info("freeze", "height", action.height, "addr", addr, "amount", amount)
+	tlog.Debug("freeze", "height", action.height, "addr", addr, "amount", amount)
 	return receipt, nil
 }
 
@@ -448,7 +448,7 @@ func (action *Action) setEntrust(pe *ty.Pos33Entrust) (*types.Receipt, error) {
 	kvs = append(kvs, action.updateConsignee(consignee)...)
 	kvs = append(kvs, action.updateAllAmount(pe.Amount))
 
-	tlog.Info("pos33 set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount)
+	tlog.Debug("pos33 set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount)
 	return &types.Receipt{KV: kvs, Ty: types.ExecOk}, nil
 }
 
@@ -464,7 +464,7 @@ func (action *Action) minerWithdrawFee(amount int64, consignee *ty.Pos33Consigne
 	}
 	kv := action.updateConsignee(consignee)
 	receipt.KV = append(receipt.KV, kv...)
-	tlog.Info("miner withdraw", "height", action.height, "miner", consignee.Address, "amount", amount)
+	tlog.Debug("miner withdraw", "height", action.height, "miner", consignee.Address, "amount", amount)
 	return receipt, nil
 }
 
@@ -519,7 +519,7 @@ func (action *Action) Pos33WithdrawReward(wr *ty.Pos33WithdrawReward) (*types.Re
 	}
 	kv := action.updateConsignee(consignee)
 	receipt.KV = append(receipt.KV, kv...)
-	tlog.Info("withdrawReward ", "height", action.height, "consignor", wr.Consignor, "miner", wr.Consignee, "amount", wr.Amount)
+	tlog.Debug("withdrawReward ", "height", action.height, "consignor", wr.Consignor, "miner", wr.Consignee, "amount", wr.Amount)
 	return receipt, nil
 }
 

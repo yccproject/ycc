@@ -2,31 +2,80 @@ package main
 
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
-TestNet=true
-version="1.0.0.0"
-CoinSymbol="ycc"
-ChainID=999
-CoinPrecision=1000000
+TxHeight = true
+FixTime = false
+
+[log]
+# 单个日志文件的最大值（单位：兆）
+maxFileSize = 300
+# 最多保存的历史日志文件个数
+maxBackups = 100
+# 最多保存的历史日志消息（单位：天）
+maxAge = 28
+# 日志文件名是否使用本地事件（否则使用UTC时间）
+localTime = true
+# 历史日志文件是否压缩（压缩格式为gz）
+compress = true
+# 是否打印调用源文件和行号
+callerFile = true
+# 是否打印调用方法
+callerFunction = false
 
 [blockchain]
 maxFetchBlockNum=128
 timeoutSeconds=1
 batchBlockNum=128
-driver="leveldb"
 isStrongConsistency=false
 disableShard=true
 onChainTimeout=1
+batchsync = false
+# db
+driver="leveldb"
+dbCache = 256
+defCacheSize = 256
+isParaChain = false
+isRecordBlockSequence = true
+enableTxQuickIndex = true
+# 使能精简localdb
+enablePushSubscribe = true
+enableReduceLocaldb = false
+enableReExecLocal = false
 
 [p2p]
 enable=true
 msgCacheSize=10240
 driver="leveldb"
+types = ["dht"]
+waitPid = false
+dbCache = 16
 
 [p2p.sub.gossip]
+innerBounds = 300
+innerSeedEnable = true
+isSeed = false
+port = 13702
+useGithub = false
 serverStart=true
 
 [p2p.sub.dht]
-#bootstraps是内置不能修改的引导节点
+#dht 版本还不稳定，暂时限定较小的连接数
+maxConnectNum = 50
+#区块轻广播最低区块大小，1k
+minLtBlockSize = 1
+# 是否配置为全节点模式，全节点保存所有分片数据，种子节点应配置为true
+# 全节点可以切换为分片节点，暂不支持分片节点切换为全节点
+isFullNode = true
+# 兼容老版本广播节点数，目前比特元网络已基本全面升级6.5.3，新版本不再支持广播发送至老版本
+# 设为1为屏蔽默认设置5
+maxBroadcastPeers = 1
+
+[p2p.sub.dht.pubsub]
+gossipSubD = 10
+gossipSubDhi = 20
+gossipSubDlo = 7
+gossipSubHeartbeatInterval = 900
+gossipSubHistoryGossip = 2
+gossipSubHistoryLength = 7
 
 [address]
 defaultDriver="eth"
@@ -34,28 +83,34 @@ defaultDriver="eth"
 eth=0
 
 [mempool]
+name = "price"
 
 [mempool.sub.score]
 poolCacheSize=102400
 minTxFee=100000
-maxTxNumPerAccount=100
+maxTxNumPerAccount=1000
 timeParam=1      #时间占价格比例
 priceConstant=1544  #手续费相对于时间的一个合适的常量,取当前unxi时间戳前四位数,排序时手续费高1e-5~=快1s
 pricePower=1     #常量比例
 
 [mempool.sub.price]
-poolCacheSize=102400
+minTxFeeRate = 1000
+maxTxFeeRate = 100000
+disableExecCheck = false
+isLevelFee = false
+maxTxFee = 1000000
+maxTxNumPerAccount = 1000
+poolCacheSize = 102400
 
 [consensus]
 name="pos33"
 minerstart=true
-genesisBlockTime=1604449783
+genesisBlockTime=1652797628
 genesis="0xf39e69a8f2c1041edd7616cf079c7084bb7a5242"
 minerExecs=["pos33"]
 
 [consensus.sub.pos33]
-genesisBlockTime=1611627559
-checkFutureBlockHeight=1500000
+onlyVoter = false
 
 [[consensus.sub.pos33.genesis]]
 minerAddr="0x991fb09dc31a44b3177673f330c582ac2ea168e0"
@@ -63,10 +118,11 @@ returnAddr="0xf39e69a8f2c1041edd7616cf079c7084bb7a5242"
 blsAddr="0x6da47c11230e44adb384fed56554bfd55dde1750"
 count=1000
 
-
-[mver.consensus.ForkChainParamV2]
-powLimitBits="0x1f2fffff"
-
+[mver.consensus]
+addWalletTx = false
+fundKeyAddr = "0x92dd51393c77fd07c5840ae28076b7e0f072c289"
+maxTxNumber = 10000
+powLimitBits = "0x1f00ffff"
 
 [mver.consensus.pos33]
 ticketPrice1=10000
@@ -77,16 +133,60 @@ blockReward=15
 voteRewardPersent=25
 mineRewardPersent=11
 
-
 [store]
+dbCache = 256
+driver = "leveldb"
+name = "kvmvcc"
+
+[store.sub.kvmvcc]
+enableMVCC = false
+enableMavlPrefix = false
+
+[store.sub.mavl]
+enableMVCC = false
+enableMavlPrefix = true
+enableMavlPrune = true
+enableMemTree = true
+enableMemVal = true
+pruneHeight = 10000
+# 缓存close ticket数目，该缓存越大同步速度越快，最大设置到1500000,默认200000
+tkCloseCacheLen = 200000
+
+[store.sub.kvmvccmavl]
+enableMVCC = false
+enableMVCCIter = true
+enableMVCCPrune = false
+enableMavlPrefix = true
+enableMavlPrune = true
+enableMemTree = true
+enableMemVal = true
+pruneMVCCHeight = 10000
+pruneMavlHeight = 10000
+# 缓存close ticket数目，该缓存越大同步速度越快，最大设置到1500000,默认200000
+tkCloseCacheLen = 200000
 
 [crypto]
 enableTypes = ["secp256k1", "none", "bls"]
 
+[wallet]
+dbCache = 16
+driver = "leveldb"
+minFee = 100000
+signType = "secp256k1"
 
 [exec]
+#disableAddrIndex = true
+#disableFeeIndex = true
+#disableTxIndex = true
+enableMVCC = false
+enableStat = false
+
+[exec.sub.coins]
+disableAddrReceiver = true
+disableCheckTxAmount = true
 
 [exec.sub.token]
+saveTokenTxList = false
 #配置一个空值，防止配置文件被覆盖
 tokenApprs=[]
 [exec.sub.relay]
@@ -206,7 +306,6 @@ ForkReward15=0
 ForkFixReward=0
 UseEntrust=0
 
-
 [fork.sub.evm]
 Enable=0
 ForkEVMYoloV1=0
@@ -287,7 +386,21 @@ ForkUnfreezeIDX=0
 ForkKvmvccmavl=0
 
 [health]
-listenAddr="localhost:8709"
 checkInterval=1
 unSyncMaxTimes=2
+
+[metrics]
+#是否使能发送metrics数据的发送
+enableMetrics = false
+#数据保存模式
+dataEmitMode = "influxdb"
+
+[metrics.sub.influxdb]
+#以纳秒为单位的发送间隔
+database = "chain33metrics"
+duration = 1000000000
+namespace = ""
+password = ""
+url = "http://influxdb:8086"
+username = ""
 `

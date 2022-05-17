@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/types"
 	bls33 "github.com/33cn/plugin/plugin/crypto/bls"
 	"github.com/phoreproject/bls"
@@ -60,7 +61,8 @@ const (
 )
 
 // Pos33TicketX dapp name
-var Pos33TicketX = "pos33"
+const Pos33TicketX = "pos33"
+const EthAddrID = eth.ID
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(Pos33TicketX))

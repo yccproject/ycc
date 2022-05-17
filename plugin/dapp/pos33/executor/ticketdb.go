@@ -25,7 +25,7 @@ import (
 
 var tlog = log.New("module", "pos33db")
 
-const ethID = 2
+const ethID = ty.EthAddrID
 
 // // GetReceiptLog get receipt
 // func pos33ReceiptLog(typ int32, count int, addr string) *types.ReceiptLog {

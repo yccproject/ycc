@@ -24,6 +24,7 @@ import (
 	ctypes "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	_ "github.com/33cn/plugin/plugin"
+	pt "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
 //
@@ -32,7 +33,7 @@ import (
 
 var rootKey crypto.PrivKey
 
-const ethID = 2
+const ethID = pt.EthAddrID
 
 func init() {
 	rand.Seed(time.Now().UnixNano())

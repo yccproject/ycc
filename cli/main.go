@@ -17,5 +17,5 @@ func main() {
 	if buildflags.RPCAddr == "" {
 		buildflags.RPCAddr = "http://localhost:7901"
 	}
-	cli.Run(buildflags.RPCAddr, buildflags.ParaName, "ycc")
+	cli.Run(buildflags.RPCAddr, buildflags.ParaName, "xxx")
 }
