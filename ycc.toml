@@ -1,7 +1,8 @@
+
 FixTime = false
-Title = "ycc-dev"
+Title = "ycc"
 TxHeight = true
-#TestNet=true
+
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
