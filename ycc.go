@@ -6,7 +6,7 @@ TestNet=true
 version="1.0.0.0"
 CoinSymbol="ycc"
 ChainID=999
-CoinPrecision=10000000
+CoinPrecision=1000000
 
 [blockchain]
 maxFetchBlockNum=128
