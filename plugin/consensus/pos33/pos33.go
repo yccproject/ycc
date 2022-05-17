@@ -27,13 +27,13 @@ type Client struct {
 	conf *subConfig
 	n    *node
 
-	clock   sync.Mutex
-	priv    crypto.PrivKey
-	myAddr  string
-	mycount int
+	// clock  sync.Mutex
+	priv   crypto.PrivKey
+	myAddr string
 
 	mlock sync.Mutex
 	acMap map[int64]int
+	tcMap map[int64]map[string]int64
 
 	done chan struct{}
 }
@@ -73,7 +73,14 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	// plog.Debug("subcfg", "cfg", string(sub))
 
 	n := newNode(&subcfg)
-	client := &Client{BaseClient: c, n: n, conf: &subcfg, acMap: make(map[int64]int), done: make(chan struct{})}
+	client := &Client{
+		BaseClient: c,
+		n:          n,
+		conf:       &subcfg,
+		acMap:      make(map[int64]int),
+		tcMap:      make(map[int64]map[string]int64),
+		done:       make(chan struct{}),
+	}
 	client.n.Client = client
 	c.SetChild(client)
 	return client
@@ -83,7 +90,7 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 func (client *Client) Close() {
 	client.done <- struct{}{}
 	client.BaseClient.Close()
-	plog.Debug("pos33 consensus closed")
+	plog.Info("pos33 consensus closed")
 }
 
 // ProcEvent do nothing?
@@ -105,15 +112,10 @@ func (client *Client) BlockCheck(parent *types.Block, current *types.Block) erro
 	return client.n.checkBlock(current, parent)
 }
 
-func (client *Client) myCount() int {
-	client.clock.Lock()
-	defer client.clock.Unlock()
-	return client.mycount
-}
-
 func (client *Client) allCount(height int64) int {
 	client.mlock.Lock()
 	defer client.mlock.Unlock()
+
 	if height < 0 {
 		height = 0
 	}
@@ -136,8 +138,6 @@ func privFromBytes(privkey []byte) (crypto.PrivKey, error) {
 }
 
 func (client *Client) getPriv() crypto.PrivKey {
-	client.clock.Lock()
-	defer client.clock.Unlock()
 	if client.priv == nil {
 		plog.Error("Wallet LOCKED or not Set mining account")
 		return nil
@@ -146,52 +146,188 @@ func (client *Client) getPriv() crypto.PrivKey {
 }
 
 func (c *Client) AddBlock(b *types.Block) error {
-	c.updateTicketCount(b.Height)
 	c.n.addBlock(b)
+	c.updateTicketCount(b)
 	return nil
 }
 
-func (c *Client) updateTicketCount(height int64) {
+func (c *Client) updateTicketCount(b *types.Block) {
 	c.mlock.Lock()
 	defer c.mlock.Unlock()
-	ac := c.queryAllPos33Count()
-	c.acMap[height] = ac
-	c.mycount = c.getMyCount()
-	plog.Info("AllCount", "count", ac, "height", height)
-	delete(c.acMap, height-pt.Pos33SortBlocks-1)
+
+	height := b.Height
+	if b.Height == 0 {
+		height = 0
+	}
+	for i, tx := range b.Txs {
+		if i != 0 && string(tx.Execer) == "pos33" {
+			pa := new(pt.Pos33TicketAction)
+			err := types.Decode(tx.Payload, pa)
+			if err != nil {
+				plog.Error("pos33 action decode errorr", "err", err, "height", height)
+				return
+			}
+
+			miner := ""
+			switch pa.Ty {
+			case pt.Pos33TicketActionGenesis:
+				miner = c.conf.Genesis[0].MinerAddr
+			case pt.Pos33ActionMigrate, pt.Pos33TicketActionClose, pt.Pos33TicketActionOpen:
+				miner = tx.From()
+			case pt.Pos33ActionEntrust:
+				entrust := pa.GetEntrust()
+				miner = entrust.Consignee
+			}
+			if miner != "" {
+				plog.Info("set entrust", "height", height, "miner", miner)
+				c.queryMinerTicketCount(miner, height)
+				c.queryAllPos33Count(height)
+			}
+		}
+	}
+	chain33Cfg := c.GetAPI().GetConfig()
+	if pt.GetPos33MineParam(chain33Cfg, height).ChangeTicketPrice() {
+		plog.Info("update ticket count because price changed", "height", height)
+		c.queryAllPos33Count(height)
+		for k := range c.tcMap[height-1] {
+			c.queryMinerTicketCount(k, height)
+		}
+	}
+	_, ok := c.acMap[height]
+	if !ok {
+		c.acMap[height] = c.acMap[height-1]
+	}
+
+	if c.acMap[height] == 0 {
+		c.queryAllPos33Count(height)
+	}
+
+	mp, ok := c.tcMap[height]
+	if !ok {
+		c.tcMap[height] = c.tcMap[height-1]
+	} else {
+		last := c.tcMap[height-1]
+		for k, v := range last {
+			if mp[k] == 0 {
+				mp[k] = v
+			}
+		}
+	}
+	plog.Info("update ticket count", "height", b.Height, "all count", c.acMap[b.Height])
+	delete(c.acMap, height-pt.Pos33SortBlocks*2-1)
+	delete(c.tcMap, height-pt.Pos33SortBlocks*2-1)
 }
 
-func (c *Client) getMyCount() int {
-	c.clock.Lock()
-	defer c.clock.Unlock()
-	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetPos33Count", &types.ReqNil{})
-	if err != nil {
-		plog.Debug("WalletGetPos33Count", "err", err)
-		return 0
+func (c *Client) getMiner() {
+	if c.myAddr != "" {
+		return
 	}
-	w := resp.(*pt.ReplyWalletPos33Count)
-	// if c.mycount != int(w.Count) {
-	// 	c.n.changeMyCount()
-	// }
-	c.mycount = int(w.Count)
-	c.priv, err = privFromBytes(w.Privkey)
+
+	resp, err := c.GetAPI().ExecWalletFunc("pos33", "WalletGetMiner", &types.ReqNil{})
+	if err != nil {
+		plog.Debug("WalletGetMinerAddr", "err", err)
+		return
+	}
+	w := resp.(*types.ReplyString)
+	c.priv, err = privFromBytes([]byte(w.Data))
 	if err != nil {
 		plog.Error("privFromBytes", "err", err)
-		return 0
+		return
 	}
-	c.myAddr = address.PubKeyToAddr(c.priv.PubKey().Bytes())
-	plog.Debug("getMyCount", "count", c.mycount)
-	return c.mycount
+	c.myAddr = address.PubKeyToAddr(address.DefaultID, c.priv.PubKey().Bytes())
+	plog.Info("getMiner", "addr", c.myAddr)
 }
 
-func (c *Client) queryAllPos33Count() int {
-	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketCount", &types.ReqNil{})
+func (c *Client) queryEntrustCount(miner string, height int64) int64 {
+	msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33ConsigneeEntrust", &types.ReqAddr{Addr: miner})
 	if err != nil {
-		plog.Debug("query Pos33AllPos33TicketCount error", "error", err)
+		plog.Error("query Pos33Consignee error", "error", err, "height", height, "miner", miner)
 		return 0
 	}
-	count := int(msg.(*types.Int64).Data)
+	consignee := msg.(*pt.Pos33Consignee)
+	price := pt.GetPos33MineParam(c.GetAPI().GetConfig(), c.GetCurrentHeight()).GetTicketPrice()
+	return consignee.Amount / price
+}
+
+func (c *Client) queryTicketCount(addr string, height int64) int64 {
+	c.mlock.Lock()
+	defer c.mlock.Unlock()
+
+	if height < 0 {
+		height = 0
+	}
+	if addr == "" {
+		return 0
+	}
+
+	count := int64(0)
+	mp, ok := c.tcMap[height]
+	if ok {
+		count = mp[addr]
+	}
+	if count == 0 {
+		count = c.queryMinerTicketCount(addr, height)
+	}
+	// plog.Info("query ticket count", "height", height, "addr", addr, "count", count)
 	return count
+}
+
+func (c *Client) queryMinerTicketCount(addr string, height int64) int64 {
+	mp, ok := c.tcMap[height]
+	if !ok || mp == nil {
+		mp = make(map[string]int64)
+		c.tcMap[height] = mp
+	}
+	plog.Info("query miner ticket count", "map", mp, "ok", ok)
+	if height < 0 {
+		height = 0
+	}
+
+	count := int64(0)
+	cfg := c.GetAPI().GetConfig()
+	if cfg.IsDappFork(height, pt.Pos33TicketX, "UseEntrust") {
+		count = c.queryEntrustCount(addr, height)
+	} else {
+		msg, err := c.GetAPI().Query(pt.Pos33TicketX, "Pos33TicketCount", &types.ReqAddr{Addr: addr})
+		if err != nil {
+			plog.Error("query count error", "error", err)
+			count = 0
+		} else {
+			count = msg.(*types.Int64).Data
+		}
+	}
+	plog.Info("query miner ticket count", "height", height, "miner", addr, "count", count)
+	mp[addr] = count
+	return count
+}
+
+func (c *Client) queryAllPos33Count(height int64) int {
+	var msg types.Message
+	var err error
+	cfg := c.GetAPI().GetConfig()
+	useAmount := cfg.IsDappFork(height, pt.Pos33TicketX, "UseEntrust")
+	// plog.Info("query all ticket count", "height", height, "useAmount", useAmount)
+	if useAmount {
+		msg, err = c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketAmount", &types.ReqNil{})
+	} else {
+		msg, err = c.GetAPI().Query(pt.Pos33TicketX, "AllPos33TicketCount", &types.ReqNil{})
+	}
+	if err != nil {
+		plog.Error("query all tickets count error", "error", err, "height", height, "useAmount", useAmount)
+		return 0
+	}
+	count := msg.(*types.Int64).Data
+	if useAmount {
+		count = count / pt.GetPos33MineParam(cfg, height).GetTicketPrice()
+	}
+	c.acMap[height] = int(count)
+	return int(count)
+}
+
+func (client *Client) myCount() int {
+	client.getMiner()
+	height := client.GetCurrentHeight()
+	return int(client.queryTicketCount(client.myAddr, height))
 }
 
 // CreateBlock will start run
@@ -200,6 +336,7 @@ func (client *Client) CreateBlock() {
 	if err != nil {
 		panic(err)
 	}
+	client.getMiner()
 	gtm := client.GetGenesisBlockTime()
 	plog.Info("CreateBlock", "block 0 time", b.BlockTime, "genesis time", gtm)
 	if b.BlockTime != gtm {
@@ -208,7 +345,7 @@ func (client *Client) CreateBlock() {
 	for {
 		select {
 		case <-client.done:
-			plog.Debug("pos33 client done!!!")
+			plog.Info("pos33 client done!!!")
 			return
 		default:
 		}
@@ -223,7 +360,7 @@ func (client *Client) CreateBlock() {
 		}
 		if client.myCount() == 0 {
 			plog.Info("createblock.myCount is 0")
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 3)
 			continue
 		}
 		break
@@ -246,19 +383,50 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 	tx2.Execer = []byte("coins")
 	tx2.To = driver.ExecAddress(pt.Pos33TicketX)
 	g = &ct.CoinsAction_Genesis{}
-	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33TicketMinerParam(cfg, height).Pos33TicketPrice, ReturnAddress: returnAddr}
+	g.Genesis = &types.AssetsGenesis{Amount: int64(count) * pt.GetPos33MineParam(cfg, height).GetTicketPrice(), ReturnAddress: returnAddr}
 	tx2.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 
-	// 冻结资金并开启挖矿
-	tx3 := types.Transaction{}
-	tx3.Execer = []byte(pt.Pos33TicketX)
-	tx3.To = driver.ExecAddress(pt.Pos33TicketX)
-	gticket := &pt.Pos33TicketAction_Genesis{}
-	gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, BlsAddress: blsAddr, Count: count}
-	tx3.Payload = types.Encode(&pt.Pos33TicketAction{Value: gticket, Ty: pt.Pos33TicketActionGenesis})
-	ret = append(ret, &tx3)
-	plog.Debug("genesis miner", "execaddr", tx3.To)
+	if !cfg.IsDappFork(0, pt.Pos33TicketX, "UseEntrust") {
+		// 冻结资金并开启挖矿
+		tx3 := types.Transaction{}
+		tx3.Execer = []byte(pt.Pos33TicketX)
+		tx3.To = driver.ExecAddress(pt.Pos33TicketX)
+		gticket := &pt.Pos33TicketAction_Genesis{}
+		gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, BlsAddress: blsAddr, Count: count}
+		tx3.Payload = types.Encode(&pt.Pos33TicketAction{Value: gticket, Ty: pt.Pos33TicketActionGenesis})
+		ret = append(ret, &tx3)
+		plog.Info("genesis miner", "execaddr", tx3.To, "genesistx", g.Genesis)
+	} else {
+		amount := int64(count) * pt.GetPos33MineParam(cfg, 0).GetTicketPrice()
+		entrustAct := &pt.Pos33TicketAction_Entrust{
+			Entrust: &pt.Pos33Entrust{
+				Consignee: minerAddr,
+				Consignor: returnAddr,
+				Amount:    amount,
+			},
+		}
+		tx := &types.Transaction{
+			Execer:  []byte(pt.Pos33TicketX),
+			To:      driver.ExecAddress(pt.Pos33TicketX),
+			Payload: types.Encode(&pt.Pos33TicketAction{Value: entrustAct, Ty: pt.Pos33ActionEntrust}),
+		}
+		ret = append(ret, tx)
+
+		blsBindAct := &pt.Pos33TicketAction_BlsBind{
+			BlsBind: &pt.Pos33BlsBind{
+				BlsAddr:   blsAddr,
+				MinerAddr: minerAddr,
+			},
+		}
+		tx = &types.Transaction{
+			Execer:  []byte(pt.Pos33TicketX),
+			To:      driver.ExecAddress(pt.Pos33TicketX),
+			Payload: types.Encode(&pt.Pos33TicketAction{Value: blsBindAct, Ty: pt.Pos33ActionBlsBind}),
+		}
+		ret = append(ret, tx)
+		plog.Info("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount", amount)
+	}
 	return ret
 }
 
@@ -282,17 +450,6 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 		ret = append(ret, tx1...)
 	}
 	return ret
-}
-
-func (client *Client) setOthersBlock(b *types.Block, pid string) error {
-	bp := &types.BlockPid{Pid: pid, Block: b}
-	qc := client.GetQueueClient()
-	err := qc.Send(qc.NewMessage("blockchain", types.EventBroadcastAddBlock, bp), true)
-	if err != nil {
-		plog.Error("BreadcastAddBlock error", "err", err)
-		return err
-	}
-	return nil
 }
 
 // write block to chain
@@ -385,50 +542,7 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 	// return vw1 > vw2
 }
 
-// Query_GetTicketCount ticket query ticket count function
-func (client *Client) Query_GetPos33TicketCount(req *types.ReqNil) (types.Message, error) {
-	var ret types.Int64
-	ret.Data = int64(client.myCount())
-	return &ret, nil
-}
-
 // Query_FlushTicket ticket query flush ticket function
 func (client *Client) Query_FlushPos33Ticket(req *types.ReqNil) (types.Message, error) {
-	client.getMyCount()
 	return &types.Reply{IsOk: true, Msg: []byte("OK")}, nil
 }
-
-// func (client *Client) Query_GetPos33Reward(req *pt.Pos33TicketReward) (types.Message, error) {
-// 	var b *types.Block
-// 	var err error
-// 	if req.Height <= 0 {
-// 		b, err = client.n.RequestLastBlock()
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	} else {
-// 		b, err = client.RequestBlock(req.Height)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	m, err := getMiner(b)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	br := int64(0)
-// 	vr := int64(0)
-// 	addr := req.Addr
-// 	if addr == "" {
-// 		addr = saddr(b.Signature)
-// 	}
-// 	if saddr(b.Signature) == addr {
-// 		br = pt.Pos33MakerReward * int64(len(m.Vs))
-// 	}
-// 	for _, v := range m.Vs {
-// 		if saddr(v.Sig) == addr {
-// 			vr += pt.Pos33VoteReward
-// 		}
-// 	}
-// 	return &pt.ReplyPos33TicketReward{VoterReward: vr, MinerReward: br}, nil
-// }

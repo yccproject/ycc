@@ -4,12 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/33cn/chain33/common/address"
 	jrpc "github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	"github.com/33cn/chain33/types"
-
-	pt "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
 var rpcURL = flag.String("u", "http://localhost:9901", "rpc url")
@@ -48,46 +44,47 @@ func getBlockByRpc(height int64) (*rpctypes.Block, error) {
 }
 
 func getRewardMap(height int64) (map[string]*rewardT, error) {
-	b, err := getBlockByRpc(height)
-	if err != nil {
-		panic(err)
-	}
-	if len(b.Txs) == 0 {
-		panic("No tx in the block")
-	}
+	// b, err := getBlockByRpc(height)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// if len(b.Txs) == 0 {
+	// 	panic("No tx in the block")
+	// }
 	// 解析第一个交易
-	tx := b.Txs[0]
-	var pact pt.Pos33TicketAction
-	err = types.JSONToPBUTF8(tx.Payload, &pact)
-	if err != nil {
-		panic(err)
-	}
-	ma := pact.GetMiner()
+	// tx := b.Txs[0]
+	// var pact pt.Pos33TicketAction
+	// err = types.JSONToPBUTF8(tx.Payload, &pact)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// ma := pact.GetMiner()
 
-	// 遍历投票
-	mp := make(map[string]*rewardT)
-	for _, v := range ma.Vs {
-		addr := address.PubKeyToAddr(v.Sig.Pubkey)
-		r, ok := mp[addr]
-		if !ok {
-			r = &rewardT{}
-			mp[addr] = r
-		}
-		// 投票奖励
-		r.TotolValue += pt.Pos33VoteReward
-		r.Count += 1
-	}
+	// // 遍历投票
+	// mp := make(map[string]*rewardT)
+	// for _, v := range ma.Vs {
+	// 	addr := address.PubKeyToAddr(address.DefaultID, v.Sig.Pubkey)
+	// 	r, ok := mp[addr]
+	// 	if !ok {
+	// 		r = &rewardT{}
+	// 		mp[addr] = r
+	// 	}
+	// 	// 投票奖励
+	// 	r.TotolValue += pt.Pos33VoteReward
+	// 	r.Count += 1
+	// }
 
-	// 解析出块证明
-	nv := len(ma.Vs)
-	minerAddr := address.PubKeyToAddr(ma.Sort.Proof.Pubkey)
-	r, ok := mp[minerAddr]
-	if !ok {
-		r = &rewardT{}
-		mp[minerAddr] = r
-	}
-	// 挖矿奖励
-	r.TotolValue += pt.Pos33MakerReward * int64(nv)
-	r.IsMiner = true
-	return mp, nil
+	// // 解析出块证明
+	// nv := len(ma.Vs)
+	// minerAddr := address.PubKeyToAddr(address.DefaultID, ma.Sort.Proof.Pubkey)
+	// r, ok := mp[minerAddr]
+	// if !ok {
+	// 	r = &rewardT{}
+	// 	mp[minerAddr] = r
+	// }
+	// // 挖矿奖励
+	// r.TotolValue += pt.Pos33MakerReward * int64(nv)
+	// r.IsMiner = true
+	// return mp, nil
+	return nil, nil
 }

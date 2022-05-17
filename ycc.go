@@ -3,13 +3,13 @@ package main
 //ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TestNet=true
-version="6.4.2.7"
+version="6.6.0.0"
 CoinSymbol="ycc"
 ChainID=999
 
 [blockchain]
 maxFetchBlockNum=128
-timeoutSeconds=5
+timeoutSeconds=1
 batchBlockNum=128
 driver="leveldb"
 isStrongConsistency=false
@@ -64,16 +64,14 @@ powLimitBits="0x1f2fffff"
 
 
 [mver.consensus.pos33]
-#coinReward=15
-#coinDevFund=15
-ticketPrice=10000
-#retargetAdjustmentFactor=4
-#futureBlockTime=5
-#ticketFrozenTime=43200
-#ticketWithdrawTime=10
-#ticketMinerWaitTime=7200
-#targetTimespan=2160
-#targetTimePerBlock=15
+ticketPrice1=10000
+ticketPrice2=100000
+minerFeePersent=10 
+rewardTransfer=1
+blockReward=15
+voteRewardPersent=25
+mineRewardPersent=11
+
 
 [store]
 
@@ -139,6 +137,8 @@ Enable=0
 Enable=0
 ForkReward15=725000 
 ForkFixReward=5000000
+UseEntrust=10700000
+
 
 [fork.sub.evm]
 Enable=0
@@ -150,9 +150,6 @@ ForkEVMKVHash=0
 ForkEVMFrozen=0
 
 [fork.sub.evmxgo]
-Enable=0
-
-[fork.sub.exchange]
 Enable=0
 
 [fork.sub.ticket]
@@ -203,6 +200,7 @@ ForkParaFullMinerHeight=-1
 ForkParaRootHash=0
 ForkParaSupervision=0
 ForkParaAutonomySuperGroup = 0
+ForkParaFreeRegister=10700000
 
 [fork.sub.multisig]
 Enable=0

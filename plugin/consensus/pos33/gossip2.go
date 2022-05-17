@@ -293,7 +293,9 @@ func (g *gossip2) handleOutgoing() {
 				if err != nil {
 					s.Close()
 				}
+				g.mu.Lock()
 				delete(g.streams, msg.pid)
+				g.mu.Unlock()
 			}
 		}(m)
 	}

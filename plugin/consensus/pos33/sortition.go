@@ -95,7 +95,7 @@ func (n *node) doSort(vrfHash []byte, count, num int, diff float64, proof *pt.Ha
 }
 
 func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Pos33SortMsg {
-	count := n.myCount()
+	count := n.queryTicketCount(n.myAddr, height-10)
 	priv := n.getPriv()
 	if priv == nil {
 		return nil
@@ -112,13 +112,13 @@ func (n *node) voterSort(seed []byte, height int64, round, ty, num int) []*pt.Po
 		Pubkey:   priv.PubKey().Bytes(),
 	}
 
-	msgs := n.doSort(vrfHash, count, num, diff, proof)
-	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16])
+	msgs := n.doSort(vrfHash, int(count), num, diff, proof)
+	plog.Info("voter sort", "height", height, "round", round, "num", num, "mycount", count, "n", len(msgs), "diff", diff*1000000, "addr", address.PubKeyToAddr(address.DefaultID, proof.Pubkey)[:16])
 	return msgs
 }
 
 func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg {
-	count := n.myCount()
+	count := n.queryTicketCount(n.myAddr, height-10)
 	priv := n.getPriv()
 	if priv == nil {
 		return nil
@@ -133,7 +133,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		VrfProof: vrfProof,
 		Pubkey:   priv.PubKey().Bytes(),
 	}
-	msgs := n.doSort(vrfHash, count, 0, diff, proof)
+	msgs := n.doSort(vrfHash, int(count), 0, diff, proof)
 	var minSort *pt.Pos33SortMsg
 	for _, m := range msgs {
 		if minSort == nil {
@@ -145,7 +145,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		}
 	}
 
-	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(proof.Pubkey)[:16], "sortHash", minSort != nil)
+	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(address.DefaultID, proof.Pubkey)[:16], "sortHash", minSort != nil)
 	return minSort
 }
 
@@ -187,17 +187,10 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 		return fmt.Errorf("verifySort error: sort msg is nil")
 	}
 
-	addr := address.PubKeyToAddr(m.Proof.Pubkey)
-	d, err := n.queryDeposit(addr)
-	if err != nil {
-		return err
-	}
-	count := d.Count
-	if d.CloseHeight >= height-pt.Pos33SortBlocks {
-		count = d.PreCount
-	}
+	addr := address.PubKeyToAddr(address.DefaultID, m.Proof.Pubkey)
+	count := n.queryTicketCount(addr, height-pt.Pos33SortBlocks)
 	if count <= m.SortHash.Index {
-		return fmt.Errorf("sort index %d > %d your count, height %d, close-height %d, precount %d", m.SortHash.Index, count, height, d.CloseHeight, d.PreCount)
+		return fmt.Errorf("sort index %d > %d your count, height %d", m.SortHash.Index, count, height)
 	}
 
 	if m.Proof.Input.Height != height {
@@ -213,7 +206,7 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	round := m.Proof.Input.Round
 	input := &pt.VrfInput{Seed: seed, Height: height, Round: round, Ty: int32(ty)}
 	in := types.Encode(input)
-	err = vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
+	err := vrfVerify(m.Proof.Pubkey, in, m.Proof.VrfProof, m.Proof.VrfHash)
 	if err != nil {
 		plog.Info("vrfVerify error", "err", err, "height", height, "round", round, "ty", ty, "who", addr[:16])
 		return err
@@ -229,7 +222,7 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 	y := new(big.Int).SetBytes(hash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
-		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(m.Proof.Pubkey))
+		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(address.DefaultID, m.Proof.Pubkey))
 		return errDiff
 	}
 
