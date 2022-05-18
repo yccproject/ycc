@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/33cn/chain33 v1.67.3-0.20220513094523-7bd89216191e
-	github.com/33cn/plugin v1.67.3-0.20220505093913-d2271d709e8b
+	github.com/33cn/plugin v1.67.3-0.20220517092344-565e980cc752
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/golang/protobuf v1.5.2
 	github.com/klauspost/cpuid v1.2.1 // indirect
