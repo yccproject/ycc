@@ -336,7 +336,7 @@ func (action *Action) Pos33BlsBind(pm *ty.Pos33BlsBind) (*types.Receipt, error) 
 	if action.height == 0 {
 		miner = pm.MinerAddr
 	}
-	tlog.Debug("bls bind", "blsaddr", pm.BlsAddr, "minerAddr", miner)
+	tlog.Info("bls bind", "blsaddr", pm.BlsAddr, "minerAddr", miner)
 	return &types.Receipt{KV: []*types.KeyValue{{Key: BlsKey(pm.BlsAddr), Value: []byte(miner)}}, Ty: types.ExecOk}, nil
 }
 
@@ -448,7 +448,7 @@ func (action *Action) setEntrust(pe *ty.Pos33Entrust) (*types.Receipt, error) {
 	kvs = append(kvs, action.updateConsignee(consignee)...)
 	kvs = append(kvs, action.updateAllAmount(pe.Amount))
 
-	tlog.Debug("pos33 set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount)
+	tlog.Info("pos33 set entrust", "consignor", consignor.Address[:16], "consignee", consignee.Address[:16], "amount", pe.Amount)
 	return &types.Receipt{KV: kvs, Ty: types.ExecOk}, nil
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function init() {
-    main_jrpc="http://localhost:7903"
+    main_jrpc="http://localhost:9901"
     echo "=========== # start set wallet 1 ============="
     echo "=========== # save seed to wallet ============="
 	result=$(./ycc-cli --rpc_laddr=${main_jrpc} seed generate -l 0)

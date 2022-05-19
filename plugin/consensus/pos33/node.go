@@ -21,7 +21,6 @@ import (
 
 var plog = log15.New("module", "pos33")
 
-
 // 区块制作人
 type maker struct {
 	my       *pt.Pos33SortMsg              // 我的抽签
@@ -261,9 +260,7 @@ func (n *node) newBlock(lastBlock *types.Block, txs []*types.Transaction, height
 	}
 
 	maxTxs := int(cfg.GetP(height).MaxTxNumber)
-	t := time.Now()
 	txs = append(txs, n.RequestTx(maxTxs, nil)...)
-	plog.Debug("request txs", "height", height, "cost", time.Since(t))
 	txs = n.AddTxsToBlock(nb, txs)
 
 	nb.Txs = txs
@@ -285,14 +282,13 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 		return nil, err
 	}
 
-	plog.Debug("block make0", "height", height, "round", round)
 	nb, err := n.newBlock(lb, []*Tx{tx}, height)
 	if err != nil {
 		return nil, err
 	}
 
 	nb.Difficulty = n.blockDiff(lb, len(vs))
-	plog.Debug("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "hash", common.HashHex(nb.Hash(n.GetAPI().GetConfig()))[:16])
+	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "hash", common.HashHex(nb.Hash(n.GetAPI().GetConfig()))[:16])
 
 	// nb = n.PreExecBlock(nb, false)
 	// if nb == nil {
@@ -339,7 +335,7 @@ func (n *node) addBlock(b *types.Block) {
 		if err != nil {
 			panic("can't go here")
 		}
-		plog.Debug("block add", "height", b.Height, "hash", common.ToHex(b.Hash(n.GetAPI().GetConfig()))[:16], "time", time.Now().Format("15:04:05.00000"))
+		plog.Info("block add", "height", b.Height, "hash", common.ToHex(b.Hash(n.GetAPI().GetConfig()))[:16], "time", time.Now().Format("15:04:05.00000"))
 		if b.BlockTime-lb.BlockTime < 1 {
 			time.AfterFunc(time.Millisecond*500, func() {
 				n.pushBlock(b)
@@ -576,10 +572,8 @@ func (n *node) sortition(b *types.Block, round int) {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return
 	}
-	// if height > 10 && len(n.mmp) > 10 || n.GetAPI().GetConfig().GetModuleConfig().BlockChain.SingleMode {
 	n.sortMaker(seed, height, round)
 	n.sortCommittee(seed, height, round)
-	// }
 }
 
 func (n *node) firstSortition() {
@@ -829,7 +823,7 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	for _, h := range m.SelectSorts {
 		comm.svmp[string(h)] += len(m.MySorts)
 	}
-	plog.Debug("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(ethID, m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
+	plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(ethID, m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
 }
 
 func (n *node) voteCommittee(height int64, round int) {
@@ -1143,7 +1137,7 @@ func (n *node) runLoop() {
 		})
 	}
 
-	plog.Debug("pos33 running... 07131918", "last block height", lb.Height)
+	plog.Info("pos33 running... ", "last block height", lb.Height)
 	go n.runVerifyVotes()
 	go n.runSortition()
 
@@ -1174,7 +1168,7 @@ func (n *node) runLoop() {
 		case height := <-tch:
 			if height == n.lastBlock().Height+1 {
 				round++
-				plog.Debug("block timeout", "height", height, "round", round)
+				plog.Info("block timeout", "height", height, "round", round)
 				n.reSortition(height, round)
 				tt := time.Now()
 				time.AfterFunc(resortTimeout, func() {

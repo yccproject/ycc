@@ -145,7 +145,7 @@ func (n *node) makerSort(seed []byte, height int64, round int) *pt.Pos33SortMsg 
 		}
 	}
 
-	plog.Debug("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(ethID, proof.Pubkey)[:16], "sortHash", minSort != nil)
+	plog.Info("maker sort", "height", height, "round", round, "mycount", count, "diff", diff*1000000, "addr", address.PubKeyToAddr(ethID, proof.Pubkey)[:16], "sortHash", minSort != nil)
 	return minSort
 }
 

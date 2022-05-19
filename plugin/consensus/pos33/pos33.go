@@ -213,7 +213,7 @@ func (c *Client) updateTicketCount(b *types.Block) {
 		// 		}
 		// 	}
 	}
-	plog.Debug("update ticket count", "height", b.Height, "all count", c.acMap[b.Height])
+	plog.Info("update ticket count", "height", b.Height, "all count", c.acMap[b.Height])
 	delete(c.acMap, height-pt.Pos33SortBlocks*2-1)
 	delete(c.tcMap, height-pt.Pos33SortBlocks*2-1)
 }
