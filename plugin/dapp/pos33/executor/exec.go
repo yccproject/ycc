@@ -81,7 +81,7 @@ func (t *Pos33Ticket) Exec_Entrust(payload *ty.Pos33Entrust, tx *types.Transacti
 	action := NewAction(t, tx)
 	chain33Cfg := action.api.GetConfig()
 	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
+		return nil, errors.New("config exec.pos33.UseEntrust error")
 	}
 	return action.Pos33Entrust(payload)
 }
@@ -91,7 +91,7 @@ func (t *Pos33Ticket) Exec_Migrate(payload *ty.Pos33Migrate, tx *types.Transacti
 	action := NewAction(t, tx)
 	// chain33Cfg := action.api.GetConfig()
 	// if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "Migrate") {
-	// 	return nil, errors.New("config exec.ycc.Migrate error")
+	// 	return nil, errors.New("config exec.pos33.Migrate error")
 	// }
 	return action.Pos33Migrate(payload)
 }
@@ -101,7 +101,7 @@ func (t *Pos33Ticket) Exec_BlsBind(payload *ty.Pos33BlsBind, tx *types.Transacti
 	action := NewAction(t, tx)
 	// chain33Cfg := action.api.GetConfig()
 	// if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-	// 	return nil, errors.New("config exec.ycc.UseEntrust error")
+	// 	return nil, errors.New("config exec.pos33.UseEntrust error")
 	// }
 	return action.Pos33BlsBind(payload)
 }
@@ -111,7 +111,7 @@ func (t *Pos33Ticket) Exec_Withdraw(payload *ty.Pos33WithdrawReward, tx *types.T
 	action := NewAction(t, tx)
 	chain33Cfg := action.api.GetConfig()
 	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("config exec.ycc.UseEntrust error")
+		return nil, errors.New("config exec.pos33.UseEntrust error")
 	}
 	return action.Pos33WithdrawReward(payload)
 }
@@ -121,7 +121,7 @@ func (t *Pos33Ticket) Exec_Withdraw(payload *ty.Pos33WithdrawReward, tx *types.T
 // 	action := NewAction(t, tx)
 // 	chain33Cfg := action.api.GetConfig()
 // 	if !chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-// 		return nil, errors.New("config exec.ycc.UseEntrust error")
+// 		return nil, errors.New("config exec.pos33.UseEntrust error")
 // 	}
 // 	return action.Pos33SetMinerFeeRate(payload)
 // }
