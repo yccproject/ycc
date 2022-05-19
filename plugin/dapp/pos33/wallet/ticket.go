@@ -117,7 +117,7 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 	if ok {
 		return policy.onAddOrDeleteBlockTx(block, tx, index, dbbatch, true)
 	}
-	bizlog.Info("OnAddBlockTx mver.consensus.addWalletTx is disabled")
+	bizlog.Debug("OnAddBlockTx mver.consensus.addWalletTx is disabled")
 	return nil
 }
 func (policy *ticketPolicy) onAddOrDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch, isAdd bool) *types.WalletTxDetail {
