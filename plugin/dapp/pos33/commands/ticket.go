@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	cmdtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -27,22 +30,99 @@ func Pos33TicketCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	cmd.AddCommand(
-		// BindMinerCmd(),
-		// BlsAddrFromPrivKey(),
-		// AutoMineCmd(),
-		// CountPos33TicketCmd(),
-		// ClosePos33TicketCmd(),
-		// GetDepositCmd(),
+		GetPos33Info(),
 		GetConsigneeCmd(),
 		GetConsignorCmd(),
 		SetEntrustCmd(),
 		SetMinerFeeRateCmd(),
 		WithdrawRewardCmd(),
 		BlsBind(),
+		BlsAddr(),
 		Migrate(),
 	)
 
 	return cmd
+}
+
+func BlsAddr() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bls",
+		Short: "get bls address with privakey",
+		Run:   blsAddr,
+	}
+	addBlsAddrFlags(cmd)
+	return cmd
+}
+func addBlsAddrFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("key", "s", "", "private key")
+	cmd.MarkFlagRequired("key")
+}
+
+func HexToPrivkey(key string) crypto.PrivKey {
+	cr, err := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func blsAddr(cmd *cobra.Command, args []string) {
+	strPriv, _ := cmd.Flags().GetString("key")
+	priv := HexToPrivkey(strPriv)
+	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
+	blsaddr := address.PubKeyToAddr(2, blsPk.Bytes())
+	fmt.Println(blsaddr)
+}
+
+func GetPos33Info() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "info",
+		Short: "get pos33 info : ticket price and all ticket count",
+		Run:   getPos33Info,
+	}
+	return cmd
+}
+
+type Pos33Info struct {
+	DappAddress    string
+	TicketPrice    string
+	AllTicketCount int64
+}
+
+func parsePos33Info(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*ty.ReplyPos33Info)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	result := new(Pos33Info)
+	result.TicketPrice = types.FormatAmount2FloatDisplay(res.Price, cfg.CoinPrecision, false)
+	result.AllTicketCount = res.AllCount
+	dappAddr, err := address.GetExecAddress(ty.Pos33TicketX, 2)
+	if err != nil {
+		return nil, err
+	}
+	result.DappAddress = dappAddr
+	return result, nil
+}
+
+func getPos33Info(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+
+	var res ty.ReplyPos33Info
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33Info", &types.ReqNil{}, &res)
+	ctx.SetResultCbExt(parsePos33Info)
+	cfg, err := cmdtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
 func SetMinerFeeRateCmd() *cobra.Command {
@@ -325,243 +405,6 @@ func WithdrawRewardCmd() *cobra.Command {
 	return cmd
 }
 
-// SetMinerFeeCmd  set miner entrust fee
-/*
-func GetDepositCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "deposit",
-		Short: "get deposit info",
-		Run:   getDeposit,
-	}
-	addGetDepositFlags(cmd)
-	return cmd
-}
-
-func getDeposit(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-
-	var res ty.Pos33DepositMsg
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33Deposit", &types.ReqAddr{Addr: addr}, &res)
-	ctx.Run()
-}
-
-func addGetDepositFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "address for deposit")
-	cmd.MarkFlagRequired("addr")
-}
-*/
-
-/*
-// BindMinerCmd bind miner
-func BindMinerCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "bind",
-		Short: "Bind private key to miner address",
-		Run:   bindMiner,
-	}
-	addBindMinerFlags(cmd)
-	return cmd
-}
-*/
-/*
-func addBindMinerFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("bind_addr", "b", "", "miner address")
-	cmd.MarkFlagRequired("bind_addr")
-
-	cmd.Flags().StringP("origin_addr", "o", "", "origin address")
-	cmd.MarkFlagRequired("origin_addr")
-}
-
-func bindMiner(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	paraName, _ := cmd.Flags().GetString("paraName")
-
-	cfg, err := cmdtypes.GetChainConfig(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
-		return
-	}
-	bindAddr, _ := cmd.Flags().GetString("bind_addr")
-	originAddr, _ := cmd.Flags().GetString("origin_addr")
-	ta := &ty.Pos33TicketAction{}
-	tBind := &ty.Pos33TicketBind{
-		MinerAddress:  bindAddr,
-		ReturnAddress: originAddr,
-	}
-	ta.Value = &ty.Pos33TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = ty.Pos33TicketActionBind
-
-	rawTx := &types.Transaction{Payload: types.Encode(ta)}
-	tx, err := types.FormatTxExt(cfg.ChainID, len(paraName) > 0, cfg.MinTxFeeRate, ty.Pos33TicketX, rawTx)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	txHex := types.Encode(tx)
-	fmt.Println(hex.EncodeToString(txHex))
-}
-
-func BlsAddrFromPrivKey() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "bls_addr",
-		Short: "get blk address from privkey",
-		Run:   blsAddrFromPrivKey,
-	}
-	addBlsAddrFlags(cmd)
-	return cmd
-}
-
-func blsAddrFromPrivKey(cmd *cobra.Command, args []string) {
-	sk, _ := cmd.Flags().GetString("private")
-	pb, err := common.FromHex(sk)
-	if err != nil {
-		panic(err)
-	}
-	blsSk := ty.Hash2BlsSk(common.Sha256(pb))
-	fmt.Println(address.PubKeyToAddr(address.DefaultID, blsSk.PubKey().Bytes()))
-}
-
-func addBlsAddrFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("private", "s", "", `private key`)
-	cmd.MarkFlagRequired("private")
-}
-
-// AutoMineCmd  set auto mining
-func AutoMineCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "auto_mine",
-		Short: "Set auto mine on/off",
-		Run:   autoMine,
-	}
-	addAutoMineFlags(cmd)
-	return cmd
-}
-
-func addAutoMineFlags(cmd *cobra.Command) {
-	cmd.Flags().Int32P("flag", "f", 0, `auto mine(0: off, 1: on)`)
-	cmd.MarkFlagRequired("flag")
-}
-
-func autoMine(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	flag, _ := cmd.Flags().GetInt32("flag")
-	if flag != 0 && flag != 1 {
-		err := cmd.UsageFunc()(cmd)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		return
-	}
-	params := struct {
-		Flag int32
-	}{
-		Flag: flag,
-	}
-	var res rpctypes.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.SetAutoMining", params, &res)
-	ctx.Run()
-}
-
-// CountPos33TicketCmd get ticket count
-func CountPos33TicketCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "count",
-		Short: "Get ticket count",
-		Run:   countPos33Ticket,
-	}
-
-	addPos33TicketCountFlags(cmd)
-	return cmd
-}
-
-// CountPos33TicketCmd get ticket count
-func GetPos33RewardCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "reward",
-		Short: "get reward",
-		Run:   getPos33Reward,
-	}
-	addPos33RewardFlags(cmd)
-	return cmd
-}
-
-func addPos33RewardFlags(cmd *cobra.Command) {
-	cmd.Flags().Int64P("height", "b", 0, `block height`)
-	cmd.Flags().StringP("addr", "a", "", `who reward`)
-}
-
-func addPos33TicketCountFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", `who address`)
-	cmd.MarkFlagRequired("addr")
-}
-
-func countPos33Ticket(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-	var res int64
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33TicketCount", &types.ReqAddr{Addr: addr}, &res)
-	ctx.Run()
-}
-
-func getPos33Reward(cmd *cobra.Command, args []string) {
-	height, _ := cmd.Flags().GetInt64("height")
-	addr, _ := cmd.Flags().GetString("addr")
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res ty.ReplyPos33TicketReward
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetPos33TicketReward", &ty.Pos33TicketReward{Height: height, Addr: addr}, &res)
-	ctx.Run()
-}
-*/
-
-/*
-// ClosePos33TicketCmd close all accessible tickets
-func ClosePos33TicketCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "close",
-		Short: "Close tickets",
-		Run:   closePos33Ticket,
-	}
-	addCloseAddr(cmd)
-	return cmd
-}
-
-func addCloseAddr(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "address for close")
-
-	cmd.Flags().Int32P("count", "c", 0, "close ticket count (default 0 is all)")
-	cmd.MarkFlagRequired("count")
-
-	// cmd.Flags().BoolP("miner", "m", true, "if addr is miner")
-}
-
-
-func closePos33Ticket(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	bindAddr, _ := cmd.Flags().GetString("addr")
-	count, _ := cmd.Flags().GetInt32("count")
-	// isMiner, _ := cmd.Flags().GetBool("miner")
-
-	status, err := getWalletStatus(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	isAutoMining := status.(rpctypes.WalletStatus).IsAutoMining
-	if isAutoMining {
-		fmt.Fprintln(os.Stderr, types.ErrMinerNotClosed)
-		return
-	}
-
-	tClose := &ty.Pos33TicketClose{
-		MinerAddress: bindAddr,
-		Count:        count,
-	}
-	rpcCall(rpcLaddr, "pos33.ClosePos33Tickets", tClose)
-}
-*/
-
 func rpcCall(rpcLaddr, method string, param interface{}) {
 	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
@@ -583,21 +426,3 @@ func rpcCall(rpcLaddr, method string, param interface{}) {
 
 	fmt.Println(string(data))
 }
-
-/*
-func getWalletStatus(rpcAddr string) (interface{}, error) {
-	rpc, err := jsonclient.NewJSONClient(rpcAddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return nil, err
-	}
-	var res rpctypes.WalletStatus
-	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return nil, err
-	}
-
-	return res, nil
-}
-*/

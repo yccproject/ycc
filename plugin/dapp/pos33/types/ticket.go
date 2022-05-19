@@ -6,28 +6,14 @@ package types
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
 
 	"github.com/33cn/chain33/common/crypto"
-	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/types"
 	bls33 "github.com/33cn/plugin/plugin/crypto/bls"
 	"github.com/phoreproject/bls"
 	"github.com/phoreproject/bls/g1pubs"
-)
-
-var tlog = log.New("module", "pos33.types")
-
-const (
-	//Pos33TicketInit ticket　init status
-	Pos33TicketInit = iota
-	//Pos33TicketOpened ticket opened status
-	Pos33TicketOpened
-	//Pos33TicketMined ticket mined status
-	//Pos33TicketMined
-	//Pos33TicketClosed ticket closed status
-	Pos33TicketClosed
 )
 
 const (
@@ -74,17 +60,9 @@ const (
 	Pos33ActionWithdrawReward = 22
 )
 
-// Pos33TicketOldParts old tick type
-const Pos33TicketOldParts = 3
-
-// Pos33TicketCountOpenOnce count open once
-const Pos33TicketCountOpenOnce = 1000
-
-// ErrOpenPos33TicketPubHash err type
-var ErrOpenPos33TicketPubHash = errors.New("ErrOpenPos33TicketPubHash")
-
 // Pos33TicketX dapp name
-var Pos33TicketX = "pos33"
+const Pos33TicketX = "pos33"
+const EthAddrID = eth.ID
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(Pos33TicketX))
@@ -162,15 +140,14 @@ func (ticket *Pos33TicketType) GetName() string {
 // GetTypeMap get type map
 func (ticket *Pos33TicketType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Genesis": Pos33TicketActionGenesis,
-		"Topen":   Pos33TicketActionOpen,
-		"Tbind":   Pos33TicketActionBind,
-		"Tclose":  Pos33TicketActionClose,
-		"Miner":   Pos33TicketActionMiner,
-		"Entrust": Pos33ActionEntrust,
-		"Migrate": Pos33ActionMigrate,
-		"BlsBind": Pos33ActionBlsBind,
-		// "FeeRate":   Pos33ActionMinerFeeRate,
+		"Genesis":  Pos33TicketActionGenesis,
+		"Topen":    Pos33TicketActionOpen,
+		"Tbind":    Pos33TicketActionBind,
+		"Tclose":   Pos33TicketActionClose,
+		"Miner":    Pos33TicketActionMiner,
+		"Entrust":  Pos33ActionEntrust,
+		"Migrate":  Pos33ActionMigrate,
+		"BlsBind":  Pos33ActionBlsBind,
 		"Withdraw": Pos33ActionWithdrawReward,
 	}
 }
