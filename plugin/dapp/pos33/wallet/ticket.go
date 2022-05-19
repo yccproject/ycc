@@ -233,15 +233,24 @@ func (policy *ticketPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 
 func (policy *ticketPolicy) setMinerFeeRate(priv crypto.PrivKey, fr *ty.Pos33MinerFeeRate) (*types.ReplyHash, error) {
 	feeRate := float64(fr.FeeRatePersent) / 100.
-	bizlog.Info("setMinerFeeRate", "maddr", fr.MinerAddr, "fee rate", feeRate)
+	bizlog.Info("setMinerFeeRate", "fee rate", feeRate)
 	ta := &ty.Pos33TicketAction{}
 	ta.Value = &ty.Pos33TicketAction_FeeRate{FeeRate: fr}
 	ta.Ty = ty.Pos33ActionMinerFeeRate
-	hash, err := policy.getWalletOperate().SendTransaction(ta, []byte(ty.Pos33TicketX), priv, "")
+
+	cfg := policy.getAPI().GetConfig()
+	tx, err := types.CreateFormatTx(cfg, "pos33", types.Encode(ta))
 	if err != nil {
 		return nil, err
 	}
-	return &types.ReplyHash{Hash: hash}, nil
+
+	signID := types.EncodeSignID(types.SECP256K1, ethID)
+	tx.Sign(signID, priv)
+	r, err := policy.getAPI().SendTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	return &types.ReplyHash{Hash: r.Msg}, nil
 }
 
 func (policy *ticketPolicy) migrate(priv crypto.PrivKey) ([]byte, error) {

@@ -120,7 +120,7 @@ func (act *Action) minerReward(consignee *ty.Pos33Consignee, mineReward int64) (
 		tlog.Debug("mine reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
 		cr.RemainReward += crr
 		if cr.RemainReward >= needTransfer {
-			fee := cr.RemainReward * mp.MinerFeePersent / 100
+			fee := cr.RemainReward * consignee.FeePersent / 100
 			consignee.FeeReward += fee
 			consignee.RemainFeeReward += fee
 			transferAmount := cr.RemainReward - fee
@@ -178,7 +178,7 @@ func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receip
 			tlog.Debug("vote reward add", "addr", cr.Address, "reward", cr.Reward, "height", act.height)
 			cr.RemainReward += crr
 			if cr.RemainReward >= needTransfer {
-				fee := cr.RemainReward * mp.MinerFeePersent / 100
+				fee := cr.RemainReward * consignee.FeePersent / 100
 				consignee.FeeReward += fee
 				consignee.RemainFeeReward += fee
 				transferAmount := cr.RemainReward - fee
@@ -529,7 +529,11 @@ func (action *Action) Pos33SetMinerFeeRate(fr *ty.Pos33MinerFeeRate) (*types.Rec
 		tlog.Error("pos33 set miner feerate error", "err", err, "height", action.height, "miner", action.fromaddr)
 		return nil, err
 	}
+	if fr.FeeRatePersent <= 0 || fr.FeeRatePersent >= 100 {
+		return nil, errors.New("minerFeeRate is error")
+	}
 	consignee.FeePersent = int64(fr.FeeRatePersent)
 	kv := action.updateConsignee(consignee)
-	return &types.Receipt{KV: kv}, nil
+	tlog.Info("set miner fee", "height", action.height, "fee rate %", fr.FeeRatePersent)
+	return &types.Receipt{KV: kv, Ty: types.ExecOk}, nil
 }

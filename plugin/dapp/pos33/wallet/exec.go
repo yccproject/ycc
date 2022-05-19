@@ -67,7 +67,7 @@ func (policy *ticketPolicy) On_SetMinerFeeRate(req *ty.Pos33MinerFeeRate) (types
 
 	hash, err := policy.setMinerFeeRate(priv, req)
 	if err != nil || hash == nil {
-		bizlog.Error("onClosePos33Tickets", "forceClosePos33Ticket error", err.Error())
+		bizlog.Error("setMinerFeeRate", "error", err.Error())
 		return nil, err
 	} else {
 		go func() {

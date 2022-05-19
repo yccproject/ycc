@@ -140,15 +140,16 @@ func (ticket *Pos33TicketType) GetName() string {
 // GetTypeMap get type map
 func (ticket *Pos33TicketType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Genesis":  Pos33TicketActionGenesis,
-		"Topen":    Pos33TicketActionOpen,
-		"Tbind":    Pos33TicketActionBind,
-		"Tclose":   Pos33TicketActionClose,
-		"Miner":    Pos33TicketActionMiner,
-		"Entrust":  Pos33ActionEntrust,
-		"Migrate":  Pos33ActionMigrate,
-		"BlsBind":  Pos33ActionBlsBind,
-		"Withdraw": Pos33ActionWithdrawReward,
+		"Genesis": Pos33TicketActionGenesis,
+		// "Topen":   Pos33TicketActionOpen,
+		// "Tbind":   Pos33TicketActionBind,
+		// "Tclose":  Pos33TicketActionClose,
+		"Miner":   Pos33TicketActionMiner,
+		"Entrust": Pos33ActionEntrust,
+		"BlsBind": Pos33ActionBlsBind,
+		"FeeRate": Pos33ActionMinerFeeRate,
+		// "Withdraw": Pos33ActionWithdrawReward,
+		// "Migrate":  Pos33ActionMigrate,
 	}
 }
 

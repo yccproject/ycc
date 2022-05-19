@@ -34,11 +34,11 @@ func Pos33TicketCmd() *cobra.Command {
 		GetConsigneeCmd(),
 		GetConsignorCmd(),
 		SetEntrustCmd(),
-		SetMinerFeeRateCmd(),
+		SetFeeRateCmd(),
 		WithdrawRewardCmd(),
 		BlsBind(),
 		BlsAddr(),
-		Migrate(),
+		// Migrate(),
 	)
 
 	return cmd
@@ -125,7 +125,7 @@ func getPos33Info(cmd *cobra.Command, args []string) {
 	ctx.RunExt(cfg)
 }
 
-func SetMinerFeeRateCmd() *cobra.Command {
+func SetFeeRateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fee",
 		Short: "set miner fee",
@@ -143,10 +143,9 @@ func addSetMinerFeeRateFlags(cmd *cobra.Command) {
 
 func setMinerFeeRate(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	miner, _ := cmd.Flags().GetString("addr")
 	fee, _ := cmd.Flags().GetInt32("fee")
 
-	fr := &ty.Pos33MinerFeeRate{MinerAddr: miner, FeeRatePersent: fee}
+	fr := &ty.Pos33MinerFeeRate{FeeRatePersent: fee}
 	rpcCall(rpcLaddr, "pos33.SetMinerFeeRate", fr)
 }
 
