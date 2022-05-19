@@ -237,9 +237,9 @@ func (action *Action) Pos33Miner(miner *ty.Pos33MinerMsg, index int) (*types.Rec
 	// Pos33BlockReward 区块奖励
 	var Pos33BlockReward = Coin * 30
 	// Pos33VoteReward 每ticket区块voter奖励
-	var Pos33VoteReward = Coin / 2 // 0.5 ycc
+	var Pos33VoteReward = Coin / 2 // 0.5 coin
 	// Pos33MakerReward 每ticket区块bp奖励
-	var Pos33MakerReward = Coin * 22 / 100 // 0.22 ycc
+	var Pos33MakerReward = Coin * 22 / 100 // 0.22 coin
 
 	if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "ForkReward15") {
 		Pos33BlockReward /= 2

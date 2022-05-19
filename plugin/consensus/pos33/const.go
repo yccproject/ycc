@@ -7,4 +7,5 @@ const remoteAddrID = pos33Topic + "-addr"
 const pos33Peerstore = pos33Topic + "-peerstore"
 const sendtoID = pos33Topic + "-sendto"
 const pos33MsgID = pos33Topic + "-msg"
+const peerAddrFile = pos33Topic + "peeraddr.txt"
 const ethID = types.EthAddrID
