@@ -48,7 +48,7 @@ bootPeers = [
   #"/ip4/172.16.103.42/tcp/10901/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
 ]
 issueTotal = 10000000000
-listenPort = 10901
+listenPort = 10801
 
 [store]
 dbPath = "datadir/kvmvcc"

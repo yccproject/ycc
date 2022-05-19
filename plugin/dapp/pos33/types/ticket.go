@@ -147,7 +147,7 @@ func (ticket *Pos33TicketType) GetTypeMap() map[string]int32 {
 		"Miner":   Pos33TicketActionMiner,
 		"Entrust": Pos33ActionEntrust,
 		"BlsBind": Pos33ActionBlsBind,
-		"FeeRate": Pos33ActionMinerFeeRate,
+		// "FeeRate": Pos33ActionMinerFeeRate,
 		// "Withdraw": Pos33ActionWithdrawReward,
 		// "Migrate":  Pos33ActionMigrate,
 	}

@@ -60,11 +60,11 @@ func (t *Pos33Ticket) Exec_Miner(payload *ty.Pos33MinerMsg, tx *types.Transactio
 	return r, nil
 }
 
-// Exec_Tbind exec bind
-func (t *Pos33Ticket) Exec_Tbind(payload *ty.Pos33TicketBind, tx *types.Transaction, index int) (*types.Receipt, error) {
-	actiondb := NewAction(t, tx)
-	return actiondb.Pos33TicketBind(payload)
-}
+// // Exec_Tbind exec bind
+// func (t *Pos33Ticket) Exec_Tbind(payload *ty.Pos33TicketBind, tx *types.Transaction, index int) (*types.Receipt, error) {
+// 	actiondb := NewAction(t, tx)
+// 	return actiondb.Pos33TicketBind(payload)
+// }
 
 // Exec_Entrust exec entrust
 func (t *Pos33Ticket) Exec_Entrust(payload *ty.Pos33Entrust, tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -76,11 +76,11 @@ func (t *Pos33Ticket) Exec_Entrust(payload *ty.Pos33Entrust, tx *types.Transacti
 	return action.Pos33Entrust(payload)
 }
 
-// Exec_Migrate exec migrate
-func (t *Pos33Ticket) Exec_Migrate(payload *ty.Pos33Migrate, tx *types.Transaction, index int) (*types.Receipt, error) {
-	action := NewAction(t, tx)
-	return action.Pos33Migrate(payload)
-}
+// // Exec_Migrate exec migrate
+// func (t *Pos33Ticket) Exec_Migrate(payload *ty.Pos33Migrate, tx *types.Transaction, index int) (*types.Receipt, error) {
+// 	action := NewAction(t, tx)
+// 	return action.Pos33Migrate(payload)
+// }
 
 // Exec_BlsBind exec bls bind
 func (t *Pos33Ticket) Exec_BlsBind(payload *ty.Pos33BlsBind, tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -88,14 +88,14 @@ func (t *Pos33Ticket) Exec_BlsBind(payload *ty.Pos33BlsBind, tx *types.Transacti
 	return action.Pos33BlsBind(payload)
 }
 
-// Exec_WithdrawReward exec withdraw reward
-func (t *Pos33Ticket) Exec_Withdraw(payload *ty.Pos33WithdrawReward, tx *types.Transaction, index int) (*types.Receipt, error) {
-	action := NewAction(t, tx)
-	return action.Pos33WithdrawReward(payload)
-}
+// // Exec_WithdrawReward exec withdraw reward
+// func (t *Pos33Ticket) Exec_Withdraw(payload *ty.Pos33WithdrawReward, tx *types.Transaction, index int) (*types.Receipt, error) {
+// 	action := NewAction(t, tx)
+// 	return action.Pos33WithdrawReward(payload)
+// }
 
-// Exec_SetMinerFeeRate exec set miner fee rate
-func (t *Pos33Ticket) Exec_FeeRate(payload *ty.Pos33MinerFeeRate, tx *types.Transaction, index int) (*types.Receipt, error) {
-	action := NewAction(t, tx)
-	return action.Pos33SetMinerFeeRate(payload)
-}
+// // Exec_SetMinerFeeRate exec set miner fee rate
+// func (t *Pos33Ticket) Exec_FeeRate(payload *ty.Pos33MinerFeeRate, tx *types.Transaction, index int) (*types.Receipt, error) {
+// 	action := NewAction(t, tx)
+// 	return action.Pos33SetMinerFeeRate(payload)
+// }
