@@ -54,6 +54,7 @@ listenPort = 10801
 dbPath = "datadir/kvmvcc"
 
 [wallet]
+coinType = "ycc"
 dbPath = "wallet"
 
 [health]
