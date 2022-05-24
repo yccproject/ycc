@@ -300,7 +300,9 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 		tlog.Error("Pos33MinerNew error", "err", err, "height", action.height)
 		return nil, err
 	}
-	kvs = append(kvs, receipt.KV...)
+	if receipt != nil {
+		kvs = append(kvs, receipt.KV...)
+	}
 
 	// bp reward
 	bpReward := Pos33MakerReward * int64(len(miner.BlsPkList))
@@ -309,7 +311,9 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 		tlog.Error("Pos33MinerNew error", "err", err, "height", action.height)
 		return nil, err
 	}
-	kvs = append(kvs, receipt.KV...)
+	if receipt != nil {
+		kvs = append(kvs, receipt.KV...)
+	}
 
 	for _, mi := range mis {
 		kvs = append(kvs, action.updateConsignee(mi.miner)...)
