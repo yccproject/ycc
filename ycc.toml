@@ -1,5 +1,5 @@
 ChainID = 999
-CoinPrecision = 1000000
+CoinPrecision = 100000000
 CoinSymbol = "ycc"
 Title = "pos33"
 version = "1.0.0.0"
