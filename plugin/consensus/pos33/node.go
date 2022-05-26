@@ -1146,8 +1146,8 @@ func (n *node) runLoop() {
 	nch := make(chan int64, 1)
 
 	round := 0
-	blockTimeout := time.Second * 3
-	resortTimeout := time.Second * 2
+	blockTimeout := time.Second * 5
+	resortTimeout := time.Second * 3
 	blockD := int64(900)
 
 	for {

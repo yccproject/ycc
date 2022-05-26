@@ -29,16 +29,14 @@ isStrongConsistency=false
 disableShard=true
 onChainTimeout=1
 batchsync = false
-# db
 driver="leveldb"
 dbCache = 256
 defCacheSize = 256
 isParaChain = false
-isRecordBlockSequence = true
+isRecordBlockSequence = false
 enableTxQuickIndex = true
-# 使能精简localdb
 enablePushSubscribe = true
-enableReduceLocaldb = false
+enableReduceLocaldb = true
 enableReExecLocal = false
 
 [p2p]
@@ -83,24 +81,23 @@ defaultDriver="eth"
 eth=0
 
 [mempool]
+minTxFeeRate = 100000
+maxTxFeeRate = 10000000
+isLevelFee = true
+maxTxNumPerAccount = 10000
+poolCacheSize = 1024000
 name = "price"
 
 [mempool.sub.score]
-poolCacheSize=102400
+poolCacheSize=1024000
 minTxFee=100000
-maxTxNumPerAccount=1000
+maxTxNumPerAccount=100000
 timeParam=1      #时间占价格比例
 priceConstant=1544  #手续费相对于时间的一个合适的常量,取当前unxi时间戳前四位数,排序时手续费高1e-5~=快1s
 pricePower=1     #常量比例
 
 [mempool.sub.price]
-minTxFeeRate = 1000
-maxTxFeeRate = 100000
-disableExecCheck = false
-isLevelFee = false
-maxTxFee = 1000000
-maxTxNumPerAccount = 1000
-poolCacheSize = 102400
+poolCacheSize = 1024000
 
 [consensus]
 name="pos33"
@@ -121,7 +118,7 @@ count=1000
 [mver.consensus]
 addWalletTx = false
 fundKeyAddr = "0x92dd51393c77fd07c5840ae28076b7e0f072c289"
-maxTxNumber = 10000
+maxTxNumber = 30000
 powLimitBits = "0x1f00ffff"
 
 [mver.consensus.pos33]
