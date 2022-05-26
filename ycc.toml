@@ -30,7 +30,7 @@ channel = 9
 port = 13801
 #可以自定义设置连接节点
 seeds = [
-  "/ip4/121.52.224.84/tcp/13801/p2p/16Uiu2HAmSMYiu3mqsoho9ZUxUxVapcNoPVux9jyWzXT48xjZY9Cb",
+  "/ip4/121.52.224.84/tcp/13801/p2p/16Uiu2HAm4KV8puoy5SKLXhz36E1vkrnMTsU5NBy98qoyBhrfnKoj",
 ]
 
 [rpc]
