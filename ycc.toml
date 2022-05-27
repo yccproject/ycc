@@ -14,21 +14,21 @@ logFile = "logs/chain33.log"
 [blockchain]
 # 区块数据目录
 batchsync = false
-dbCache = 256
+dbCache = 512
 dbPath = "datadir"
-# 是否单节点运行
-singleMode = false
-# 是否关闭区块广播
 disableBlockBroadcast = false
-enableTxQuickIndex = true
-isRecordBlockSequence = false
-# 升级storedb是否重新执行localdb，bityuan主链升级不需要开启，平行链升级需要开启
-enableReExecLocal = false
-# 使能精简localdb
 disableShard = true
-enablePushSubscribe = true
+enablePushSubscribe = false
+enableReExecLocal = false
 enableReduceLocaldb = true
+enableTxQuickIndex = false
 isParaChain = false
+isRecordBlockSequence = true
+singleMode = false
+
+[mempool]
+maxTxNumPerAccount = 100000
+poolCacheSize = 1024000
 
 [p2p]
 dbPath = "datadir/addrbook"

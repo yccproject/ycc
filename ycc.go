@@ -76,8 +76,6 @@ minTxFeeRate = 100000
 maxTxFeeRate = 10000000
 isLevelFee = false
 maxTxFee=100000000
-maxTxNumPerAccount = 10000
-poolCacheSize = 1024000
 name = "price"
 
 [mempool.sub.score]
