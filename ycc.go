@@ -26,18 +26,9 @@ maxFetchBlockNum=128
 timeoutSeconds=1
 batchBlockNum=128
 isStrongConsistency=false
-disableShard=true
 onChainTimeout=1
-batchsync = false
 driver="leveldb"
-dbCache = 256
 defCacheSize = 256
-isParaChain = false
-isRecordBlockSequence = false
-enableTxQuickIndex = true
-enablePushSubscribe = true
-enableReduceLocaldb = true
-enableReExecLocal = false
 
 [p2p]
 enable=true
@@ -83,7 +74,7 @@ eth=0
 [mempool]
 minTxFeeRate = 100000
 maxTxFeeRate = 10000000
-isLevelFee = true
+isLevelFee = false
 maxTxFee=100000000
 maxTxNumPerAccount = 10000
 poolCacheSize = 1024000
