@@ -6,8 +6,11 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
@@ -17,14 +20,21 @@ func MineParamKey() []byte {
 	return []byte("mavl-pos33-mine-param")
 }
 
+// BindKey bind key
+func BlsKey(addr string) (key []byte) {
+	key = append(key, []byte("mavl-pos33-bls-")...)
+	key = append(key, address.FormatAddrKey(addr)...)
+	return key
+}
+
 // Consignee key
 func ConsigneeKey(addr string) (key []byte) {
-	return []byte("mavl-pos33-consignee-" + addr)
+	return []byte("mavl-pos33-consignee-" + string(address.FormatAddrKey(addr)))
 }
 
 // Consignor  key
 func ConsignorKey(addr string) (key []byte) {
-	return []byte("mavl-pos33-consignor-" + addr)
+	return []byte("mavl-pos33-consignor-" + string(address.FormatAddrKey(addr)))
 }
 
 func AllFrozenAmount() []byte {
@@ -41,6 +51,26 @@ func getAllAmount(db dbm.KV) (int64, error) {
 		return 0, err
 	}
 	return int64(n), nil
+}
+
+// Action action type
+type Action struct {
+	coinsAccount *account.DB
+	db           dbm.KV
+	txhash       []byte
+	fromaddr     string
+	blocktime    int64
+	height       int64
+	execaddr     string
+	api          client.QueueProtocolAPI
+}
+
+// NewAction new action type
+func NewAction(t *Pos33Ticket, tx *types.Transaction) *Action {
+	hash := tx.Hash()
+	fromaddr := tx.From()
+	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
+		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer)), t.GetAPI()}
 }
 
 func (act *Action) updateConsignee(consignee *ty.Pos33Consignee) []*types.KeyValue {
@@ -209,8 +239,8 @@ func (act *Action) voteReward(mis []*minerInfo, voteReward int64) (*types.Receip
 	return &types.Receipt{KV: kvs, Logs: logs, Ty: types.ExecOk}, nil
 }
 
-func (act *Action) getFromBls(pk []byte) (string, error) {
-	val, err := act.db.Get(BlsKey(address.PubKeyToAddr(ethID, pk)))
+func (act *Action) getFromBls(blspk []byte) (string, error) {
+	val, err := act.db.Get(BlsKey(address.PubKeyToAddr(ethID, blspk)))
 	if err != nil {
 		tlog.Error("getFromBls error", "err", err, "height", act.height)
 		return "", err
@@ -355,27 +385,27 @@ func (action *Action) updateAllAmount(newAmount int64) *types.KeyValue {
 	return &types.KeyValue{Key: AllFrozenAmount(), Value: value}
 }
 
-func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) {
-	if action.fromaddr != pm.Miner {
-		return nil, types.ErrFromAddr
-	}
+// func (action *Action) Pos33Migrate(pm *ty.Pos33Migrate) (*types.Receipt, error) {
+// 	if action.fromaddr != pm.Miner {
+// 		return nil, types.ErrFromAddr
+// 	}
 
-	d, err := getDeposit(action.db, pm.Miner)
-	if err != nil {
-		return nil, err
-	}
+// 	d, err := getDeposit(action.db, pm.Miner)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	req := &types.ReqBalance{Addresses: []string{d.Raddr}, Execer: ty.Pos33TicketX}
-	accs, err := action.coinsAccount.GetBalance(action.api, req)
-	if err != nil {
-		tlog.Error("GetBalance error", "err", err, "height", action.height)
-		return nil, err
-	}
-	acc := accs[0]
-	amount := acc.Frozen
-	tlog.Debug("pos33 migrate", "miner", action.fromaddr, "consignor", acc.Addr, "amount", amount)
-	return action.setEntrust(&ty.Pos33Entrust{Consignee: action.fromaddr, Consignor: acc.Addr, Amount: amount})
-}
+// 	req := &types.ReqBalance{Addresses: []string{d.Raddr}, Execer: ty.Pos33TicketX}
+// 	accs, err := action.coinsAccount.GetBalance(action.api, req)
+// 	if err != nil {
+// 		tlog.Error("GetBalance error", "err", err, "height", action.height)
+// 		return nil, err
+// 	}
+// 	acc := accs[0]
+// 	amount := acc.Frozen
+// 	tlog.Debug("pos33 migrate", "miner", action.fromaddr, "consignor", acc.Addr, "amount", amount)
+// 	return action.setEntrust(&ty.Pos33Entrust{Consignee: action.fromaddr, Consignor: acc.Addr, Amount: amount})
+// }
 
 func (action *Action) freeze(addr string, amount int64) (*types.Receipt, error) {
 	var receipt *types.Receipt

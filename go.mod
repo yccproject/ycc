@@ -3,8 +3,8 @@ module github.com/yccproject/ycc
 go 1.15
 
 require (
-	github.com/33cn/chain33 v1.67.3-0.20220520043349-3a9604d39d59
-	github.com/33cn/plugin v1.67.3-0.20220517092344-565e980cc752
+	github.com/33cn/chain33 v1.67.4-0.20220530021029-97ad1ce844d4
+	github.com/33cn/plugin v1.67.3
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p v0.15.0
@@ -24,7 +24,7 @@ require (
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	google.golang.org/grpc v1.40.0
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.28.0
 )
 
 // replace github.com/33cn/chain33 => /Users/w/pos33/chain33

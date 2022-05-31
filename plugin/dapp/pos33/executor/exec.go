@@ -12,17 +12,17 @@ import (
 )
 
 // Exec_Genesis exec genesis
-func (t *Pos33Ticket) Exec_Genesis(payload *ty.Pos33TicketGenesis, tx *types.Transaction, index int) (*types.Receipt, error) {
-	if payload.Count <= 0 {
-		return nil, ty.ErrPos33TicketCount
-	}
-	actiondb := NewAction(t, tx)
-	chain33Cfg := actiondb.api.GetConfig()
-	if chain33Cfg.IsDappFork(actiondb.height, ty.Pos33TicketX, "UseEntrust") {
-		return nil, errors.New("NOT support!!! UseEntrust replate")
-	}
-	return actiondb.GenesisInit(payload)
-}
+// func (t *Pos33Ticket) Exec_Genesis(payload *ty.Pos33TicketGenesis, tx *types.Transaction, index int) (*types.Receipt, error) {
+// 	if payload.Count <= 0 {
+// 		return nil, ty.ErrPos33TicketCount
+// 	}
+// 	actiondb := NewAction(t, tx)
+// 	chain33Cfg := actiondb.api.GetConfig()
+// 	if chain33Cfg.IsDappFork(actiondb.height, ty.Pos33TicketX, "UseEntrust") {
+// 		return nil, errors.New("NOT support!!! UseEntrust replate")
+// 	}
+// 	return actiondb.GenesisInit(payload)
+// }
 
 // Exec_Topen exec open
 // func (t *Pos33Ticket) Exec_Topen(payload *ty.Pos33TicketOpen, tx *types.Transaction, index int) (*types.Receipt, error) {

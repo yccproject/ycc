@@ -9,17 +9,7 @@ import (
 
 	//"bytes"
 
-	"errors"
-	"fmt"
-	"strconv"
-
-	"github.com/33cn/chain33/account"
-	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/common/address"
-	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/dapp"
-	"github.com/33cn/chain33/types"
 	ty "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
@@ -37,19 +27,12 @@ const ethID = ty.EthAddrID
 // 	log.Log = types.Encode(r)
 // 	return log
 // }
-
+/*
 const allCountID = "allcountid"
 
 //Key address to save key
 func Key(id string) (key []byte) {
 	key = append(key, []byte("mavl-pos33-")...)
-	key = append(key, []byte(id)...)
-	return key
-}
-
-// BindKey bind key
-func BlsKey(id string) (key []byte) {
-	key = append(key, []byte("mavl-pos33-bls-")...)
 	key = append(key, []byte(id)...)
 	return key
 }
@@ -61,25 +44,6 @@ func BindKey(id string) (key []byte) {
 	return key
 }
 
-// Action action type
-type Action struct {
-	coinsAccount *account.DB
-	db           dbm.KV
-	txhash       []byte
-	fromaddr     string
-	blocktime    int64
-	height       int64
-	execaddr     string
-	api          client.QueueProtocolAPI
-}
-
-// NewAction new action type
-func NewAction(t *Pos33Ticket, tx *types.Transaction) *Action {
-	hash := tx.Hash()
-	fromaddr := tx.From()
-	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer)), t.GetAPI()}
-}
 
 func getDeposit(db dbm.KV, addr string) (*ty.Pos33DepositMsg, error) {
 	key := Key(addr)
@@ -442,3 +406,5 @@ func (action *Action) Pos33TicketBind(tbind *ty.Pos33TicketBind) (*types.Receipt
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kvs, Logs: logs}
 	return receipt, nil
 }
+
+*/

@@ -283,6 +283,7 @@ ForkCacheDriver=0
 ForkTicketFundAddrV1=-1 #fork6.3
 #主链和平行链都使用同一个fork高度
 ForkRootHash=0 
+ForkFormatAddressKey=0
 
 [fork.sub.coins]
 Enable=0
