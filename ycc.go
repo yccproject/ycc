@@ -49,8 +49,6 @@ serverStart=true
 [p2p.sub.dht]
 #dht 版本还不稳定，暂时限定较小的连接数
 maxConnectNum = 50
-#区块轻广播最低区块大小，1k
-minLtBlockSize = 1
 # 是否配置为全节点模式，全节点保存所有分片数据，种子节点应配置为true
 # 全节点可以切换为分片节点，暂不支持分片节点切换为全节点
 isFullNode = true
@@ -65,6 +63,7 @@ gossipSubDlo = 7
 gossipSubHeartbeatInterval = 900
 gossipSubHistoryGossip = 2
 gossipSubHistoryLength = 7
+disablePubSubMsgSign = true
 
 [address]
 defaultDriver="eth"

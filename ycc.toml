@@ -44,6 +44,10 @@ seeds = [
   "/ip4/121.52.224.84/tcp/13801/p2p/16Uiu2HAm4KV8puoy5SKLXhz36E1vkrnMTsU5NBy98qoyBhrfnKoj",
 ]
 
+[p2p.sub.dht.broadcast]
+disableBatchTx = true
+minLtBlockSize = 100
+
 [rpc]
 certFile = "cert.pem"
 enableTLS = false
