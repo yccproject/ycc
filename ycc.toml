@@ -41,7 +41,12 @@ channel = 9
 port = 13801
 #可以自定义设置连接节点
 seeds = [
+  "/ip4/3.112.197.178/tcp/13801/p2p/16Uiu2HAm5HWtYK211WmKBJWcT8jfbNFGTVft9w29HJqRifiBKotx",
+  "/ip4/18.167.231.200/tcp/13801/p2p/16Uiu2HAmF32CeMnNa3ud2hce8F1UGZtvyvZ48SCViMiJN1QJVvcR",
+  "/ip4/18.167.240.187/tcp/13801/p2p/16Uiu2HAm8r9GZPPhfXEXGYvHQNgbnRe3CiNvRkFXqioiYumm6mJj",
   "/ip4/121.52.224.84/tcp/13801/p2p/16Uiu2HAm4KV8puoy5SKLXhz36E1vkrnMTsU5NBy98qoyBhrfnKoj",
+  "/ip4/121.52.224.85/tcp/13801/p2p/16Uiu2HAmMnGGDYg8oKvYeQuZWqer8m4u1k2bUZyNxuevhS9SZ1mm",
+  "/ip4/121.52.224.86/tcp/13801/p2p/16Uiu2HAkxDkbdzH7LDMuwSkYPfApRDNd2jeSbwobL2m6LrpJzZbW",
 ]
 
 [p2p.sub.dht.broadcast]
@@ -61,6 +66,8 @@ whitelist = ["127.0.0.1"]
 [consensus.sub.pos33]
 bootPeers = [
   "/ip4/121.52.224.84/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
+  "/ip4/121.52.224.85/tcp/10801/p2p/16Uiu2HAkwjfnaDfxzV2ZKfqKXoLq3ftTLh8GyxorWE25gPfRE9gB",
+  "/ip4/121.52.224.86/tcp/10801/p2p/16Uiu2HAmJmMxZRMYtYSLpbZK4aNjJo8dPyagX2ACm3gi4LEu2SPU",
 ]
 issueTotal = 10000000000
 listenPort = 10801
