@@ -186,7 +186,7 @@ func (g *channelClient) GetPos33ConsigneeEntrust(ctx context.Context, in *types.
 // SetEntrust create entrust
 func (g *channelClient) SetPos33Entrust(ctx context.Context, in *ty.Pos33Entrust) (*ty.ReplyTxHex, error) {
 	cfg := g.GetConfig()
-	data, err := types.CallCreateTx(cfg, cfg.ExecName(ty.Pos33TicketX), "entrust", in)
+	data, err := types.CallCreateTx(cfg, cfg.ExecName(ty.Pos33TicketX), "Entrust", in)
 	if err != nil {
 		return nil, err
 	}
