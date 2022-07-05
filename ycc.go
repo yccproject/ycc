@@ -181,7 +181,6 @@ ethMapFromSymbol="ycc"
 addressDriver="eth"
 
 
-
 [exec.sub.token]
 saveTokenTxList = false
 #配置一个空值，防止配置文件被覆盖
@@ -304,14 +303,8 @@ ForkReward15=0
 ForkFixReward=0
 UseEntrust=0
 
-[fork.sub.evm]
-Enable=0
-ForkEVMYoloV1=0
-ForkEVMTxGroup=0
-ForkEVMState=0
-ForkEVMABI=0
-ForkEVMKVHash=0
-ForkEVMFrozen=0
+[fork.sub.none]
+ForkUseTimeDelay=0
 
 [fork.sub.evmxgo]
 Enable=0
@@ -374,6 +367,14 @@ Enable=0
 ForkAutonomyDelRule=0
 ForkAutonomyEnableItem=0
 
+[fork.sub.evm]
+Enable=0
+ForkEVMState=0
+ForkEVMABI=0
+ForkEVMFrozen=0
+ForkEVMKVHash=0
+ForkEVMYoloV1=0
+ForkEVMTxGroup=0
 
 [fork.sub.unfreeze]
 Enable=0
