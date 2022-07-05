@@ -154,13 +154,19 @@ type vArg struct {
 	ch chan<- bool
 }
 
+type cbArg struct {
+	b     *types.Block
+	errch chan error
+}
+
 type node struct {
 	*Client
 	gss *gossip2
 
-	vmp map[int64]map[int]*maker
-	mmp map[int64]map[int]*committee
-	bch chan *types.Block
+	vmp  map[int64]map[int]*maker
+	mmp  map[int64]map[int]*committee
+	bch  chan *types.Block // for add block
+	cbch chan cbArg        // for check block
 
 	vCh    chan vArg
 	sortCh chan *sortArg
@@ -177,6 +183,7 @@ func newNode(conf *subConfig) *node {
 		mmp:    make(map[int64]map[int]*committee),
 		vmp:    make(map[int64]map[int]*maker),
 		bch:    make(chan *types.Block, 16),
+		cbch:   make(chan cbArg, 16),
 		blsMp:  make(map[string]string),
 		vCh:    make(chan vArg, 8),
 		sortCh: make(chan *sortArg, 8),
@@ -377,6 +384,10 @@ func (n *node) prepareOK(height int64) bool {
 	return n.IsCaughtUp() && /*n.allCount(height) > 0 &&*/ n.queryTicketCount(n.myAddr, height-10) > 0
 }
 
+func (n *node) handleCheckBlock(arg cbArg) {
+	arg.errch <- n.blockCheck(arg.b)
+}
+
 func (n *node) checkBlock(b, pb *types.Block) error {
 	plog.Debug("checkBlock", "height", b.Height, "pbheight", pb.Height)
 	if b.Height <= pb.Height {
@@ -388,7 +399,12 @@ func (n *node) checkBlock(b, pb *types.Block) error {
 	if len(b.Txs) == 0 {
 		return fmt.Errorf("nil block error")
 	}
-	err := n.blockCheck(b)
+
+	errch := make(chan error)
+	n.cbch <- cbArg{b: b, errch: errch}
+	err := <-errch
+	close(errch)
+
 	if err != nil {
 		plog.Error("blockCheck error", "err", err, "height", b.Height)
 		return err
@@ -1194,6 +1210,8 @@ func (n *node) runLoop() {
 					tch <- height
 				})
 			}
+		case arg := <-n.cbch: // new block add to chain
+			n.handleCheckBlock(arg)
 		case b := <-n.bch: // new block add to chain
 			if b.Height < n.GetCurrentHeight() {
 				break
