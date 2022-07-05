@@ -63,6 +63,14 @@ jrpcFuncWhitelist = ["*"]
 keyFile = "key.pem"
 whitelist = ["127.0.0.1"]
 
+[rpc.sub.eth]
+enable = false
+httpAddr = "localhost:8547"
+httpApi = ["eth", "web3", "personal", "admin", "net"]
+# websocket 绑定地址
+wsAddr = "localhost:8548"
+wsApi = ["eth", "web3", "personal", "admin", "net"]
+
 [consensus.sub.pos33]
 bootPeers = [
   "/ip4/121.52.224.84/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",

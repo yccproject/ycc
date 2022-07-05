@@ -152,7 +152,10 @@ pruneMavlHeight = 10000
 tkCloseCacheLen = 200000
 
 [crypto]
-enableTypes = ["secp256k1", "none", "bls"]
+enableTypes = ["secp256k1", "none", "bls", "secp256k1eth"]
+
+[crypto.sub.secp256k1eth]
+evmChainID=3999
 
 [wallet]
 dbCache = 16
@@ -170,6 +173,14 @@ enableStat = false
 [exec.sub.coins]
 disableAddrReceiver = true
 disableCheckTxAmount = true
+friedExecer=["evm"]
+
+[exec.sub.evm]
+ethMapFromExecutor="paracross"
+ethMapFromSymbol="ycc"
+addressDriver="eth"
+
+
 
 [exec.sub.token]
 saveTokenTxList = false
