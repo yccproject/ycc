@@ -387,46 +387,34 @@ func createTicket(cfg *types.Chain33Config, minerAddr, returnAddr, blsAddr strin
 	tx2.Payload = types.Encode(&ct.CoinsAction{Value: g, Ty: ct.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 
-	if !cfg.IsDappFork(0, pt.Pos33TicketX, "UseEntrust") {
-		// 冻结资金并开启挖矿
-		tx3 := types.Transaction{}
-		tx3.Execer = []byte(pt.Pos33TicketX)
-		tx3.To = driver.ExecAddress(pt.Pos33TicketX)
-		gticket := &pt.Pos33TicketAction_Genesis{}
-		gticket.Genesis = &pt.Pos33TicketGenesis{MinerAddress: minerAddr, ReturnAddress: returnAddr, BlsAddress: blsAddr, Count: count}
-		tx3.Payload = types.Encode(&pt.Pos33TicketAction{Value: gticket, Ty: pt.Pos33TicketActionGenesis})
-		ret = append(ret, &tx3)
-		plog.Debug("genesis miner", "execaddr", tx3.To, "genesistx", g.Genesis)
-	} else {
-		amount := int64(count) * pt.GetPos33MineParam(cfg, 0).GetTicketPrice()
-		entrustAct := &pt.Pos33TicketAction_Entrust{
-			Entrust: &pt.Pos33Entrust{
-				Consignee: minerAddr,
-				Consignor: returnAddr,
-				Amount:    amount,
-			},
-		}
-		tx := &types.Transaction{
-			Execer:  []byte(pt.Pos33TicketX),
-			To:      driver.ExecAddress(pt.Pos33TicketX),
-			Payload: types.Encode(&pt.Pos33TicketAction{Value: entrustAct, Ty: pt.Pos33ActionEntrust}),
-		}
-		ret = append(ret, tx)
-
-		blsBindAct := &pt.Pos33TicketAction_BlsBind{
-			BlsBind: &pt.Pos33BlsBind{
-				BlsAddr:   blsAddr,
-				MinerAddr: minerAddr,
-			},
-		}
-		tx = &types.Transaction{
-			Execer:  []byte(pt.Pos33TicketX),
-			To:      driver.ExecAddress(pt.Pos33TicketX),
-			Payload: types.Encode(&pt.Pos33TicketAction{Value: blsBindAct, Ty: pt.Pos33ActionBlsBind}),
-		}
-		ret = append(ret, tx)
-		plog.Debug("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount", amount)
+	amount := int64(count) * pt.GetPos33MineParam(cfg, 0).GetTicketPrice()
+	entrustAct := &pt.Pos33TicketAction_Entrust{
+		Entrust: &pt.Pos33Entrust{
+			Consignee: minerAddr,
+			Consignor: returnAddr,
+			Amount:    amount,
+		},
 	}
+	tx := &types.Transaction{
+		Execer:  []byte(pt.Pos33TicketX),
+		To:      driver.ExecAddress(pt.Pos33TicketX),
+		Payload: types.Encode(&pt.Pos33TicketAction{Value: entrustAct, Ty: pt.Pos33ActionEntrust}),
+	}
+	ret = append(ret, tx)
+
+	blsBindAct := &pt.Pos33TicketAction_BlsBind{
+		BlsBind: &pt.Pos33BlsBind{
+			BlsAddr:   blsAddr,
+			MinerAddr: minerAddr,
+		},
+	}
+	tx = &types.Transaction{
+		Execer:  []byte(pt.Pos33TicketX),
+		To:      driver.ExecAddress(pt.Pos33TicketX),
+		Payload: types.Encode(&pt.Pos33TicketAction{Value: blsBindAct, Ty: pt.Pos33ActionBlsBind}),
+	}
+	ret = append(ret, tx)
+	plog.Debug("genesis use entrust", "execaddr", tx.To, "miner", minerAddr, "consignor", returnAddr, "amount", amount)
 	return ret
 }
 
