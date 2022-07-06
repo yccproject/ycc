@@ -213,11 +213,14 @@ func (n *node) minerTx(height int64, round int, sm *pt.Pos33SortMsg, vs []*pt.Po
 	}
 
 	blsSig, err := bls.Driver{}.Aggregate(sigs)
-	if err != nil && round < 3 {
+	if err != nil {
 		return nil, err
-	} else if err != nil {
-		blsSig = bls.SignatureBLS{}
 	}
+	// if err != nil && round < 3 {
+	// 	return nil, err
+	// } else if err != nil {
+	// 	blsSig = bls.SignatureBLS{}
+	// }
 	act := &pt.Pos33TicketAction{
 		Value: &pt.Pos33TicketAction_Miner{
 			Miner: &pt.Pos33MinerMsg{
@@ -399,12 +402,16 @@ func (n *node) checkBlock(b, pb *types.Block) error {
 	if len(b.Txs) == 0 {
 		return fmt.Errorf("nil block error")
 	}
+	if b.Txs[0].From() == n.myAddr {
+		return nil
+	}
 
 	errch := make(chan error)
 	n.cbch <- cbArg{b: b, errch: errch}
 	err := <-errch
 	close(errch)
 
+	// err := n.blockCheck()
 	if err != nil {
 		plog.Error("blockCheck error", "err", err, "height", b.Height)
 		return err
