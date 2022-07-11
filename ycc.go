@@ -76,6 +76,7 @@ maxTxFeeRate = 10000000
 isLevelFee = false
 maxTxFee=100000000
 name = "price"
+EnableEthCheck=true
 
 [mempool.sub.score]
 poolCacheSize=1024000
