@@ -76,7 +76,7 @@ maxTxFeeRate = 10000000
 isLevelFee = false
 maxTxFee=100000000
 name = "price"
-EnableEthCheck=true
+enableEthCheck=true
 
 [mempool.sub.score]
 poolCacheSize=1024000
@@ -177,7 +177,7 @@ disableCheckTxAmount = true
 friedExecer=["evm"]
 
 [exec.sub.evm]
-ethMapFromExecutor="paracross"
+ethMapFromExecutor="coins"
 ethMapFromSymbol="ycc"
 addressDriver="eth"
 
