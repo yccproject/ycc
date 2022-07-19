@@ -174,7 +174,7 @@ enableStat = false
 [exec.sub.coins]
 disableAddrReceiver = true
 disableCheckTxAmount = true
-friedExecer=["evm"]
+friendExecer=["evm"]
 
 [exec.sub.evm]
 ethMapFromExecutor="coins"

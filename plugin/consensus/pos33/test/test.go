@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/binary"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -42,9 +41,10 @@ func init() {
 	noUseKey = HexToPrivkey("c207ae827ccd7dfbe2b0d24d639d131300f26f8a176cf7f3752b5b454d62ed1f")
 }
 
-var rpcURL = flag.String("u", "http://localhost:7901", "rpc url")
-var grpcURL = flag.String("g", "127.0.0.1:7902", "grpc url")
-var pnodes = flag.Bool("n", false, "only print node private keys")
+var rpcURL = flag.String("u", "http://localhost:9901", "rpc url")
+var grpcURL = flag.String("g", "127.0.0.1:9902", "grpc url")
+
+var pnodes = flag.Bool("p", false, "only print node private keys")
 var ini = flag.Bool("i", false, "send init tx")
 var maxacc = flag.Int("a", 10000, "max account")
 var maxaccF = flag.Int("m", 1000000, "max account in a file")
@@ -76,13 +76,13 @@ func main() {
 
 	gclient, err := grpc.NewMainChainClient(config, *grpcURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	gClient = gclient
 
 	jclient, err := jrpc.NewJSONClient(*rpcURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	jClient = jclient
 
@@ -163,16 +163,18 @@ func run(privs []crypto.PrivKey) {
 		}
 		hch <- height
 
-		j := i % max
-		txs[j] = tx
-		if j == max-1 {
-			sendTxs(txs)
-		}
+		txs[i] = tx
 
 		i++
 		if i%1000 == 0 {
 			log.Println(i, "... txs sent")
 		}
+
+		if i == max {
+			sendTxs(txs)
+			i = 0
+		}
+
 	}
 }
 
@@ -184,15 +186,11 @@ func generateTxs(privs []crypto.PrivKey, hch <-chan int64) chan *Tx {
 		for {
 			i := rand.Intn(len(privs))
 			signer := privs[l-i]
-<<<<<<< HEAD
 			if *noUseTx {
 				ch <- newNoUseTx()
 			} else {
 				ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(address.DefaultID, privs[i].PubKey().Bytes()), <-hch)
 			}
-=======
-			ch <- newTxWithTxHeight(signer, 1, address.PubKeyToAddr(ethID, privs[i].PubKey().Bytes()), <-hch)
->>>>>>> dev
 		}
 	}
 	for i := 0; i < N; i++ {
@@ -212,9 +210,13 @@ func sendTxs(txs []*Tx) error {
 			if string(r.Msg) == types.ErrMemFull.Error() {
 				time.Sleep(time.Second * 5)
 			}
+			if !r.IsOk {
+				log.Println(string(r.Msg))
+			}
 		}
 	} else {
-		return errors.New("not support grpc in batch send txs")
+		panic("can't go here")
+		// return errors.New("not support grpc in batch send txs")
 		// err = jClient.Call("Chain33.SendTransaction", &rpctypes.RawParm{Data: common.ToHex(types.Encode(tx))}, &txHash)
 	}
 	return nil
@@ -259,14 +261,14 @@ func runSendInitTxs(privCh chan crypto.PrivKey) {
 			log.Println("init txs finished:", i)
 			break
 		}
-		j := i % max
-		txs[j] = tx
+		txs[i] = tx
 		i++
 		if i%100 == 0 {
 			log.Println("send init txs:", i, len(txs))
 		}
-		if j == max-1 {
+		if i == max {
 			sendTxs(txs)
+			i = 0
 		}
 	}
 }
@@ -332,11 +334,11 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	tx.Fee *= 100
+	tx.Fee *= 10
 	tx.To = to
 	tx.ChainID = 999
 	if *sign {
-		signID := types.EncodeSignID(types.SECP256K1, 2)
+		signID := types.EncodeSignID(types.SECP256K1, ethID)
 		tx.Sign(signID, priv)
 	}
 	return tx
@@ -492,7 +494,9 @@ func loadAccounts(filename string, max int) []crypto.PrivKey {
 		if i%10000 == 0 {
 			log.Println("load acc:", i)
 		}
-		log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
+		if i%1000 == 0 {
+			log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
+		}
 	}
 	log.Println("loadAccount: ", len(privs))
 	return privs
