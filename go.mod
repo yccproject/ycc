@@ -3,8 +3,8 @@ module github.com/yccproject/ycc
 go 1.15
 
 require (
-	github.com/33cn/chain33 v1.67.4-0.20220708065938-d0b56a103d37
-	github.com/33cn/plugin v1.67.4-0.20220711070042-907d6f2862cf
+	github.com/33cn/chain33 v1.67.4-0.20220722090050-f04f8bab7f42
+	github.com/33cn/plugin v1.67.4-0.20220714095200-e39c121a83d7
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p v0.15.0
@@ -22,9 +22,10 @@ require (
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sys v0.0.0-20220704084225-05e143d24a9e // indirect
+	golang.org/x/sys v0.0.0-20220721230656-c6bc011c0c49 // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.28.0
 )
 
 // replace github.com/33cn/chain33 => /Users/w/pos33/chain33
+//  replace github.com/33cn/chain33 => /home/w/pos33/chain33

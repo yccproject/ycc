@@ -63,6 +63,7 @@ var config *types.Chain33Config
 func main() {
 	flag.Parse()
 	config = types.NewChain33Config(types.MergeCfg(types.ReadFile(*conf), ""))
+	rand.Seed(time.Now().Unix())
 	// config.EnableCheckFork(false)
 
 	privCh := runLoadAccounts(*accFile, *maxacc)
@@ -141,6 +142,7 @@ func run(privs []crypto.PrivKey) {
 	i := 0
 	max := 256
 	txs := make([]*types.Transaction, max)
+	ntx := 0
 	for tx := range ch {
 		select {
 		case <-tch:
@@ -166,7 +168,8 @@ func run(privs []crypto.PrivKey) {
 		txs[i] = tx
 
 		i++
-		if i%1000 == 0 {
+		ntx++
+		if ntx%1000 == 0 {
 			log.Println(i, "... txs sent")
 		}
 
@@ -174,7 +177,6 @@ func run(privs []crypto.PrivKey) {
 			sendTxs(txs)
 			i = 0
 		}
-
 	}
 }
 
@@ -255,22 +257,22 @@ func runSendInitTxs(privCh chan crypto.PrivKey) {
 	max := 256
 	i := 0
 	txs := make([]*types.Transaction, max)
+	ntx := 0
 	for {
 		tx, ok := <-ch
 		if !ok {
-			log.Println("init txs finished:", i)
+			sendTxs(txs[:i])
 			break
 		}
 		txs[i] = tx
 		i++
-		if i%100 == 0 {
-			log.Println("send init txs:", i, len(txs))
-		}
 		if i == max {
 			sendTxs(txs)
 			i = 0
 		}
+		ntx++
 	}
+	log.Println("send ntx:", ntx)
 }
 
 func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int64) *Tx {
@@ -280,14 +282,11 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	if err != nil {
 		panic(err)
 	}
-	// tx.Fee, err = tx.GetRealFee(config.GetMinTxFeeRate())
-	// if err != nil {
-	// 	panic(err)
-	// }
 	tx.To = to
 	tx.Expire = height + 20 + types.TxHeightFlag
 	tx.ChainID = 999
-	tx.Fee *= 100
+	tx.Fee = 1000000
+	tx.Nonce = rand.Int63()
 	if *sign {
 		signID := types.EncodeSignID(types.SECP256K1, ethID)
 		tx.Sign(signID, priv)
@@ -330,13 +329,10 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	if err != nil {
 		panic(err)
 	}
-	// tx.Fee, err = tx.GetRealFee(config.GetMinTxFeeRate())
-	// if err != nil {
-	// 	panic(err)
-	// }
-	tx.Fee *= 10
+	tx.Fee = 1000000
 	tx.To = to
 	tx.ChainID = 999
+	tx.Nonce = rand.Int63()
 	if *sign {
 		signID := types.EncodeSignID(types.SECP256K1, ethID)
 		tx.Sign(signID, priv)
@@ -559,10 +555,10 @@ func runLoadAccounts(filename string, max int) chan crypto.PrivKey {
 			}
 			privCh <- priv
 			b = b[n:]
-			if i%10000 == 0 {
+			if i%1000 == 0 {
 				log.Println("load acc:", i)
 			}
-			log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
+			// log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 		}
 		close(privCh)
 	}()

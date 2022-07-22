@@ -174,7 +174,7 @@ enableStat = false
 [exec.sub.coins]
 disableAddrReceiver = true
 disableCheckTxAmount = true
-friendExecer=["evm"]
+friedExecer=["evm"]
 
 [exec.sub.evm]
 ethMapFromExecutor="coins"
@@ -297,6 +297,7 @@ ForkFormatAddressKey=0
 
 [fork.sub.coins]
 Enable=0
+ForkFriendExecer=4864713
 
 [fork.sub.pos33]
 Enable=0
