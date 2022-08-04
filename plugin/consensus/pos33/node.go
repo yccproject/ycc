@@ -1198,7 +1198,7 @@ func (n *node) runLoop() {
 	resortTimeout := time.Second * 3
 	blockD := int64(900)
 
-	syncTick := time.NewTicker(time.Second * 10)
+	syncTick := time.NewTicker(time.Second * 30)
 
 	for {
 		if !isSync {
