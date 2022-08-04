@@ -1149,6 +1149,7 @@ func (n *node) runLoop() {
 	go n.runSortition()
 
 	isSync := false
+	syncTm := time.NewTicker(time.Second * 30)
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
 
@@ -1165,6 +1166,8 @@ func (n *node) runLoop() {
 			continue
 		}
 		select {
+		case <-syncTm.C:
+			isSync = n.synced()
 		case <-n.done:
 			plog.Debug("pos33 consensus run loop stoped")
 			return
