@@ -3,7 +3,6 @@ package pos33
 import (
 	"errors"
 	"fmt"
-	"math"
 	"sort"
 	"sync"
 	"time"
@@ -38,6 +37,9 @@ type committee struct {
 	svmp           map[string]int  // 验证委员会的投票
 	sortCheckedMap map[string]bool // key is sort_hash, val is checked
 	n              *node
+
+	candidates []*pt.Pos33SortMsg
+	canditate  *pt.Pos33SortMsg
 }
 
 func (n *node) getmaker(height int64, round int) *maker {
@@ -527,6 +529,12 @@ func (n *node) blockCheck(b *types.Block) error {
 	}
 	round := int(act.Sort.Proof.Input.Round)
 
+	// 查看candidate是否一致
+	err = n.checkCandidate(act.Sort, height, round)
+	if err != nil {
+		return err
+	}
+
 	plog.Debug("block check", "height", b.Height, "from", b.Txs[0].From()[:16])
 	err = n.checkSort(act.Sort, 0)
 	if err != nil {
@@ -640,7 +648,7 @@ func (n *node) getDiff(height int64, round int, isMaker bool) float64 {
 		size = pt.Pos33VoterSize
 	}
 	diff := float64(size) / float64(w)
-	diff *= math.Pow(1.1, float64(round))
+	// diff *= math.Pow(1.1, float64(round))
 	return diff
 }
 
@@ -749,7 +757,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	if len(vs) >= 10 {
 		plog.Debug("handleVoteMsg maker", "hash", common.HashHex(m0.Hash)[:16], "allmvs", len(vs), "nvs", len(ms), "height", height, "round", round, "ty", ty, "addr", address.PubKeyToAddr(ethID, m0.Sig.Pubkey)[:16])
 	}
-	if round > 0 {
+	if n.GetCurrentHeight() == height-1 {
 		n.tryMakeBlock(height, round)
 	}
 }
@@ -776,7 +784,7 @@ func (n *node) tryMakeBlock(height int64, round int) {
 	maker.selected = true
 
 	nb, err := n.makeBlock(height, round, maker.my, vs)
-	if err != nil && round < 3 {
+	if err != nil {
 		plog.Error("makeBlock error", "err", err, "height", height)
 		return
 	}
@@ -888,6 +896,7 @@ func (n *node) voteMaker(height int64, round int) {
 	comm := n.getCommittee(height, round)
 	n.voteCommittee(height, round)
 
+	// 抽签排序, 找出前三作为区块候选人
 	var mss []*pt.Pos33SortMsg
 	for _, s := range comm.mss {
 		mss = append(mss, s)
@@ -897,34 +906,13 @@ func (n *node) voteMaker(height int64, round int) {
 		return
 	}
 	sort.Sort(pt.Sorts(mss))
-
-	myss := comm.getMySorts(n.myAddr, height)
-
-	var mvs []*pt.Pos33Votes
 	for i, s := range mss {
 		if i == 3 {
 			break
 		}
-		var vs []*pt.Pos33VoteMsg
-		for _, mys := range myss {
-			v := &pt.Pos33VoteMsg{
-				Hash: s.SortHash.Hash,
-				Sort: mys,
-			}
-			vs = append(vs, v)
-		}
-		if len(vs) == 0 {
-			continue
-		}
-		signVotes(n.getPriv(), vs)
-		mvs = append(mvs, &pt.Pos33Votes{Vs: vs})
-		plog.Debug("vote maker", "addr", address.PubKeyToAddr(ethID, s.Proof.Pubkey)[:16], "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
-		break
+		comm.candidates = append(comm.candidates, s)
 	}
-	if len(mvs) == 0 {
-		return
-	}
-	n.sendMaketVotes(mvs, int(pt.Pos33Msg_MV))
+	n.voteCanditate(height, round, 0)
 }
 
 func (n *node) sendMaketVotes(mvs []*pt.Pos33Votes, ty int) {
@@ -968,15 +956,36 @@ func (n *node) handleMakerSort(m *pt.Pos33SortMsg, myself bool) {
 	plog.Debug("handleMakerSort", "nmss", len(comm.mss), "height", height, "round", round, "addr", address.PubKeyToAddr(ethID, m.Proof.Pubkey)[:16])
 }
 
+func (n *node) checkCandidate(s *pt.Pos33SortMsg, height int64, round int) error {
+	maker := n.getmaker(height, round)
+	comm := n.getCommittee(height, round)
+
+	var canditate *pt.Pos33SortMsg
+	for _, c := range comm.candidates {
+		nvs := len(maker.mvs[string(c.SortHash.Hash)])
+		if nvs > 17 {
+			canditate = c
+		}
+	}
+	if canditate == nil {
+		return nil
+	}
+	if string(canditate.SortHash.Hash) != string(s.SortHash.Hash) {
+		return errors.New("canditate NOT right")
+	}
+	return nil
+}
+
 func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
 	height := s.Proof.Input.Height
 	round := int(s.Proof.Input.Round)
 	comm := n.getCommittee(height, round)
 	k := string(s.SortHash.Hash)
 	_, ok := comm.sortCheckedMap[k]
-	if ok {
+	if ok { // 已经 check 了
 		return nil
 	}
+
 	seed, err := n.getSortSeed(height - pt.Pos33SortBlocks)
 	if err != nil {
 		plog.Error("getSeed error", "err", err, "height", height)
@@ -1109,6 +1118,36 @@ var pos33Topics = []string{
 	"/committee",
 }
 
+func (n *node) voteCanditate(height int64, round, who int) {
+	comm := n.getCommittee(height, round)
+	if len(comm.candidates) <= who+1 {
+		return
+	}
+	candidate := comm.candidates[who]
+	comm.canditate = candidate
+
+	// 我的抽签
+	myss := comm.getMySorts(n.myAddr, height)
+
+	// 对候选人投票
+	var mvs []*pt.Pos33Votes
+	var vs []*pt.Pos33VoteMsg
+	for _, mys := range myss {
+		v := &pt.Pos33VoteMsg{
+			Hash: candidate.SortHash.Hash,
+			Sort: mys,
+		}
+		vs = append(vs, v)
+	}
+	signVotes(n.getPriv(), vs)
+	mvs = append(mvs, &pt.Pos33Votes{Vs: vs})
+	if len(mvs) == 0 {
+		return
+	}
+	plog.Info("vote maker", "addr", address.PubKeyToAddr(ethID, candidate.Proof.Pubkey)[:16], "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
+	n.sendMaketVotes(mvs, int(pt.Pos33Msg_MV))
+}
+
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
 	if err != nil {
@@ -1151,11 +1190,15 @@ func (n *node) runLoop() {
 	isSync := false
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
+	c1ch := make(chan int64, 1) // 候选人 1
+	c2ch := make(chan int64, 1) // 候选人 2
 
 	round := 0
-	blockTimeout := time.Second * 5
+	blockTimeout := time.Second * 2
 	resortTimeout := time.Second * 3
 	blockD := int64(900)
+
+	syncTick := time.NewTicker(time.Second * 10)
 
 	for {
 		if !isSync {
@@ -1165,6 +1208,8 @@ func (n *node) runLoop() {
 			continue
 		}
 		select {
+		case <-syncTick.C:
+			isSync = n.synced()
 		case <-n.done:
 			plog.Debug("pos33 consensus run loop stoped")
 			return
@@ -1187,6 +1232,30 @@ func (n *node) runLoop() {
 					nch <- nh
 				})
 			}
+		case height := <-c1ch:
+			if height == n.lastBlock().Height+1 {
+				n.voteCanditate(height, round, 1)
+				tt := time.Now()
+				time.AfterFunc(blockTimeout, func() {
+					if n.GetCurrentHeight() >= height {
+						return
+					}
+					plog.Info("second block timeout", "height", height, "round", round, "cost", time.Since(tt))
+					c2ch <- height
+				})
+			}
+		case height := <-c2ch:
+			if height == n.lastBlock().Height+1 {
+				n.voteCanditate(height, round, 2)
+				tt := time.Now()
+				time.AfterFunc(blockTimeout, func() {
+					if n.GetCurrentHeight() >= height {
+						return
+					}
+					plog.Info("third block timeout", "height", height, "round", round, "cost", time.Since(tt))
+					tch <- height
+				})
+			}
 		case height := <-nch:
 			n.getCommittee(height, round).setCommittee(height)
 			cb := n.GetCurrentBlock()
@@ -1197,8 +1266,8 @@ func (n *node) runLoop() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
-					plog.Debug("block timeout", "height", height, "round", round, "cost", time.Since(tt))
-					tch <- height
+					plog.Info("first block timeout", "height", height, "round", round, "cost", time.Since(tt))
+					c1ch <- height
 				})
 			}
 		case b := <-n.bch: // new block add to chain

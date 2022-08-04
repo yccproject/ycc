@@ -28,7 +28,7 @@ singleMode = false
 
 [mempool]
 maxTxNumPerAccount = 100000
-poolCacheSize = 1024000
+poolCacheSize = 20240
 
 [p2p]
 dbPath = "datadir/addrbook"
@@ -79,6 +79,9 @@ bootPeers = [
 ]
 issueTotal = 10000000000
 listenPort = 10801
+
+[mver.consensus]
+maxTxNumber = 30000
 
 [store]
 dbPath = "datadir/kvmvcc"
