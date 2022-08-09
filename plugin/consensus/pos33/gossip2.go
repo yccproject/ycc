@@ -14,17 +14,18 @@ import (
 	pt "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 
 	"github.com/libp2p/go-libp2p"
-	// autonat "github.com/libp2p/go-libp2p-autonat"
-	// circuit "github.com/libp2p/go-libp2p-circuit"
+	autonat "github.com/libp2p/go-libp2p-autonat"
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
-
-	// routing "github.com/libp2p/go-libp2p-core/routing"
-	// dht "github.com/libp2p/go-libp2p-kad-dht"
+	discovery "github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	routing "github.com/libp2p/go-libp2p-core/routing"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/multiformats/go-multiaddr"
@@ -301,21 +302,21 @@ func (g *gossip2) handleOutgoing() {
 }
 
 func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host.Host {
-	// var idht *dht.IpfsDHT
+	var idht *dht.IpfsDHT
 	h, err := libp2p.New(ctx,
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
 		libp2p.EnableNATService(),
-		// libp2p.DefaultTransports,
+		libp2p.DefaultTransports,
 		libp2p.NATPortMap(),
-		// libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-		// 	dht, err := dht.New(ctx, h)
-		// 	idht = dht
-		// 	return idht, err
-		// }),
-		// libp2p.EnableRelay(circuit.OptHop),
+		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
+			dht, err := dht.New(ctx, h)
+			idht = dht
+			return idht, err
+		}),
+		libp2p.EnableRelay(circuit.OptHop),
 	)
 
 	if err != nil {
@@ -336,7 +337,7 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 	}
 	plog.Info("host inited", "host", paddr)
 
-	// discover(ctx, h, idht, ns)
+	discover(ctx, h, idht, ns)
 
 	return h
 }
@@ -370,46 +371,46 @@ func printPeerstore(h host.Host) {
 	}
 }
 
-// func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
-// 	_, err := autonat.New(ctx, h)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	mdns := mdns.NewMdnsService(h, ns)
-// 	if err != nil {
-// 		panic(err)
-// 	}
+func discover(ctx context.Context, h host.Host, idht *dht.IpfsDHT, ns string) {
+	_, err := autonat.New(ctx, h)
+	if err != nil {
+		panic(err)
+	}
+	mdns := mdns.NewMdnsService(h, ns)
+	if err != nil {
+		panic(err)
+	}
 
-// 	mn := &mdnsNotifee{h: h, ctx: ctx}
-// 	mdns.RegisterNotifee(mn)
+	mn := &mdnsNotifee{h: h, ctx: ctx}
+	mdns.RegisterNotifee(mn)
 
-// 	err = idht.Bootstrap(ctx)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	routingDiscovery := discovery.NewRoutingDiscovery(idht)
-// 	discovery.Advertise(ctx, routingDiscovery, ns)
+	err = idht.Bootstrap(ctx)
+	if err != nil {
+		panic(err)
+	}
+	routingDiscovery := discovery.NewRoutingDiscovery(idht)
+	discovery.Advertise(ctx, routingDiscovery, ns)
 
-// 	peerChan, err := routingDiscovery.FindPeers(ctx, ns)
-// 	if err != nil {
-// 		panic(err)
-// 	}
+	peerChan, err := routingDiscovery.FindPeers(ctx, ns)
+	if err != nil {
+		panic(err)
+	}
 
-// 	go func() {
-// 		host := h
-// 		for peer := range peerChan {
-// 			if peer.ID == host.ID() {
-// 				continue
-// 			}
+	go func() {
+		host := h
+		for peer := range peerChan {
+			if peer.ID == host.ID() {
+				continue
+			}
 
-// 			stream, err := host.NewStream(ctx, peer.ID, protocol.ID(ns+"/"+remoteAddrID))
-// 			if err != nil {
-// 				plog.Error("NewStream error:", "err", err)
-// 				return
-// 			}
+			stream, err := host.NewStream(ctx, peer.ID, protocol.ID(ns+"/"+remoteAddrID))
+			if err != nil {
+				plog.Error("NewStream error:", "err", err)
+				return
+			}
 
-// 			time.AfterFunc(time.Second*3, func() { stream.Close() })
-// 			plog.Info("Connected to:", "peer", peer)
-// 		}
-// 	}()
-// }
+			time.AfterFunc(time.Second*3, func() { stream.Close() })
+			plog.Info("Connected to:", "peer", peer)
+		}
+	}()
+}
