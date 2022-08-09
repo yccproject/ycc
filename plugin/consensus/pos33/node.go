@@ -165,6 +165,7 @@ type node struct {
 	vCh    chan vArg
 	sortCh chan *sortArg
 
+	mu    sync.Mutex
 	blsMp map[string]string
 
 	maxSortHeight int64
@@ -479,12 +480,25 @@ func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, ty int, hash []byte, h int64, c
 	return nil
 }
 
+func (n *node) getMinerList() []string {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	var ss []string
+	for _, v := range n.blsMp {
+		ss = append(ss, v)
+	}
+	return ss
+}
+
 func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte, ty int) error {
 	if string(v.Hash) != string(hash) {
 		return errors.New("vote hash NOT right")
 	}
 
 	blsAddr := address.PubKeyToAddr(ethID, v.Sig.Pubkey)
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	addr, ok := n.blsMp[blsAddr]
 	if !ok {
 		msg, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsAddr})
@@ -970,13 +984,13 @@ func (n *node) handleMakerSort(m *pt.Pos33SortMsg, myself bool) {
 
 func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
 	height := s.Proof.Input.Height
-	round := int(s.Proof.Input.Round)
-	comm := n.getCommittee(height, round)
-	k := string(s.SortHash.Hash)
-	_, ok := comm.sortCheckedMap[k]
-	if ok {
-		return nil
-	}
+	// round := int(s.Proof.Input.Round)
+	// comm := n.getCommittee(height, round)
+	// k := string(s.SortHash.Hash)
+	// _, ok := comm.sortCheckedMap[k]
+	// if ok {
+	// 	return nil
+	// }
 	seed, err := n.getSortSeed(height - pt.Pos33SortBlocks)
 	if err != nil {
 		plog.Error("getSeed error", "err", err, "height", height)
@@ -993,7 +1007,7 @@ func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
 	if err != nil {
 		return err
 	}
-	comm.sortCheckedMap[k] = true
+	// comm.sortCheckedMap[k] = true
 	return nil
 }
 
@@ -1148,8 +1162,15 @@ func (n *node) runLoop() {
 	go n.runVerifyVotes()
 	go n.runSortition()
 
-	isSync := false
+	isSync := n.synced()
 	syncTm := time.NewTicker(time.Second * 30)
+	syncCh := make(chan bool, 1)
+
+	go func() {
+		for range syncTm.C {
+			syncCh <- n.synced()
+		}
+	}()
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
 
@@ -1166,8 +1187,7 @@ func (n *node) runLoop() {
 			continue
 		}
 		select {
-		case <-syncTm.C:
-			isSync = n.synced()
+		case isSync = <-syncCh:
 		case <-n.done:
 			plog.Debug("pos33 consensus run loop stoped")
 			return
@@ -1228,6 +1248,9 @@ func (n *node) runLoop() {
 			time.AfterFunc(time.Millisecond*time.Duration(d), func() {
 				nch <- b.Height + 1
 			})
+			if b.Height%100 == 0 {
+				plog.Info("bls", "height", b.Height, "bls", n.blsMp)
+			}
 		}
 	}
 }

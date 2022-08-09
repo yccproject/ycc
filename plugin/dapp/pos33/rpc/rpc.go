@@ -204,3 +204,20 @@ func (c *Jrpc) SetPos33Entrust(in *ty.Pos33Entrust, result *interface{}) error {
 	*result = r
 	return nil
 }
+
+func (g *channelClient) GetMinerList(ctx context.Context, in *types.ReqNil) (*types.ReplyStrings, error) {
+	data, err := g.QueryConsensusFunc(ty.Pos33TicketX, "GetMinerList", in)
+	if err != nil {
+		return nil, err
+	}
+	return data.(*types.ReplyStrings), nil
+}
+
+func (c *Jrpc) GetMinerList(in *types.ReqNil, result *interface{}) error {
+	r, err := c.cli.GetMinerList(context.Background(), in)
+	if err != nil {
+		return err
+	}
+	*result = r.GetDatas()
+	return nil
+}

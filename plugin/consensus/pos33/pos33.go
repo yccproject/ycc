@@ -540,3 +540,8 @@ func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block)
 func (client *Client) Query_FlushPos33Ticket(req *types.ReqNil) (types.Message, error) {
 	return &types.Reply{IsOk: true, Msg: []byte("OK")}, nil
 }
+
+// Query_GetMinerList get miner list
+func (client *Client) Query_GetMinerList(req *types.ReqNil) (types.Message, error) {
+	return &types.ReplyStrings{Datas: client.n.getMinerList()}, nil
+}
