@@ -331,6 +331,10 @@ func (n *node) broadcastBlock(b *types.Block, round int) {
 	// n.broadcastComm(b.Height, round, pm)
 	// data := types.Encode(pm)
 	// n.gss.gossip(n.topic+"/block", data)
+	// ONLY for TEST
+	// if b.Height%2 == 0 && b.Height > 300 {
+	// 	return
+	// }
 	n.handleBlockMsg(m, true)
 }
 
@@ -912,6 +916,7 @@ func (n *node) voteMaker(height int64, round int) {
 		}
 		comm.candidates = append(comm.candidates, s)
 	}
+	plog.Info("voteMaker", "height", height, "ncan", len(comm.candidates))
 	n.voteCanditate(height, round, 0)
 }
 
@@ -1120,7 +1125,7 @@ var pos33Topics = []string{
 
 func (n *node) voteCanditate(height int64, round, who int) {
 	comm := n.getCommittee(height, round)
-	if len(comm.candidates) <= who+1 {
+	if len(comm.candidates) < who+1 {
 		return
 	}
 	candidate := comm.candidates[who]
@@ -1192,13 +1197,19 @@ func (n *node) runLoop() {
 	nch := make(chan int64, 1)
 	c1ch := make(chan int64, 1) // 候选人 1
 	c2ch := make(chan int64, 1) // 候选人 2
+	bto1 := time.Millisecond * 900
+	bto2 := time.Second * 2
 
 	round := 0
-	blockTimeout := time.Second * 2
 	resortTimeout := time.Second * 3
 	blockD := int64(900)
 
-	syncTick := time.NewTicker(time.Second * 30)
+	syncCh := make(chan bool, 1)
+	go func() {
+		for range time.NewTicker(time.Second * 30).C {
+			syncCh <- n.IsCaughtUp()
+		}
+	}()
 
 	for {
 		if !isSync {
@@ -1208,8 +1219,7 @@ func (n *node) runLoop() {
 			continue
 		}
 		select {
-		case <-syncTick.C:
-			isSync = n.synced()
+		case isSync = <-syncCh:
 		case <-n.done:
 			plog.Debug("pos33 consensus run loop stoped")
 			return
@@ -1236,7 +1246,7 @@ func (n *node) runLoop() {
 			if height == n.lastBlock().Height+1 {
 				n.voteCanditate(height, round, 1)
 				tt := time.Now()
-				time.AfterFunc(blockTimeout, func() {
+				time.AfterFunc(bto2, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
@@ -1248,7 +1258,7 @@ func (n *node) runLoop() {
 			if height == n.lastBlock().Height+1 {
 				n.voteCanditate(height, round, 2)
 				tt := time.Now()
-				time.AfterFunc(blockTimeout, func() {
+				time.AfterFunc(bto2, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
@@ -1262,7 +1272,7 @@ func (n *node) runLoop() {
 			if cb.Height == height-1 {
 				n.makeNewBlock(height, round)
 				tt := time.Now()
-				time.AfterFunc(blockTimeout, func() {
+				time.AfterFunc(bto1, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
@@ -1271,7 +1281,7 @@ func (n *node) runLoop() {
 				})
 			}
 		case b := <-n.bch: // new block add to chain
-			if b.Height < n.GetCurrentHeight() {
+			if b.Height < n.GetCurrentHeight() && b.Height > 10 {
 				break
 			}
 			round = 0
@@ -1301,7 +1311,7 @@ func (n *node) runLoop() {
 func (n *node) handleNewBlock(b *types.Block) {
 	tb := time.Now()
 	round := 0
-	plog.Debug("handleNewBlock", "height", b.Height, "round", round, "time", time.Now().Format("15:04:05.00000"))
+	plog.Info("handleNewBlock", "height", b.Height, "round", round, "time", time.Now().Format("15:04:05.00000"))
 	if b.Height == 0 {
 		n.firstSortition()
 		for i := 0; i < 5; i++ {
