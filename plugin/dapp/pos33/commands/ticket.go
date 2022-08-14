@@ -34,11 +34,9 @@ func Pos33TicketCmd() *cobra.Command {
 		GetConsigneeCmd(),
 		GetConsignorCmd(),
 		SetEntrustCmd(),
-		// SetFeeRateCmd(),
-		// WithdrawRewardCmd(),
 		BlsBind(),
 		BlsAddr(),
-		// Migrate(),
+		GetMinerList(),
 	)
 
 	return cmd
@@ -80,6 +78,22 @@ func blsAddr(cmd *cobra.Command, args []string) {
 	blsPk := ty.Hash2BlsSk(crypto.Sha256(priv.Bytes())).PubKey()
 	blsaddr := address.PubKeyToAddr(2, blsPk.Bytes())
 	fmt.Println(blsaddr)
+}
+
+func GetMinerList() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "mlist",
+		Short: "get pos33 miner list",
+		Run:   getMinerList,
+	}
+	return cmd
+}
+
+func getMinerList(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res []string
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "pos33.GetMinerList", &types.ReqNil{}, &res)
+	ctx.Run()
 }
 
 func GetPos33Info() *cobra.Command {

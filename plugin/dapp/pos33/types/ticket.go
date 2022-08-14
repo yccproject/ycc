@@ -31,7 +31,7 @@ const (
 	TyLogPos33TicketBind = 334
 )
 
-//ticket
+// ticket
 const (
 	// Pos33TicketActionGenesis action type
 	Pos33TicketActionGenesis = 11
@@ -201,6 +201,8 @@ const (
 	Pos33MakerSize = 15
 	// Pos33VoterSize  候选区块voter数量
 	Pos33VoterSize = 25
+	// Pos33CommitteeSize
+	Pos33CommitteeSize = 75
 	// Pos33MustVotes 必须达到的票数
 	Pos33MustVotes = 17
 )
