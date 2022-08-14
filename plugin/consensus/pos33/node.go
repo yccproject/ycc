@@ -38,8 +38,8 @@ type committee struct {
 	sortCheckedMap map[string]bool // key is sort_hash, val is checked
 	n              *node
 
-	candidates []*pt.Pos33SortMsg
-	canditate  *pt.Pos33SortMsg
+	candidates []string
+	canditate  string
 }
 
 func (n *node) getmaker(height int64, round int) *maker {
@@ -59,11 +59,20 @@ func (n *node) getmaker(height int64, round int) *maker {
 }
 
 func (c *committee) setCommittee(height int64) {
+	var ss []string
 	for k, n := range c.svmp {
 		if n < pt.Pos33MustVotes {
 			delete(c.svmp, k)
 		}
+		ss = append(ss, k)
 	}
+	for i, s := range ss {
+		c.candidates = append(c.candidates, s)
+		if i == 3 {
+			break
+		}
+	}
+	c.canditate = c.candidates[0]
 	plog.Debug("committee len", "len", len(c.svmp), "height", height)
 }
 
@@ -167,6 +176,7 @@ type node struct {
 	vCh    chan vArg
 	sortCh chan *sortArg
 
+	mu    sync.Mutex
 	blsMp map[string]string
 
 	maxSortHeight int64
@@ -331,6 +341,10 @@ func (n *node) broadcastBlock(b *types.Block, round int) {
 	// n.broadcastComm(b.Height, round, pm)
 	// data := types.Encode(pm)
 	// n.gss.gossip(n.topic+"/block", data)
+	// ONLY for TEST
+	// if b.Height%2 == 0 && b.Height > 300 {
+	// 	return
+	// }
 	n.handleBlockMsg(m, true)
 }
 
@@ -481,12 +495,25 @@ func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, ty int, hash []byte, h int64, c
 	return nil
 }
 
+func (n *node) getMinerList() []string {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	var ss []string
+	for _, v := range n.blsMp {
+		ss = append(ss, v)
+	}
+	return ss
+}
+
 func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte, ty int) error {
 	if string(v.Hash) != string(hash) {
 		return errors.New("vote hash NOT right")
 	}
 
 	blsAddr := address.PubKeyToAddr(ethID, v.Sig.Pubkey)
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	addr, ok := n.blsMp[blsAddr]
 	if !ok {
 		msg, err := n.GetAPI().Query(pt.Pos33TicketX, "Pos33BlsAddr", &types.ReqAddr{Addr: blsAddr})
@@ -575,7 +602,6 @@ func (n *node) reSortition(height int64, round int) bool {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return false
 	}
-	n.sortMaker(seed, height, round)
 	n.sortCommittee(seed, height, round)
 	return true
 }
@@ -587,7 +613,6 @@ func (n *node) sortition(b *types.Block, round int) {
 		plog.Error("reSortition error", "height", height, "round", round, "err", err)
 		return
 	}
-	n.sortMaker(seed, height, round)
 	n.sortCommittee(seed, height, round)
 }
 
@@ -595,7 +620,7 @@ func (n *node) firstSortition() {
 	seed := zeroHash[:]
 	for i := 0; i <= pt.Pos33SortBlocks; i++ {
 		height := int64(i)
-		n.sortMaker(seed, height, 0)
+		// n.sortMaker(seed, height, 0)
 		n.sortCommittee(seed, height, 0)
 	}
 }
@@ -603,29 +628,13 @@ func (n *node) firstSortition() {
 func (n *node) sortCommittee(seed []byte, height int64, round int) {
 	var vss []*pt.Pos33Sorts
 	c := n.getCommittee(height, round)
-	for i := 0; i < 3; i++ {
-		ss := n.voterSort(seed, height, round, Voter, i)
-		if len(ss) == 0 {
-			continue
-		}
-		c.myss[i] = ss
-		vss = append(vss, &pt.Pos33Sorts{Sorts: ss})
-	}
-	n.sendVoterSort(vss, height, round, int(pt.Pos33Msg_VS))
-}
-
-func (n *node) sortMaker(seed []byte, height int64, round int) {
-	plog.Debug("sortMaker", "height", height, "round", round)
-	if n.conf.OnlyVoter {
+	ss := n.committeeSort(seed, height, round, Voter)
+	if len(ss) == 0 {
 		return
 	}
-	s := n.makerSort(seed, height, round)
-	if s == nil {
-		return
-	}
-	m := n.getmaker(height, round)
-	m.my = s
-	n.sendMakerSort(m.my, height, round)
+	c.myss[0] = ss
+	vss = append(vss, &pt.Pos33Sorts{Sorts: ss})
+	n.sendCommitteeerSort(vss, height, round, int(pt.Pos33Msg_VS))
 }
 
 func (n *node) getSortSeed(height int64) ([]byte, error) {
@@ -640,15 +649,11 @@ func (n *node) getSortSeed(height int64) ([]byte, error) {
 	return getMinerSeed(sb)
 }
 
-func (n *node) getDiff(height int64, round int, isMaker bool) float64 {
+func (n *node) getDiff(height int64, round int) float64 {
 	height -= pt.Pos33SortBlocks
 	w := n.allCount(height)
-	size := pt.Pos33MakerSize
-	if !isMaker {
-		size = pt.Pos33VoterSize
-	}
+	size := pt.Pos33CommitteeSize
 	diff := float64(size) / float64(w)
-	// diff *= math.Pow(1.1, float64(round))
 	return diff
 }
 
@@ -841,13 +846,22 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	plog.Info("handleCommittee", "nsvmp", len(comm.svmp), "nvs", len(m.MySorts), "height", height, "addr", address.PubKeyToAddr(ethID, m.Sig.Pubkey)[:16], "time", time.Now().Format("15:04:05.00000"))
 }
 
+func convStrings2Bytes(ss []string) [][]byte {
+	bb := make([][]byte, len(ss))
+	for i, s := range ss {
+		bb[i] = []byte(s)
+	}
+	return bb
+}
+
 func (n *node) voteCommittee(height int64, round int) {
 	comm := n.getCommittee(height, round)
 	css := comm.getCommitteeSorts()
-	var ss [][]byte
+	var ss []string
 	for k := range css {
-		ss = append(ss, []byte(k))
+		ss = append(ss, k)
 	}
+	sort.Strings(ss)
 
 	myss := comm.getMySorts(n.myAddr, height)
 	if len(myss) == 0 {
@@ -856,11 +870,13 @@ func (n *node) voteCommittee(height int64, round int) {
 
 	m := &pt.Pos33SortsVote{
 		MySorts:     myss,
-		SelectSorts: ss,
+		SelectSorts: convStrings2Bytes(ss),
 		Height:      height,
 		Round:       int32(round),
 	}
 	m.Sign(n.getPriv())
+
+	n.voteCanditate(height, round, 0)
 
 	plog.Debug("voteCommittee", "height", height, "nmySelect", len(ss), "nv", len(m.MySorts))
 	n.handleCommittee(m, true)
@@ -890,29 +906,6 @@ func signVotes(priv crypto.PrivKey, vs []*pt.Pos33VoteMsg) {
 	}
 	close(ch)
 	wg.Wait()
-}
-
-func (n *node) voteMaker(height int64, round int) {
-	comm := n.getCommittee(height, round)
-	n.voteCommittee(height, round)
-
-	// 抽签排序, 找出前三作为区块候选人
-	var mss []*pt.Pos33SortMsg
-	for _, s := range comm.mss {
-		mss = append(mss, s)
-	}
-
-	if len(mss) == 0 {
-		return
-	}
-	sort.Sort(pt.Sorts(mss))
-	for i, s := range mss {
-		if i == 3 {
-			break
-		}
-		comm.candidates = append(comm.candidates, s)
-	}
-	n.voteCanditate(height, round, 0)
 }
 
 func (n *node) sendMaketVotes(mvs []*pt.Pos33Votes, ty int) {
@@ -960,17 +953,17 @@ func (n *node) checkCandidate(s *pt.Pos33SortMsg, height int64, round int) error
 	maker := n.getmaker(height, round)
 	comm := n.getCommittee(height, round)
 
-	var canditate *pt.Pos33SortMsg
+	var canditate string
 	for _, c := range comm.candidates {
-		nvs := len(maker.mvs[string(c.SortHash.Hash)])
+		nvs := len(maker.mvs[c])
 		if nvs > 17 {
 			canditate = c
 		}
 	}
-	if canditate == nil {
+	if canditate == "" {
 		return nil
 	}
-	if string(canditate.SortHash.Hash) != string(s.SortHash.Hash) {
+	if canditate != string(s.SortHash.Hash) {
 		return errors.New("canditate NOT right")
 	}
 	return nil
@@ -978,14 +971,6 @@ func (n *node) checkCandidate(s *pt.Pos33SortMsg, height int64, round int) error
 
 func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
 	height := s.Proof.Input.Height
-	round := int(s.Proof.Input.Round)
-	comm := n.getCommittee(height, round)
-	k := string(s.SortHash.Hash)
-	_, ok := comm.sortCheckedMap[k]
-	if ok { // 已经 check 了
-		return nil
-	}
-
 	seed, err := n.getSortSeed(height - pt.Pos33SortBlocks)
 	if err != nil {
 		plog.Error("getSeed error", "err", err, "height", height)
@@ -1002,7 +987,6 @@ func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
 	if err != nil {
 		return err
 	}
-	comm.sortCheckedMap[k] = true
 	return nil
 }
 
@@ -1120,7 +1104,7 @@ var pos33Topics = []string{
 
 func (n *node) voteCanditate(height int64, round, who int) {
 	comm := n.getCommittee(height, round)
-	if len(comm.candidates) <= who+1 {
+	if len(comm.candidates) < who+1 {
 		return
 	}
 	candidate := comm.candidates[who]
@@ -1134,7 +1118,7 @@ func (n *node) voteCanditate(height int64, round, who int) {
 	var vs []*pt.Pos33VoteMsg
 	for _, mys := range myss {
 		v := &pt.Pos33VoteMsg{
-			Hash: candidate.SortHash.Hash,
+			Hash: []byte(candidate),
 			Sort: mys,
 		}
 		vs = append(vs, v)
@@ -1144,7 +1128,6 @@ func (n *node) voteCanditate(height int64, round, who int) {
 	if len(mvs) == 0 {
 		return
 	}
-	plog.Info("vote maker", "addr", address.PubKeyToAddr(ethID, candidate.Proof.Pubkey)[:16], "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
 	n.sendMaketVotes(mvs, int(pt.Pos33Msg_MV))
 }
 
@@ -1187,18 +1170,32 @@ func (n *node) runLoop() {
 	go n.runVerifyVotes()
 	go n.runSortition()
 
-	isSync := false
+	isSync := n.synced()
+	syncTm := time.NewTicker(time.Second * 30)
+	syncCh := make(chan bool, 1)
+
+	go func() {
+		for range syncTm.C {
+			syncCh <- n.synced()
+		}
+	}()
+
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
 	c1ch := make(chan int64, 1) // 候选人 1
 	c2ch := make(chan int64, 1) // 候选人 2
+	bto1 := time.Millisecond * 1900
+	bto2 := time.Second * 2
 
 	round := 0
-	blockTimeout := time.Second * 2
 	resortTimeout := time.Second * 3
 	blockD := int64(900)
 
-	syncTick := time.NewTicker(time.Second * 30)
+	go func() {
+		for range time.NewTicker(time.Second * 30).C {
+			syncCh <- n.IsCaughtUp()
+		}
+	}()
 
 	for {
 		if !isSync {
@@ -1208,8 +1205,7 @@ func (n *node) runLoop() {
 			continue
 		}
 		select {
-		case <-syncTick.C:
-			isSync = n.synced()
+		case isSync = <-syncCh:
 		case <-n.done:
 			plog.Debug("pos33 consensus run loop stoped")
 			return
@@ -1236,7 +1232,7 @@ func (n *node) runLoop() {
 			if height == n.lastBlock().Height+1 {
 				n.voteCanditate(height, round, 1)
 				tt := time.Now()
-				time.AfterFunc(blockTimeout, func() {
+				time.AfterFunc(bto2, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
@@ -1248,7 +1244,7 @@ func (n *node) runLoop() {
 			if height == n.lastBlock().Height+1 {
 				n.voteCanditate(height, round, 2)
 				tt := time.Now()
-				time.AfterFunc(blockTimeout, func() {
+				time.AfterFunc(bto2, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
@@ -1262,7 +1258,7 @@ func (n *node) runLoop() {
 			if cb.Height == height-1 {
 				n.makeNewBlock(height, round)
 				tt := time.Now()
-				time.AfterFunc(blockTimeout, func() {
+				time.AfterFunc(bto1, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
@@ -1271,7 +1267,7 @@ func (n *node) runLoop() {
 				})
 			}
 		case b := <-n.bch: // new block add to chain
-			if b.Height < n.GetCurrentHeight() {
+			if b.Height < n.GetCurrentHeight() && b.Height > 10 {
 				break
 			}
 			round = 0
@@ -1294,6 +1290,9 @@ func (n *node) runLoop() {
 			time.AfterFunc(time.Millisecond*time.Duration(d), func() {
 				nch <- b.Height + 1
 			})
+			if b.Height%100 == 0 {
+				plog.Info("bls", "height", b.Height, "bls", n.blsMp)
+			}
 		}
 	}
 }
@@ -1301,16 +1300,16 @@ func (n *node) runLoop() {
 func (n *node) handleNewBlock(b *types.Block) {
 	tb := time.Now()
 	round := 0
-	plog.Debug("handleNewBlock", "height", b.Height, "round", round, "time", time.Now().Format("15:04:05.00000"))
+	plog.Info("handleNewBlock", "height", b.Height, "round", round, "time", time.Now().Format("15:04:05.00000"))
 	if b.Height == 0 {
 		n.firstSortition()
 		for i := 0; i < 5; i++ {
-			n.voteMaker(int64(i), round)
+			n.voteCommittee(int64(i), round)
 		}
 	} else {
 		n.sortition(b, round)
 	}
-	n.voteMaker(b.Height+pt.Pos33SortBlocks/2, round)
+	n.voteCommittee(b.Height+pt.Pos33SortBlocks/2, round)
 	n.clear(b.Height)
 	plog.Debug("handleNewBlock cost", "height", b.Height, "cost", time.Since(tb))
 }
@@ -1319,13 +1318,13 @@ func (n *node) makeNewBlock(height int64, round int) {
 	plog.Debug("makeNewBlock", "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
 	if round > 0 {
 		// if timeout, only vote, handle vote will make new block
-		n.voteMaker(height, round)
+		n.voteCanditate(height, round, 0)
 		return
 	}
 	n.tryMakeBlock(height, round)
 }
 
-func (n *node) sendVoterSort(ss []*pt.Pos33Sorts, height int64, round, ty int) {
+func (n *node) sendCommitteeerSort(ss []*pt.Pos33Sorts, height int64, round, ty int) {
 	m := &pt.Pos33VoteSorts{
 		VoteSorts: ss,
 	}
@@ -1335,13 +1334,4 @@ func (n *node) sendVoterSort(ss []*pt.Pos33Sorts, height int64, round, ty int) {
 	}
 	n.gss.gossip(n.topic+"/votersorts", types.Encode(pm))
 	n.handleVoterSorts(ss, true, ty)
-}
-
-func (n *node) sendMakerSort(m *pt.Pos33SortMsg, height int64, round int) {
-	pm := &pt.Pos33Msg{
-		Data: types.Encode(m),
-		Ty:   pt.Pos33Msg_MS,
-	}
-	n.gss.gossip(n.topic+"/makersorts", types.Encode(pm))
-	n.handleMakerSort(m, true)
 }

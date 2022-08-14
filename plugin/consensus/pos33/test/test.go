@@ -166,11 +166,14 @@ func run(privs []crypto.PrivKey) {
 		hch <- height
 
 		txs[i] = tx
-
 		i++
+
 		ntx++
-		if ntx%1000 == 0 {
-			log.Println(i, "... txs sent")
+		if ntx%10000 == 0 {
+			log.Println(ntx, "... txs sent")
+			if ntx%100000 == 0 {
+				time.Sleep(time.Second * 10)
+			}
 		}
 
 		if i == max {
