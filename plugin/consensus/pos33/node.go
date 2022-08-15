@@ -28,11 +28,10 @@ type committee struct {
 	svmp map[string]int // 验证委员会的投票
 	n    *node
 
-	cvmp map[string][]*pt.Pos33VoteMsg
+	bvmp map[string][]*pt.Pos33VoteMsg
 	bmp  map[string]*types.Block
 
 	candidates []string
-	canditate  string
 }
 
 func (c *committee) setCommittee(height int64) {
@@ -49,7 +48,6 @@ func (c *committee) setCommittee(height int64) {
 			break
 		}
 	}
-	c.canditate = c.candidates[0]
 	plog.Debug("committee len", "len", len(c.svmp), "height", height)
 }
 
@@ -65,7 +63,7 @@ func (n *node) getCommittee(height int64, round int) *committee {
 			css:  make(map[int]map[string]*pt.Pos33SortMsg),
 			ssmp: make(map[string]*pt.Pos33SortMsg),
 			svmp: make(map[string]int),
-			cvmp: make(map[string][]*pt.Pos33VoteMsg),
+			bvmp: make(map[string][]*pt.Pos33VoteMsg),
 			bmp:  make(map[string]*types.Block),
 			n:    n,
 		}
@@ -705,9 +703,9 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 			return
 		}
 
-		comm.cvmp[string(m.Hash)] = append(comm.cvmp[string(m.Hash)], m)
+		comm.bvmp[string(m.Hash)] = append(comm.bvmp[string(m.Hash)], m)
 	}
-	if len(comm.cvmp[string(m0.Hash)]) > 17 {
+	if len(comm.bvmp[string(m0.Hash)]) > 17 {
 		n.setBlock(comm.bmp[string(m0.Hash)])
 	}
 
@@ -745,7 +743,7 @@ FOR:
 	}
 	lround := int(miner.Sort.Proof.Input.Round)
 	lcomm := n.getCommittee(height-1, lround)
-	lvs := lcomm.cvmp[string(pb.Hash(n.GetAPI().GetConfig()))]
+	lvs := lcomm.bvmp[string(pb.Hash(n.GetAPI().GetConfig()))]
 
 	nb, err := n.makeBlock(height, round, myS, lvs)
 	if err != nil {
@@ -765,6 +763,9 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	// n.setBlock(m.B)
 	comm := n.getCommittee(m.B.Height, round)
 	comm.bmp[string(m.B.Hash(n.GetAPI().GetConfig()))] = m.B
+	if len(comm.bmp) > 1 {
+		n.voteBlock(m.B.Height, round)
+	}
 }
 
 func checkTime(t int64) bool {
@@ -873,6 +874,17 @@ func signVotes(priv crypto.PrivKey, vs []*pt.Pos33VoteMsg) {
 	wg.Wait()
 }
 
+func (n *node) sendBlockVotes(mvs []*pt.Pos33VoteMsg, ty int) {
+	m := &pt.Pos33Votes{Vs: mvs}
+	pm := &pt.Pos33Msg{
+		Data: types.Encode(m),
+		Ty:   pt.Pos33Msg_Ty(ty),
+	}
+	data := types.Encode(pm)
+	n.gss.gossip(n.topic+"/blockvotes", data)
+	n.handleVoteMsg(mvs, true, ty)
+}
+
 func (n *node) sendCanditateVotes(mvs []*pt.Pos33Votes, ty int) {
 	m := &pt.Pos33MakerVotes{Mvs: mvs}
 	pm := &pt.Pos33Msg{
@@ -923,8 +935,8 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 		return false
 	}
 	switch pm.Ty {
-	case pt.Pos33Msg_MS:
-		return false
+	// case pt.Pos33Msg_MS:
+	// 	return false
 	case pt.Pos33Msg_VS:
 		var m pt.Pos33VoteSorts
 		err := types.Decode(pm.Data, &m)
@@ -933,14 +945,14 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 			return false
 		}
 		n.handleVoterSorts(m.VoteSorts, false, int(pm.Ty))
-	case pt.Pos33Msg_MV:
-		var m pt.Pos33MakerVotes
-		err := types.Decode(pm.Data, &m)
-		if err != nil {
-			plog.Error(err.Error())
-			return false
-		}
-		n.handleMakerVotes(m.Mvs, false, int(pm.Ty))
+	// case pt.Pos33Msg_MV:
+	// 	var m pt.Pos33MakerVotes
+	// 	err := types.Decode(pm.Data, &m)
+	// 	if err != nil {
+	// 		plog.Error(err.Error())
+	// 		return false
+	// 	}
+	// 	n.handleMakerVotes(m.Mvs, false, int(pm.Ty))
 	case pt.Pos33Msg_B:
 		var m pt.Pos33BlockMsg
 		err := types.Decode(pm.Data, &m)
@@ -1007,42 +1019,72 @@ func (n *node) getPID() {
 }
 
 var pos33Topics = []string{
-	"/makersorts",
+	// "/makersorts",
 	"/votersorts",
-	"/makervotes",
-	// "/blockvotes",
+	// "/makervotes",
+	"/blockvotes",
 	"/block",
 	"/committee",
 }
 
-func (n *node) voteCanditate(height int64, round, who int) {
+func (n *node) voteBlock(height int64, round int) {
 	comm := n.getCommittee(height, round)
-	if len(comm.candidates) < who+1 {
-		return
+	var hash []byte
+	for _, c := range comm.candidates {
+		for h, b := range comm.bmp {
+			m, err := getMiner(b)
+			if err != nil {
+				continue
+			}
+			if string(c) == string(m.Sort.SortHash.Hash) {
+				hash = []byte(h)
+			}
+		}
+		if hash != nil {
+			break
+		}
 	}
-	candidate := comm.candidates[who]
-	comm.canditate = candidate
 
-	// 我的抽签
 	myss := comm.getMySorts(n.myAddr, height)
-
-	// 对候选人投票
-	var mvs []*pt.Pos33Votes
 	var vs []*pt.Pos33VoteMsg
 	for _, mys := range myss {
 		v := &pt.Pos33VoteMsg{
-			Hash: []byte(candidate),
+			Hash: hash,
 			Sort: mys,
 		}
 		vs = append(vs, v)
 	}
 	signVotes(n.getPriv(), vs)
-	mvs = append(mvs, &pt.Pos33Votes{Vs: vs})
-	if len(mvs) == 0 {
-		return
-	}
-	n.sendCanditateVotes(mvs, int(pt.Pos33Msg_MV))
+	n.sendBlockVotes(vs, int(pt.Pos33Msg_BV))
 }
+
+// func (n *node) voteCanditate(height int64, round, who int) {
+// 	comm := n.getCommittee(height, round)
+// 	if len(comm.candidates) < who+1 {
+// 		return
+// 	}
+// 	candidate := comm.candidates[who]
+
+// 	// 我的抽签
+// 	myss := comm.getMySorts(n.myAddr, height)
+
+// 	// 对候选人投票
+// 	var mvs []*pt.Pos33Votes
+// 	var vs []*pt.Pos33VoteMsg
+// 	for _, mys := range myss {
+// 		v := &pt.Pos33VoteMsg{
+// 			Hash: []byte(candidate),
+// 			Sort: mys,
+// 		}
+// 		vs = append(vs, v)
+// 	}
+// 	signVotes(n.getPriv(), vs)
+// 	mvs = append(mvs, &pt.Pos33Votes{Vs: vs})
+// 	if len(mvs) == 0 {
+// 		return
+// 	}
+// 	n.sendCanditateVotes(mvs, int(pt.Pos33Msg_MV))
+// }
 
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
@@ -1095,10 +1137,11 @@ func (n *node) runLoop() {
 
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
-	c1ch := make(chan int64, 1) // 候选人 1
-	c2ch := make(chan int64, 1) // 候选人 2
-	bto1 := time.Millisecond * 1900
-	bto2 := time.Second * 2
+	blockTimeout := time.Second * 3
+	// c1ch := make(chan int64, 1) // 候选人 1
+	// c2ch := make(chan int64, 1) // 候选人 2
+	// bto1 := time.Millisecond * 1900
+	// bto2 := time.Second * 2
 
 	round := 0
 	resortTimeout := time.Second * 3
@@ -1141,42 +1184,42 @@ func (n *node) runLoop() {
 					nch <- nh
 				})
 			}
-		case height := <-c1ch:
-			if height == n.lastBlock().Height+1 {
-				n.voteCanditate(height, round, 1)
-				tt := time.Now()
-				time.AfterFunc(bto2, func() {
-					if n.GetCurrentHeight() >= height {
-						return
-					}
-					plog.Info("second block timeout", "height", height, "round", round, "cost", time.Since(tt))
-					c2ch <- height
-				})
-			}
-		case height := <-c2ch:
-			if height == n.lastBlock().Height+1 {
-				n.voteCanditate(height, round, 2)
-				tt := time.Now()
-				time.AfterFunc(bto2, func() {
-					if n.GetCurrentHeight() >= height {
-						return
-					}
-					plog.Info("third block timeout", "height", height, "round", round, "cost", time.Since(tt))
-					tch <- height
-				})
-			}
+		// case height := <-c1ch:
+		// 	if height == n.lastBlock().Height+1 {
+		// 		n.voteCanditate(height, round, 1)
+		// 		tt := time.Now()
+		// 		time.AfterFunc(bto2, func() {
+		// 			if n.GetCurrentHeight() >= height {
+		// 				return
+		// 			}
+		// 			plog.Info("second block timeout", "height", height, "round", round, "cost", time.Since(tt))
+		// 			c2ch <- height
+		// 		})
+		// 	}
+		// case height := <-c2ch:
+		// 	if height == n.lastBlock().Height+1 {
+		// 		n.voteCanditate(height, round, 2)
+		// 		tt := time.Now()
+		// 		time.AfterFunc(bto2, func() {
+		// 			if n.GetCurrentHeight() >= height {
+		// 				return
+		// 			}
+		// 			plog.Info("third block timeout", "height", height, "round", round, "cost", time.Since(tt))
+		// 			tch <- height
+		// 		})
+		// 	}
 		case height := <-nch:
 			n.getCommittee(height, round).setCommittee(height)
 			cb := n.GetCurrentBlock()
 			if cb.Height == height-1 {
 				n.makeNewBlock(height, round)
 				tt := time.Now()
-				time.AfterFunc(bto1, func() {
+				time.AfterFunc(blockTimeout, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
 					plog.Info("first block timeout", "height", height, "round", round, "cost", time.Since(tt))
-					c1ch <- height
+					tch <- height
 				})
 			}
 		case b := <-n.bch: // new block add to chain
@@ -1229,11 +1272,6 @@ func (n *node) handleNewBlock(b *types.Block) {
 
 func (n *node) makeNewBlock(height int64, round int) {
 	plog.Debug("makeNewBlock", "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
-	if round > 0 {
-		// if timeout, only vote, handle vote will make new block
-		n.voteCanditate(height, round, 0)
-		return
-	}
 	n.tryMakeBlock(height, round)
 }
 
