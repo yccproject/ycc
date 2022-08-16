@@ -167,7 +167,7 @@ func (n *node) lastBlock() *types.Block {
 	return b
 }
 
-func (n *node) minerTx(height int64, round int, sm *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg, priv crypto.PrivKey) (*types.Transaction, error) {
+func (n *node) minerTx(height int64, round int, pbhash []byte, sm *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg, priv crypto.PrivKey) (*types.Transaction, error) {
 	if len(vs) > pt.Pos33VoterSize {
 		sort.Sort(pt.Votes(vs))
 		vs = vs[:pt.Pos33VoterSize]
@@ -185,16 +185,11 @@ func (n *node) minerTx(height int64, round int, sm *pt.Pos33SortMsg, vs []*pt.Po
 	if err != nil {
 		return nil, err
 	}
-	// if err != nil && round < 3 {
-	// 	return nil, err
-	// } else if err != nil {
-	// 	blsSig = bls.SignatureBLS{}
-	// }
 	act := &pt.Pos33TicketAction{
 		Value: &pt.Pos33TicketAction_Miner{
 			Miner: &pt.Pos33MinerMsg{
 				BlsPkList: pklist,
-				Hash:      sm.SortHash.Hash,
+				Hash:      pbhash,
 				BlsSig:    blsSig.Bytes(),
 				Sort:      sm,
 				BlockTime: time.Now().UnixNano() / 1000000,
@@ -256,7 +251,7 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 	if err != nil {
 		return nil, err
 	}
-	tx, err := n.minerTx(height, round, sort, vs, priv)
+	tx, err := n.minerTx(height, round, lb.Hash(n.GetAPI().GetConfig()), sort, vs, priv)
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +478,7 @@ func (n *node) checkVote(v *pt.Pos33VoteMsg, hash []byte, ty int) error {
 		return errors.New("Pos33BindAddr NOT match")
 	}
 
-	return n.checkSort(v.Sort, Voter)
+	return n.checkSort(v.Sort, Committee)
 }
 
 func (n *node) blockCheck(b *types.Block) error {
@@ -511,14 +506,8 @@ func (n *node) blockCheck(b *types.Block) error {
 	}
 	round := int(act.Sort.Proof.Input.Round)
 
-	// 查看candidate是否一致
-	err = n.checkCandidate(act.Sort, height, round)
-	if err != nil {
-		return err
-	}
-
-	plog.Debug("block check", "height", b.Height, "from", b.Txs[0].From()[:16])
-	err = n.checkSort(act.Sort, 0)
+	plog.Info("block check", "height", b.Height, "from", b.Txs[0].From()[:16])
+	err = n.checkSort(act.Sort, Committee)
 	if err != nil {
 		plog.Error("blockCheck error", "err", err, "height", b.Height, "round", round)
 		return err
@@ -583,7 +572,7 @@ func (n *node) firstSortition() {
 func (n *node) sortCommittee(seed []byte, height int64, round int) {
 	var vss []*pt.Pos33Sorts
 	c := n.getCommittee(height, round)
-	ss := n.committeeSort(seed, height, round, Voter)
+	ss := n.committeeSort(seed, height, round, Committee)
 	if len(ss) == 0 {
 		return
 	}

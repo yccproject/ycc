@@ -20,8 +20,7 @@ var max = big.NewInt(0).Exp(big.NewInt(2), big.NewInt(256), nil)
 var fmax = big.NewFloat(0).SetInt(max) // 2^^256
 
 const (
-	Maker = iota
-	Voter
+	Committee = 0
 )
 
 // 算法依据：
