@@ -295,7 +295,6 @@ func (n *node) broadcastComm(height int64, round int, msg types.Message) {
 
 func (n *node) broadcastBlock(b *types.Block, round int) {
 	m := &pt.Pos33BlockMsg{B: b, Pid: n.pid}
-
 	pm := &pt.Pos33Msg{Data: types.Encode(m), Ty: pt.Pos33Msg_B}
 	// n.broadcastComm(b.Height, round, pm)
 	data := types.Encode(pm)
@@ -378,6 +377,7 @@ func (n *node) runVerifyVotes() {
 		}()
 	}
 }
+
 func (n *node) verifyVotes(vs []*pt.Pos33VoteMsg) bool {
 	ch := make(chan bool, len(vs))
 	defer close(ch)
@@ -696,19 +696,25 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 
 		comm.bvmp[string(m.Hash)] = append(comm.bvmp[string(m.Hash)], m)
 	}
+
 	plog.Info("handleVoteMsg", "height", height, "hash", common.HashHex(m0.Hash)[:16], "nvs", len(comm.bvmp[string(m0.Hash)]))
 
-	if height == 0 {
+	if height == 0 || n.GetCurrentHeight() >= height {
 		return
 	}
 
 	if len(comm.bvmp[string(m0.Hash)]) > 17 {
-		n.setBlock(comm.bmp[string(m0.Hash)])
+		b := comm.bmp[string(m0.Hash)]
+		n.setBlock(b)
+		// if b.Txs != nil {
+		// 	plog.Info("setBlock", "height", height)
+		// 	n.setBlock(b)
+		// }
 	}
 
-	if n.GetCurrentHeight() == height-1 {
-		n.tryMakeBlock(height, round)
-	}
+	// if n.GetCurrentHeight() == height-1 {
+	// 	n.tryMakeBlock(height, round)
+	// }
 }
 
 func (co *committee) mySort() *pt.Pos33SortMsg {
@@ -938,8 +944,14 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 		return false
 	}
 	switch pm.Ty {
-	// case pt.Pos33Msg_MS:
-	// 	return false
+	case pt.Pos33Msg_BV:
+		var m pt.Pos33Votes
+		err := types.Decode(pm.Data, &m)
+		if err != nil {
+			plog.Error(err.Error())
+			return false
+		}
+		n.handleVoteMsg(m.Vs, false, int(pm.Ty))
 	case pt.Pos33Msg_VS:
 		var m pt.Pos33VoteSorts
 		err := types.Decode(pm.Data, &m)
@@ -948,14 +960,6 @@ func (n *node) handlePos33Msg(pm *pt.Pos33Msg) bool {
 			return false
 		}
 		n.handleVoterSorts(m.VoteSorts, false, int(pm.Ty))
-	// case pt.Pos33Msg_MV:
-	// 	var m pt.Pos33MakerVotes
-	// 	err := types.Decode(pm.Data, &m)
-	// 	if err != nil {
-	// 		plog.Error(err.Error())
-	// 		return false
-	// 	}
-	// 	n.handleMakerVotes(m.Mvs, false, int(pm.Ty))
 	case pt.Pos33Msg_B:
 		var m pt.Pos33BlockMsg
 		err := types.Decode(pm.Data, &m)
@@ -1022,9 +1026,7 @@ func (n *node) getPID() {
 }
 
 var pos33Topics = []string{
-	// "/makersorts",
 	"/votersorts",
-	// "/makervotes",
 	"/blockvotes",
 	"/block",
 	"/committee",
@@ -1104,6 +1106,14 @@ func (n *node) voteBlock(height int64, round int) {
 // 	n.sendCanditateVotes(mvs, int(pt.Pos33Msg_MV))
 // }
 
+func blockRound(b *types.Block) int {
+	m, err := getMiner(b)
+	if err != nil {
+		panic(err)
+	}
+	return int(m.Sort.Proof.Input.Round)
+}
+
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
 	if err != nil {
@@ -1163,6 +1173,14 @@ func (n *node) runLoop() {
 	round := 0
 	blockD := int64(900)
 
+	// lround := 0
+	// if lb.Height != 0 {
+	// 	lround = blockRound(lb)
+	// }
+	// comm := n.getCommittee(lb.Height, lround)
+	// comm.bmp[string(lb.Hash(n.GetAPI().GetConfig()))] = lb
+	// n.voteBlock(lb.Height, lround)
+
 	go func() {
 		for range time.NewTicker(time.Second * 30).C {
 			syncCh <- n.IsCaughtUp()
@@ -1200,41 +1218,15 @@ func (n *node) runLoop() {
 					nch <- nh
 				})
 			}
-		// case height := <-c1ch:
-		// 	if height == n.lastBlock().Height+1 {
-		// 		n.voteCanditate(height, round, 1)
-		// 		tt := time.Now()
-		// 		time.AfterFunc(bto2, func() {
-		// 			if n.GetCurrentHeight() >= height {
-		// 				return
-		// 			}
-		// 			plog.Info("second block timeout", "height", height, "round", round, "cost", time.Since(tt))
-		// 			c2ch <- height
-		// 		})
-		// 	}
-		// case height := <-c2ch:
-		// 	if height == n.lastBlock().Height+1 {
-		// 		n.voteCanditate(height, round, 2)
-		// 		tt := time.Now()
-		// 		time.AfterFunc(bto2, func() {
-		// 			if n.GetCurrentHeight() >= height {
-		// 				return
-		// 			}
-		// 			plog.Info("third block timeout", "height", height, "round", round, "cost", time.Since(tt))
-		// 			tch <- height
-		// 		})
-		// 	}
 		case height := <-nch:
 			n.getCommittee(height, round).setCommittee(height)
 			cb := n.GetCurrentBlock()
 			if cb.Height == height-1 {
 				n.makeNewBlock(height, round)
-				tt := time.Now()
 				time.AfterFunc(blockTimeout, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
-					plog.Info("block timeout", "height", height, "round", round, "cost", time.Since(tt))
 					tch <- height
 				})
 				time.AfterFunc(voteTimeout, func() {

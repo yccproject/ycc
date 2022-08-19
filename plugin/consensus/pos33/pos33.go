@@ -444,10 +444,13 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 
 // write block to chain
 func (client *Client) setBlock(b *types.Block) error {
-	cb := client.GetCurrentBlock()
-	if cb.Height >= b.Height {
+	if b == nil {
 		return nil
 	}
+	// cb := client.GetCurrentBlock()
+	// if cb.Height >= b.Height {
+	// 	return nil
+	// }
 	lastBlock, err := client.RequestBlock(b.Height - 1)
 	if err != nil {
 		return err
