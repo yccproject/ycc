@@ -3,6 +3,7 @@ package pos33
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -33,6 +34,35 @@ type committee struct {
 	voted bool
 
 	candidates []string
+}
+
+func writeVotes(file string, bvmp map[string][]*pt.Pos33VoteMsg) error {
+	var vs pt.Pos33Votes
+	for _, v := range bvmp {
+		vs.Vs = append(vs.Vs, v...)
+	}
+	err := os.WriteFile(file, types.Encode(&vs), 0666)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func readVotes(file string) (map[string][]*pt.Pos33VoteMsg, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	var vs pt.Pos33Votes
+	err = types.Decode(data, &vs)
+	if err != nil {
+		return nil, err
+	}
+	mp := make(map[string][]*pt.Pos33VoteMsg)
+	for _, v := range vs.Vs {
+		mp[string(v.Hash)] = append(mp[string(v.Hash)], v)
+	}
+	return mp, nil
 }
 
 func (c *committee) setCommittee(height int64) {
@@ -1114,6 +1144,8 @@ func blockRound(b *types.Block) int {
 	return int(m.Sort.Proof.Input.Round)
 }
 
+const blockVotePath = "./data/bv.data"
+
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
 	if err != nil {
@@ -1173,13 +1205,17 @@ func (n *node) runLoop() {
 	round := 0
 	blockD := int64(900)
 
-	// lround := 0
-	// if lb.Height != 0 {
-	// 	lround = blockRound(lb)
-	// }
-	// comm := n.getCommittee(lb.Height, lround)
-	// comm.bmp[string(lb.Hash(n.GetAPI().GetConfig()))] = lb
-	// n.voteBlock(lb.Height, lround)
+	bvmp, err := readVotes(blockVotePath)
+	if err != nil {
+		plog.Info("readVotes error", "err", err)
+	}
+	lround := 0
+	if lb.Height != 0 {
+		lround = blockRound(lb)
+	}
+	lcomm := n.getCommittee(lb.Height, lround)
+	// lcomm.bmp[string(lb.Hash(n.GetAPI().GetConfig()))] = lb
+	lcomm.bvmp = bvmp
 
 	go func() {
 		for range time.NewTicker(time.Second * 30).C {
@@ -1266,6 +1302,16 @@ func (n *node) runLoop() {
 	}
 }
 
+func writeBlockVotes(b *types.Block, n *node) error {
+	m, err := getMiner(b)
+	if err != nil {
+		return err
+	}
+	round := int(m.Sort.Proof.Input.Round)
+	comm := n.getCommittee(b.Height, round)
+	return writeVotes(blockVotePath, comm.bvmp)
+}
+
 func (n *node) handleNewBlock(b *types.Block) {
 	tb := time.Now()
 	round := 0
@@ -1285,6 +1331,12 @@ func (n *node) handleNewBlock(b *types.Block) {
 	n.voteCommittee(b.Height+pt.Pos33SortBlocks/2, round)
 	n.clear(b.Height)
 	plog.Debug("handleNewBlock cost", "height", b.Height, "cost", time.Since(tb))
+	if b.Height > 0 {
+		err := writeBlockVotes(b, n)
+		if err != nil {
+			plog.Error("writeBlockVotes error", "err", err)
+		}
+	}
 }
 
 func (n *node) makeNewBlock(height int64, round int) {
