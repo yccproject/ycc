@@ -608,6 +608,7 @@ func (n *node) sortCommittee(seed []byte, height int64, round int) {
 	}
 	c.myss[0] = ss
 	vss = append(vss, &pt.Pos33Sorts{Sorts: ss})
+	plog.Info("sortCommittee", "height", height, "round", round, "ss len", len(ss))
 	n.sendCommitteeerSort(vss, height, round, int(pt.Pos33Msg_VS))
 }
 
@@ -675,14 +676,8 @@ func (n *node) handleVoterSort(ss []*pt.Pos33SortMsg, myself bool, ty int) bool 
 	for _, s := range ss {
 		mp[string(s.SortHash.Hash)] = s
 	}
-	// plog.Debug("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(ethID,s0.Proof.Pubkey)[:16])
+	plog.Info("handleVoterSort", "all", len(comm.css[num]), "nvs", len(ss), "height", height, "round", round, "num", num, "ty", ty, "addr", address.PubKeyToAddr(ethID, s0.Proof.Pubkey)[:16])
 	return true
-}
-
-func (n *node) handleMakerVotes(mvs []*pt.Pos33Votes, myself bool, ty int) {
-	for _, vs := range mvs {
-		n.n.handleVoteMsg(vs.Vs, myself, ty)
-	}
 }
 
 func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
@@ -807,15 +802,6 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	plog.Info("handleBlockMsg", "height", m.B.Height, "hash", common.HashHex(hash)[:16])
 }
 
-func checkTime(t int64) bool {
-	// mt := time.Now().UnixNano() / 1000000
-	// if mt-t > 3000 || t-mt > 2000 {
-	// 	plog.Debug("checkTime false", "t", t, "mt", mt, "mt-t", mt-t)
-	// 	return false
-	// }
-	return true
-}
-
 func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 	if !self && !m.Verify() {
 		plog.Error("handleVotesCount error, signature verify false")
@@ -922,21 +908,6 @@ func (n *node) sendBlockVotes(mvs []*pt.Pos33VoteMsg, ty int) {
 	data := types.Encode(pm)
 	n.gss.gossip(n.topic+"/blockvotes", data)
 	n.handleVoteMsg(mvs, true, ty)
-}
-
-func (n *node) sendCanditateVotes(mvs []*pt.Pos33Votes, ty int) {
-	m := &pt.Pos33MakerVotes{Mvs: mvs}
-	pm := &pt.Pos33Msg{
-		Data: types.Encode(m),
-		Ty:   pt.Pos33Msg_Ty(ty),
-	}
-	data := types.Encode(pm)
-	n.gss.gossip(n.topic+"/makervotes", data)
-	n.handleMakerVotes(mvs, true, ty)
-}
-
-func (n *node) checkCandidate(s *pt.Pos33SortMsg, height int64, round int) error {
-	return nil
 }
 
 func (n *node) checkSort(s *pt.Pos33SortMsg, ty int) error {
@@ -1144,7 +1115,7 @@ func blockRound(b *types.Block) int {
 	return int(m.Sort.Proof.Input.Round)
 }
 
-const blockVotePath = "./data/bv.data"
+const blockVotePath = "./datadir/bv.data"
 
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
@@ -1198,24 +1169,28 @@ func (n *node) runLoop() {
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
 	vch := make(chan int64, 1)
-	blockTimeout := time.Second * 3
-	resortTimeout := time.Second * 3
-	voteTimeout := time.Millisecond * 900
+	cch := make(chan int64, 1)
+	blockTimeout := time.Second * 2
+	resortTimeout := time.Second * 1
+	voteCommitteeTmo := time.Second * 1
+	voteBlockTmo := time.Millisecond * 900
 
 	round := 0
 	blockD := int64(900)
 
-	bvmp, err := readVotes(blockVotePath)
-	if err != nil {
-		plog.Info("readVotes error", "err", err)
+	if lb.Height > 0 {
+		bvmp, err := readVotes(blockVotePath)
+		if err != nil {
+			plog.Info("readVotes error", "err", err)
+		}
+		lround := 0
+		if lb.Height != 0 {
+			lround = blockRound(lb)
+		}
+		lcomm := n.getCommittee(lb.Height, lround)
+		// lcomm.bmp[string(lb.Hash(n.GetAPI().GetConfig()))] = lb
+		lcomm.bvmp = bvmp
 	}
-	lround := 0
-	if lb.Height != 0 {
-		lround = blockRound(lb)
-	}
-	lcomm := n.getCommittee(lb.Height, lround)
-	// lcomm.bmp[string(lb.Hash(n.GetAPI().GetConfig()))] = lb
-	lcomm.bvmp = bvmp
 
 	go func() {
 		for range time.NewTicker(time.Second * 30).C {
@@ -1251,21 +1226,26 @@ func (n *node) runLoop() {
 						return
 					}
 					plog.Debug("block timeout", "height", height, "round", round, "cost", time.Since(tt))
-					nch <- nh
+					cch <- nh
 				})
 			}
+		case height := <-cch:
+			n.voteCommittee(height, round)
+			time.AfterFunc(voteCommitteeTmo, func() {
+				nch <- height
+			})
 		case height := <-nch:
 			n.getCommittee(height, round).setCommittee(height)
 			cb := n.GetCurrentBlock()
 			if cb.Height == height-1 {
-				n.makeNewBlock(height, round)
+				n.tryMakeBlock(height, round)
 				time.AfterFunc(blockTimeout, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
 					tch <- height
 				})
-				time.AfterFunc(voteTimeout, func() {
+				time.AfterFunc(voteBlockTmo, func() {
 					vch <- height
 				})
 			}
@@ -1337,11 +1317,6 @@ func (n *node) handleNewBlock(b *types.Block) {
 			plog.Error("writeBlockVotes error", "err", err)
 		}
 	}
-}
-
-func (n *node) makeNewBlock(height int64, round int) {
-	plog.Info("makeNewBlock", "height", height, "round", round, "time", time.Now().Format("15:04:05.00000"))
-	n.tryMakeBlock(height, round)
 }
 
 func (n *node) sendCommitteeerSort(ss []*pt.Pos33Sorts, height int64, round, ty int) {
