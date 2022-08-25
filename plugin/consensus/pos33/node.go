@@ -450,11 +450,11 @@ func (n *node) checkVotes(vs []*pt.Pos33VoteMsg, ty int, hash []byte, h int64, c
 	height := v0.Sort.Proof.Input.Height
 	round := v0.Sort.Proof.Input.Round
 
-	if checkEnough {
-		if len(vs) < pt.Pos33MustVotes {
-			return errors.New("checkVotes error: NOT enough votes")
-		}
-	}
+	// if checkEnough {
+	// 	if len(vs) < pt.Pos33MustVotes {
+	// 		return errors.New("checkVotes error: NOT enough votes")
+	// 	}
+	// }
 
 	if !n.verifyVotes(vs) {
 		plog.Error("verifyVotes error", "height", height)
@@ -531,9 +531,9 @@ func (n *node) blockCheck(b *types.Block) error {
 	if act.Sort == nil || act.Sort.Proof == nil || act.Sort.Proof.Input == nil {
 		return fmt.Errorf("miner tx error")
 	}
-	if len(act.BlsPkList) < pt.Pos33MustVotes {
-		return fmt.Errorf("NOT enought votes")
-	}
+	// if len(act.BlsPkList) < pt.Pos33MustVotes {
+	// 	return fmt.Errorf("NOT enought votes")
+	// }
 	round := int(act.Sort.Proof.Input.Round)
 
 	plog.Info("block check", "height", b.Height, "from", b.Txs[0].From()[:16])
@@ -728,7 +728,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 		return
 	}
 
-	if len(comm.bvmp[string(m0.Hash)]) > 17 {
+	if len(comm.bvmp[string(m0.Hash)]) >= 13 {
 		b := comm.bmp[string(m0.Hash)]
 		n.setBlock(b)
 		// if b.Txs != nil {
