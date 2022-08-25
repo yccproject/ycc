@@ -343,6 +343,7 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 	}
 	if receipt != nil {
 		kvs = append(kvs, receipt.KV...)
+		logs = append(logs, receipt.Logs...)
 	}
 
 	for _, mi := range mis {
