@@ -75,7 +75,7 @@ wsApi = ["eth", "web3", "personal", "admin", "net"]
 bootPeers = [
   "/ip4/121.52.224.84/tcp/10801/p2p/16Uiu2HAmErmNhtS145Lv5fe9FWrHSrNjPkp1eMLeLgi6t3sdr1of",
   "/ip4/121.52.224.85/tcp/10801/p2p/16Uiu2HAkwjfnaDfxzV2ZKfqKXoLq3ftTLh8GyxorWE25gPfRE9gB",
-  "/ip4/121.52.224.86/tcp/10801/p2p/16Uiu2HAmJmMxZRMYtYSLpbZK4aNjJo8dPyagX2ACm3gi4LEu2SPU",
+  "/ip4/121.52.224.86/tcp/10801/p2p/16Uiu2HAmRkq5HYNJkgeSMf7dDk1K5DYEZLR9oJJWqZ2SHj4oPnfn",
 ]
 issueTotal = 10000000000
 listenPort = 10801
