@@ -171,8 +171,8 @@ func run(privs []crypto.PrivKey) {
 		ntx++
 		if ntx%10000 == 0 {
 			log.Println(ntx, "... txs sent")
-			if ntx%100000 == 0 {
-				time.Sleep(time.Second * 10)
+			if ntx%30000 == 0 {
+				time.Sleep(time.Second * 3)
 			}
 		}
 
@@ -287,7 +287,7 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	}
 	tx.To = to
 	tx.Expire = height + 20 + types.TxHeightFlag
-	tx.ChainID = 999
+	tx.ChainID = 9991
 	tx.Fee = 1000000
 	tx.Nonce = rand.Int63()
 	if *sign {
@@ -321,7 +321,7 @@ func newNoUseTx() *Tx {
 	//tx.Sign(types.SECP256K1, priv)
 	// tx.Signature = &types.Signature{Ty: none.ID, Pubkey: priv.PubKey().Bytes()}
 	tx.Signature = &types.Signature{Ty: none.ID, Pubkey: noUseKey.PubKey().Bytes()}
-	tx.ChainID = 999
+	tx.ChainID = 9991
 	return tx
 }
 
@@ -334,7 +334,7 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	}
 	tx.Fee = 1000000
 	tx.To = to
-	tx.ChainID = 999
+	tx.ChainID = 9991
 	tx.Nonce = rand.Int63()
 	if *sign {
 		signID := types.EncodeSignID(types.SECP256K1, ethID)

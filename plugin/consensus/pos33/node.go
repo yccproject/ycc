@@ -29,9 +29,10 @@ type committee struct {
 	svmp map[string]int // 验证委员会的投票
 	n    *node
 
-	bvmp  map[string][]*pt.Pos33VoteMsg
-	bmp   map[string]*types.Block
-	voted bool
+	bvmp   map[string][]*pt.Pos33VoteMsg
+	bmp    map[string]*types.Block
+	voted  bool
+	setted bool
 
 	candidates []string
 }
@@ -66,6 +67,10 @@ func readVotes(file string) (map[string][]*pt.Pos33VoteMsg, error) {
 }
 
 func (c *committee) setCommittee(height int64) {
+	if c.setted {
+		return
+	}
+	c.setted = true
 	var ss []string
 	for k, n := range c.svmp {
 		if n < pt.Pos33MustVotes {
@@ -722,7 +727,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 		comm.bvmp[string(m.Hash)] = append(comm.bvmp[string(m.Hash)], m)
 	}
 
-	plog.Info("handleVoteMsg", "height", height, "hash", common.HashHex(m0.Hash)[:16], "nvs", len(comm.bvmp[string(m0.Hash)]))
+	plog.Info("handleVoteMsg", "height", height, "round", round, "nvs", len(ms), "hash", common.HashHex(m0.Hash)[:16], "bvmp", len(comm.bvmp[string(m0.Hash)]))
 
 	if height == 0 || n.GetCurrentHeight() >= height {
 		return
@@ -755,6 +760,8 @@ func (co *committee) mySort() *pt.Pos33SortMsg {
 
 func (n *node) tryMakeBlock(height int64, round int) {
 	comm := n.getCommittee(height, round)
+	comm.setCommittee(height)
+
 	myss := comm.myss[0]
 	if len(myss) == 0 {
 		return
@@ -796,7 +803,7 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	comm := n.getCommittee(m.B.Height, round)
 	hash := m.B.Hash(n.GetAPI().GetConfig())
 	comm.bmp[string(hash)] = m.B
-	if len(comm.bmp) > 1 {
+	if len(comm.bmp) > 2 {
 		n.voteBlock(m.B.Height, round)
 	}
 	plog.Info("handleBlockMsg", "height", m.B.Height, "hash", common.HashHex(hash)[:16])
@@ -1035,6 +1042,8 @@ var pos33Topics = []string{
 
 func (n *node) voteBlock(height int64, round int) {
 	comm := n.getCommittee(height, round)
+	comm.setCommittee(height)
+
 	if !comm.voted {
 		comm.voted = true
 	} else {
@@ -1064,9 +1073,12 @@ func (n *node) voteBlock(height int64, round int) {
 	if hash == nil {
 		return
 	}
-	plog.Info("voteBlock", "height", height, "round", round, "hash", common.HashHex(hash)[:16])
 
 	myss := comm.getMySorts(n.myAddr, height)
+	if len(myss) == 0 {
+		return
+	}
+
 	var vs []*pt.Pos33VoteMsg
 	for _, mys := range myss {
 		v := &pt.Pos33VoteMsg{
@@ -1076,6 +1088,7 @@ func (n *node) voteBlock(height int64, round int) {
 		vs = append(vs, v)
 	}
 	signVotes(n.getPriv(), vs)
+	plog.Info("voteBlock", "height", height, "round", round, "hash", common.HashHex(hash)[:16], "nvs", len(vs))
 	n.sendBlockVotes(vs, int(pt.Pos33Msg_BV))
 }
 
@@ -1235,7 +1248,6 @@ func (n *node) runLoop() {
 				nch <- height
 			})
 		case height := <-nch:
-			n.getCommittee(height, round).setCommittee(height)
 			cb := n.GetCurrentBlock()
 			if cb.Height == height-1 {
 				n.tryMakeBlock(height, round)
@@ -1256,6 +1268,7 @@ func (n *node) runLoop() {
 				break
 			}
 			round = 0
+			// n.getCommittee(height, round).setCommittee(height)
 			n.handleNewBlock(b)
 			d := blockD
 			if b.Height > 0 {
