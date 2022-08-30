@@ -1044,12 +1044,6 @@ func (n *node) voteBlock(height int64, round int) {
 	comm := n.getCommittee(height, round)
 	comm.setCommittee(height)
 
-	if !comm.voted {
-		comm.voted = true
-	} else {
-		return
-	}
-
 	var hash []byte
 	for _, c := range comm.candidates {
 		for h, b := range comm.bmp {
@@ -1071,6 +1065,13 @@ func (n *node) voteBlock(height int64, round int) {
 		}
 	}
 	if hash == nil {
+		plog.Info("aha, go here", "height", height, "round", round)
+		return
+	}
+
+	if !comm.voted {
+		comm.voted = true
+	} else {
 		return
 	}
 
@@ -1183,7 +1184,7 @@ func (n *node) runLoop() {
 	nch := make(chan int64, 1)
 	vch := make(chan int64, 1)
 	cch := make(chan int64, 1)
-	blockTimeout := time.Second * 2
+	blockTimeout := time.Second * 3
 	resortTimeout := time.Second * 1
 	voteCommitteeTmo := time.Second * 1
 	voteBlockTmo := time.Millisecond * 900
@@ -1262,7 +1263,9 @@ func (n *node) runLoop() {
 				})
 			}
 		case height := <-vch:
-			n.voteBlock(height, round)
+			if height == n.GetCurrentHeight()+1 {
+				n.voteBlock(height, round)
+			}
 		case b := <-n.bch: // new block add to chain
 			if b.Height < n.GetCurrentHeight() && b.Height > 10 {
 				break

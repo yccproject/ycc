@@ -143,6 +143,8 @@ func run(privs []crypto.PrivKey) {
 	max := 256
 	txs := make([]*types.Transaction, max)
 	ntx := 0
+	sleepd := time.Millisecond * 20
+	t := time.Now()
 	for tx := range ch {
 		select {
 		case <-tch:
@@ -169,15 +171,25 @@ func run(privs []crypto.PrivKey) {
 		i++
 
 		ntx++
-		if ntx%10000 == 0 {
-			log.Println(ntx, "... txs sent")
-			if ntx%30000 == 0 {
-				time.Sleep(time.Second * 3)
+		if ntx%1000 == 0 {
+			if ntx%10000 == 0 {
+				log.Println(ntx, "... txs sent")
+				time.Sleep(time.Second * 1)
 			}
+
+			d := time.Since(t)
+			if d > time.Second*1 {
+				sleepd -= time.Millisecond * 10
+			} else if d < time.Second*1 {
+				sleepd += time.Millisecond * 10
+			}
+
+			t = time.Now()
 		}
 
 		if i == max {
 			sendTxs(txs)
+			time.Sleep(sleepd)
 			i = 0
 		}
 	}
