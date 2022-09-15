@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/difficulty"
 	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/types"
 	bls33 "github.com/33cn/plugin/plugin/crypto/bls"
@@ -252,7 +253,11 @@ type Sorts []*Pos33SortMsg
 
 func (m Sorts) Len() int { return len(m) }
 func (m Sorts) Less(i, j int) bool {
-	return string(m[i].SortHash.Hash) < string(m[j].SortHash.Hash)
+	h1 := make([]byte, 32)
+	copy(h1, m[i].SortHash.Hash)
+	h2 := make([]byte, 32)
+	copy(h1, m[j].SortHash.Hash)
+	return difficulty.HashToBig(h1).Cmp(difficulty.HashToBig(h2)) < 0
 }
 func (m Sorts) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 

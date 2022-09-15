@@ -9,6 +9,7 @@ import (
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/difficulty"
 	vrf "github.com/33cn/chain33/common/vrf/secp256k1"
 	"github.com/33cn/chain33/types"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
@@ -16,7 +17,8 @@ import (
 	pt "github.com/yccproject/ycc/plugin/dapp/pos33/types"
 )
 
-var max = big.NewInt(0).Exp(big.NewInt(2), big.NewInt(256), nil)
+var big1 = big.NewInt(1)
+var max = big1.Lsh(big1, 256)
 var fmax = big.NewFloat(0).SetInt(max) // 2^^256
 
 const (
@@ -39,8 +41,11 @@ func sortF(vrfHash []byte, index, num int, diff float64, proof *pt.HashProof) *p
 	data := fmt.Sprintf("%x+%d+%d", vrfHash, index, num)
 	hash := hash2([]byte(data))
 
+	tmpHash := make([]byte, len(hash))
+	copy(tmpHash, hash)
+
 	// 转为big.Float计算，比较难度diff
-	y := new(big.Int).SetBytes(hash)
+	y := difficulty.HashToBig(tmpHash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
 		return nil
@@ -184,9 +189,11 @@ func (n *node) verifySort(height int64, ty int, seed []byte, m *pt.Pos33SortMsg)
 		return fmt.Errorf("sort hash error")
 	}
 
+	tmpHash := make([]byte, len(hash))
+	copy(tmpHash, hash)
 	diff := n.getDiff(height, int(round))
 
-	y := new(big.Int).SetBytes(hash)
+	y := difficulty.HashToBig(tmpHash)
 	z := new(big.Float).SetInt(y)
 	if new(big.Float).Quo(z, fmax).Cmp(big.NewFloat(diff)) > 0 {
 		plog.Error("verifySort diff error", "height", height, "ty", ty, "round", round, "diff", diff*1000000, "addr", address.PubKeyToAddr(ethID, m.Proof.Pubkey))
