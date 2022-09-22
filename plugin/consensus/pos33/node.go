@@ -27,7 +27,7 @@ var plog = log15.New("module", "pos33")
 type committee struct {
 	myss []*pt.Pos33SortMsg          // 我的抽签
 	css  map[string]*pt.Pos33SortMsg // 我收到committee的抽签
-	ssmp map[string]*pt.Pos33SortMsg
+	// ssmp map[string]*pt.Pos33SortMsg
 	svmp map[string]int // 验证委员会的投票
 	n    *node
 
@@ -37,6 +37,7 @@ type committee struct {
 	setted bool
 
 	candidates []string
+	comm       []*pt.Pos33SortMsg
 }
 
 func writeVotes(file string, bvmp map[string][]*pt.Pos33VoteMsg) error {
@@ -74,24 +75,29 @@ func (c *committee) setCommittee(height int64) {
 	}
 	c.setted = true
 	var ss []*pt.Pos33SortMsg
-	for k, n := range c.svmp {
-		if n < pt.Pos33MustVotes {
-			delete(c.svmp, k)
-		} else {
-			s, ok := c.css[k]
-			if ok {
-				ss = append(ss, s)
-			}
+	for k := range c.svmp {
+		s, ok := c.css[k]
+		if ok {
+			ss = append(ss, s)
 		}
 	}
 	sort.Sort(pt.Sorts(ss))
-	for i, s := range ss {
+	if len(ss) > pt.Pos33CommitteeSize {
+		ss = ss[:pt.Pos33CommitteeSize]
+	}
+	for _, s := range ss {
+		n := c.svmp[string(s.SortHash.Hash)]
+		if n >= pt.Pos33MustVotes {
+			c.comm = append(c.comm, s)
+		}
+	}
+	for i, s := range c.comm {
 		c.candidates = append(c.candidates, string(s.SortHash.Hash))
 		if i == 3 {
 			break
 		}
 	}
-	plog.Info("setCommittee", "len", len(c.svmp), "height", height)
+	plog.Info("setCommittee", "len", len(c.comm), "height", height)
 }
 
 func (n *node) getCommittee(height int64, round int) *committee {
@@ -103,8 +109,8 @@ func (n *node) getCommittee(height int64, round int) *committee {
 	m, ok := rmp[round]
 	if !ok {
 		m = &committee{
-			css:  make(map[string]*pt.Pos33SortMsg),
-			ssmp: make(map[string]*pt.Pos33SortMsg),
+			css: make(map[string]*pt.Pos33SortMsg),
+			// ssmp: make(map[string]*pt.Pos33SortMsg),
 			svmp: make(map[string]int),
 			bvmp: make(map[string][]*pt.Pos33VoteMsg),
 			bmp:  make(map[string]*types.Block),
@@ -115,12 +121,12 @@ func (n *node) getCommittee(height int64, round int) *committee {
 	return m
 }
 
-func (c *committee) getMySorts(myaddr string, ss []*pt.Pos33SortMsg) []*pt.Pos33SortMsg {
+func getMySorts(myaddr string, ss []*pt.Pos33SortMsg) []*pt.Pos33SortMsg {
 	var ms []*pt.Pos33SortMsg
 	for _, s := range ss {
 		addr := address.PubKeyToAddr(ethID, s.Proof.Pubkey)
 		if myaddr == addr {
-			ms = append(ss, s)
+			ms = append(ms, s)
 		}
 	}
 
@@ -135,15 +141,6 @@ func getSorts(mp map[string]*pt.Pos33SortMsg, num int) []*pt.Pos33SortMsg {
 	sort.Sort(pt.Sorts(ss))
 	if len(ss) > num {
 		ss = ss[:num]
-	}
-	return ss
-}
-
-func (c *committee) getCommitteeSorts() []*pt.Pos33SortMsg {
-	count := int(pt.Pos33VoterSize)
-	ss := getSorts(c.css, count)
-	for _, s := range ss {
-		c.ssmp[string(s.SortHash.Hash)] = s
 	}
 	return ss
 }
@@ -619,16 +616,14 @@ func (n *node) firstSortition() {
 }
 
 func (n *node) sortCommittee(seed []byte, height int64, round int) {
-	var vss []*pt.Pos33Sorts
-	c := n.getCommittee(height, round)
 	ss := n.committeeSort(seed, height, round, Committee)
 	if len(ss) == 0 {
 		return
 	}
+	c := n.getCommittee(height, round)
 	c.myss = ss
-	vss = append(vss, &pt.Pos33Sorts{Sorts: ss})
 	plog.Info("sortCommittee", "height", height, "round", round, "ss len", len(ss))
-	n.sendCommitteeerSort(vss, height, round, int(pt.Pos33Msg_VS))
+	n.sendCommitteeerSort([]*pt.Pos33Sorts{{Sorts: ss}}, height, round, int(pt.Pos33Msg_VS))
 }
 
 func (n *node) getSortSeed(height int64) ([]byte, error) {
@@ -746,7 +741,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 		b := comm.bmp[string(m0.Hash)]
 		n.setBlock(b)
 		// if b.Txs != nil {
-		// 	plog.Info("setBlock", "height", height)
+		// 	plog.Info("setBlock"e "height", height)
 		// 	n.setBlock(b)
 		// }
 	}
@@ -855,13 +850,14 @@ func (n *node) handleCommittee(m *pt.Pos33SortsVote, self bool) {
 
 func (n *node) voteCommittee(height int64, round int) {
 	comm := n.getCommittee(height, round)
-	css := comm.getCommitteeSorts()
+	css := getSorts(comm.css, pt.Pos33VoterSize)
+
 	var ss [][]byte
 	for _, s := range css {
 		ss = append(ss, s.SortHash.Hash)
 	}
 
-	myss := comm.getMySorts(n.myAddr, css)
+	myss := getMySorts(n.myAddr, css)
 	if len(myss) == 0 {
 		return
 	}
@@ -1072,7 +1068,7 @@ func (n *node) voteBlock(height int64, round int) {
 		return
 	}
 
-	myss := comm.getMySorts(n.myAddr, comm.getCommitteeSorts())
+	myss := getMySorts(n.myAddr, comm.comm)
 	if len(myss) == 0 {
 		return
 	}

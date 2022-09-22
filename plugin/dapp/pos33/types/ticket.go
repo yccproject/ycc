@@ -256,7 +256,7 @@ func (m Sorts) Less(i, j int) bool {
 	h1 := make([]byte, 32)
 	copy(h1, m[i].SortHash.Hash)
 	h2 := make([]byte, 32)
-	copy(h1, m[j].SortHash.Hash)
+	copy(h2, m[j].SortHash.Hash)
 	return difficulty.HashToBig(h1).Cmp(difficulty.HashToBig(h2)) < 0
 }
 func (m Sorts) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
@@ -266,10 +266,11 @@ type Votes []*Pos33VoteMsg
 
 func (m Votes) Len() int { return len(m) }
 func (m Votes) Less(i, j int) bool {
-	if m[i].Sort.SortHash.Num < m[j].Sort.SortHash.Num {
-		return true
-	}
-	return string(m[i].Sort.SortHash.Hash) < string(m[j].Sort.SortHash.Hash)
+	h1 := make([]byte, 32)
+	copy(h1, m[i].Sort.SortHash.Hash)
+	h2 := make([]byte, 32)
+	copy(h2, m[j].Sort.SortHash.Hash)
+	return difficulty.HashToBig(h1).Cmp(difficulty.HashToBig(h2)) < 0
 }
 func (m Votes) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 
