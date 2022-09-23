@@ -152,7 +152,6 @@ pruneMavlHeight = 10000
 tkCloseCacheLen = 200000
 
 [crypto]
-enableTypes = ["secp256k1", "none", "bls", "secp256k1eth"]
 
 [crypto.sub.secp256k1eth]
 evmChainID=3999
