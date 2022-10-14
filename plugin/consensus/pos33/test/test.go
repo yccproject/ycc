@@ -571,9 +571,8 @@ func runLoadAccounts(filename string, max int) chan crypto.PrivKey {
 			privCh <- priv
 			b = b[n:]
 			if i%1000 == 0 {
-				log.Println("load acc:", i)
+				log.Println("account: ", i, " ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 			}
-			// log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 		}
 		close(privCh)
 	}()

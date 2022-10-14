@@ -22,11 +22,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
-	discovery "github.com/libp2p/go-libp2p-discovery"
-	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	routing "github.com/libp2p/go-libp2p-core/routing"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 
 	"github.com/multiformats/go-multiaddr"
 )
@@ -195,9 +195,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool)
 		for range time.NewTicker(time.Second * 60).C {
 			np := ps.ListPeers(topics[0])
 			plog.Info("pos33 peers ", "len", len(np), "peers", np)
-			if len(np) < 3 {
-				g.bootstrap(g.bootPeers...)
-			}
+			g.bootstrap(g.bootPeers...)
 		}
 	}()
 	if forwardPeers {
