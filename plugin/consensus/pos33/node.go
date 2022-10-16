@@ -3,7 +3,6 @@ package pos33
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sort"
 	"sync"
@@ -12,7 +11,6 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/common/difficulty"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/plugin/plugin/crypto/bls"
@@ -177,9 +175,8 @@ type node struct {
 	mu    sync.Mutex
 	blsMp map[string]string
 
-	maxSortHeight int64
-	pid           string
-	topic         string
+	pid   string
+	topic string
 }
 
 func newNode(conf *subConfig) *node {
@@ -245,21 +242,22 @@ func (n *node) minerTx(height int64, round int, sm *pt.Pos33SortMsg, vs []*pt.Po
 
 // 返回值越小表示难度越大
 func (n *node) blockDiff(sort *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg, height int64) uint32 {
-	// powLimitBits := n.GetAPI().GetConfig().GetP(height).PowLimitBits
-	tmpHash := make([]byte, 32)
-	copy(tmpHash, sort.SortHash.Hash)
-	hash := difficulty.HashToBig(tmpHash)
+	powLimitBits := n.GetAPI().GetConfig().GetP(height).PowLimitBits
+	return powLimitBits
+	// tmpHash := make([]byte, 32)
+	// copy(tmpHash, sort.SortHash.Hash)
+	// hash := difficulty.HashToBig(tmpHash)
 
-	sumHash := new(big.Int)
-	for _, v := range vs {
-		copy(tmpHash, v.Sort.SortHash.Hash)
-		hash := difficulty.HashToBig(tmpHash)
-		sumHash = new(big.Int).Add(sumHash, hash)
-	}
-	product := new(big.Int).Mul(sumHash, big.NewInt(25))
-	product = new(big.Int).Mul(product, hash)
-	quotient := new(big.Int).Div(product, big.NewInt(int64(len(vs)*len(vs))))
-	return difficulty.BigToCompact(quotient)
+	// sumHash := new(big.Int)
+	// for _, v := range vs {
+	// 	copy(tmpHash, v.Sort.SortHash.Hash)
+	// 	hash := difficulty.HashToBig(tmpHash)
+	// 	sumHash = new(big.Int).Add(sumHash, hash)
+	// }
+	// product := new(big.Int).Mul(sumHash, big.NewInt(25))
+	// product = new(big.Int).Mul(product, hash)
+	// quotient := new(big.Int).Div(product, big.NewInt(int64(len(vs)*len(vs))))
+	// return difficulty.BigToCompact(quotient)
 }
 
 func (n *node) newBlock(lastBlock *types.Block, txs []*types.Transaction, height int64) (*types.Block, error) {
@@ -310,10 +308,10 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 
 	nb.Difficulty = n.blockDiff(sort, vs, height)
 
-	nb = n.PreExecBlock(nb, false)
-	if nb == nil {
-		return nil, errors.New("PreExccBlock error")
-	}
+	// nb = n.PreExecBlock(nb, false)
+	// if nb == nil {
+	// 	return nil, errors.New("PreExccBlock error")
+	// }
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "hash", common.HashHex(nb.Hash(n.GetAPI().GetConfig()))[:16], "diff", nb.Difficulty)
 
 	return nb, nil
@@ -739,7 +737,7 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 	}
 
 	vs := comm.bvmp[string(m0.Hash)]
-	if len(vs) >= pt.Pos33MustVotes {
+	if len(vs) > pt.Pos33VoterSize/2 {
 		myS := comm.myCandidataeSort()
 		if myS == nil {
 			return
@@ -814,7 +812,7 @@ func (n *node) preMakeBlock(height int64, round int) (*types.Block, error) {
 	cfg := n.GetAPI().GetConfig()
 	nb := &types.Block{
 		ParentHash: pb.Hash(cfg),
-		Height:     pb.Height + 1,
+		Height:     height,
 		TxHash:     sort.SortHash.Hash, // use TxHash fot sort hash
 		BlockTime:  int64(round),       // use BlokeTime for round
 	}
@@ -872,15 +870,9 @@ func (n *node) tryMakeBlock(height int64, round int) {
 }
 
 func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
-	if !myself {
-		if !n.verifyPreBlock(m.B) {
-			plog.Error("verifyPreBlock fail", "height", m.B.Height)
-			return
-		}
-	}
 	round := int(m.B.BlockTime)
 	comm := n.getCommittee(m.B.Height, round)
-	hash := m.B.Hash(n.GetAPI().GetConfig())
+	hash := m.B.TxHash
 	comm.bmp[string(hash)] = m.B
 	if len(comm.bmp) > 2 {
 		n.voteBlock(m.B.Height, round)
@@ -1080,10 +1072,6 @@ func (n *node) handleGossipMsg() chan *pt.Pos33Msg {
 	return ch
 }
 
-func (n *node) synced() bool {
-	return n.IsCaughtUp() || n.lastBlock().Height+3 > n.maxSortHeight
-}
-
 func (n *node) getPID() {
 	// get my pid
 	for range time.NewTicker(time.Second * 3).C {
@@ -1115,19 +1103,16 @@ func (n *node) voteBlock(height int64, round int) {
 
 	var hash []byte
 	for _, c := range comm.candidates {
-		for h, b := range comm.bmp {
-			if height == 0 {
-				hash = []byte(h)
-				break
+		b, ok := comm.bmp[c]
+		if ok {
+			if !n.verifyPreBlock(b) {
+				continue
 			}
-			if c == string(b.TxHash) {
-				hash = b.TxHash
-			}
-		}
-		if hash != nil {
+			hash = []byte(c)
 			break
 		}
 	}
+
 	if hash == nil {
 		return
 	}
@@ -1233,13 +1218,13 @@ func (n *node) runLoop() {
 	go n.runVerifyVotes()
 	go n.runSortition()
 
-	isSync := n.synced()
+	isSync := n.IsCaughtUp()
 	syncTm := time.NewTicker(time.Second * 30)
 	syncCh := make(chan bool, 1)
 
 	go func() {
 		for range syncTm.C {
-			syncCh <- n.synced()
+			syncCh <- n.IsCaughtUp()
 		}
 	}()
 
@@ -1279,7 +1264,7 @@ func (n *node) runLoop() {
 		if !isSync {
 			time.Sleep(time.Millisecond * 1000)
 			plog.Info("NOT sync .......")
-			isSync = n.synced()
+			isSync = n.IsCaughtUp()
 			continue
 		}
 		select {
