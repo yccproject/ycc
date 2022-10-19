@@ -29,10 +29,14 @@ type committee struct {
 	svmp map[string]int // 验证委员会的投票
 	n    *node
 
-	bvmp   map[string][]*pt.Pos33VoteMsg
-	bmp    map[string]*types.Block
-	voted  bool
-	setted bool
+	bvmp map[string][]*pt.Pos33VoteMsg
+	bmp  map[string]*types.Block
+
+	voted     bool
+	setted    bool
+	preMaked  bool
+	makerIsMe bool
+	maked     bool
 
 	candidates []string
 	comm       []*pt.Pos33SortMsg
@@ -144,22 +148,14 @@ func getSorts(mp map[string]*pt.Pos33SortMsg, num int) []*pt.Pos33SortMsg {
 	return ss
 }
 
-// func find(vmp map[string][]*pt.Pos33VoteMsg, key, pub string) bool {
-// 	vs, ok := vmp[key]
-// 	if !ok {
-// 		return false
-// 	}
-// 	for _, v := range vs {
-// 		if string(v.Sig.Pubkey) == pub {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
 type vArg struct {
 	v  *pt.Pos33VoteMsg
 	ch chan<- bool
+}
+
+type hr struct {
+	h int64
+	r int
 }
 
 type node struct {
@@ -172,8 +168,11 @@ type node struct {
 	vCh    chan vArg
 	sortCh chan *sortArg
 
+	vbch chan hr
+
 	mu    sync.Mutex
 	blsMp map[string]string
+	lastB int64
 
 	pid   string
 	topic string
@@ -186,6 +185,7 @@ func newNode(conf *subConfig) *node {
 		blsMp:  make(map[string]string),
 		vCh:    make(chan vArg, 8),
 		sortCh: make(chan *sortArg, 8),
+		vbch:   make(chan hr, 1),
 	}
 }
 
@@ -286,16 +286,39 @@ func (n *node) newBlock(lastBlock *types.Block, txs []*types.Transaction, height
 	return nb, nil
 }
 
-func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*pt.Pos33VoteMsg) (*types.Block, error) {
-	priv := n.getPriv()
-	if priv == nil {
-		panic("can't go here")
+func (n *node) makeBlock(height int64, round int) {
+	_, err := n.makeBlock0(height, round)
+	if err != nil {
+		plog.Error("make block err", "err", err, "height", height, "round", round)
+	}
+}
+
+func (n *node) makeBlock0(height int64, round int) (*types.Block, error) {
+	comm := n.getCommittee(height, round)
+	if !comm.makerIsMe {
+		return nil, nil
+	}
+
+	if comm.maked {
+		return nil, nil
 	}
 
 	lb, err := n.RequestBlock(height - 1)
 	if err != nil {
 		return nil, err
 	}
+
+	sort := comm.myCandidataeSort()
+	vs := comm.bvmp[string(sort.SortHash.Hash)]
+	if len(vs) < pt.Pos33VoterSize/2+1 {
+		return nil, fmt.Errorf("make block error: NOT enouph votes")
+	}
+
+	priv := n.getPriv()
+	if priv == nil {
+		panic("can't go here")
+	}
+
 	tx, err := n.minerTx(height, round, sort, vs, priv)
 	if err != nil {
 		return nil, err
@@ -308,12 +331,10 @@ func (n *node) makeBlock(height int64, round int, sort *pt.Pos33SortMsg, vs []*p
 
 	nb.Difficulty = n.blockDiff(sort, vs, height)
 
-	// nb = n.PreExecBlock(nb, false)
-	// if nb == nil {
-	// 	return nil, errors.New("PreExccBlock error")
-	// }
 	plog.Info("block make", "height", height, "round", round, "ntx", len(nb.Txs), "nvs", len(vs), "hash", common.HashHex(nb.Hash(n.GetAPI().GetConfig()))[:16], "diff", nb.Difficulty)
+	comm.maked = true
 
+	n.setBlock(nb)
 	return nb, nil
 }
 
@@ -743,12 +764,8 @@ func (n *node) handleVoteMsg(ms []*pt.Pos33VoteMsg, myself bool, ty int) {
 			return
 		}
 		if string(m0.Hash) == string(myS.SortHash.Hash) {
-			nb, err := n.makeBlock(height, round, myS, vs)
-			if err != nil {
-				plog.Error("makeBlock error", "err", err, "height", height)
-				return
-			}
-			n.setBlock(nb)
+			comm.makerIsMe = true
+			n.makeBlock(height, round)
 		}
 	}
 }
@@ -765,7 +782,11 @@ func (co *committee) myCandidataeSort() *pt.Pos33SortMsg {
 }
 
 func (n *node) verifyPreBlock(b *types.Block) bool {
-	pb, err := n.RequestBlock(b.Height - 1)
+	pph := b.Height - 2
+	if pph < 0 {
+		pph = 0
+	}
+	pb, err := n.RequestBlock(pph)
 	if err != nil {
 		plog.Error("requestBlock error", "err", err, "height", b.Height)
 		return false
@@ -797,7 +818,11 @@ func (n *node) verifyPreBlock(b *types.Block) bool {
 }
 
 func (n *node) preMakeBlock(height int64, round int) (*types.Block, error) {
-	pb, err := n.RequestBlock(height - 1)
+	pph := height - 2
+	if pph < 0 {
+		pph = 0
+	}
+	pb, err := n.RequestBlock(pph)
 	if err != nil {
 		return nil, err
 	}
@@ -827,8 +852,12 @@ func (n *node) preMakeBlock(height int64, round int) (*types.Block, error) {
 	return nb, nil
 }
 
-func (n *node) tryMakeBlock(height int64, round int) {
+func (n *node) makePreBlock(height int64, round int) {
 	comm := n.getCommittee(height, round)
+	if comm.preMaked {
+		return
+	}
+	comm.preMaked = true
 	comm.setCommittee(height)
 
 	myss := comm.myss
@@ -840,27 +869,6 @@ func (n *node) tryMakeBlock(height int64, round int) {
 		return
 	}
 
-	/*
-		pb := n.GetCurrentBlock()
-		lround := 0
-		if pb.Height != 0 {
-			miner, err := getMiner(pb)
-			if err != nil {
-				plog.Error("getMiner error", "height", height, "err", err)
-				return
-			}
-			lround = int(miner.Sort.Proof.Input.Round)
-		}
-		lcomm := n.getCommittee(height-1, lround)
-		lvs := lcomm.bvmp[string(pb.Hash(n.GetAPI().GetConfig()))]
-		plog.Info("tryMakeBlock", "height", height, "nlvs", len(lvs))
-
-		nb, err := n.makeBlock(height, round, myS, lvs)
-		if err != nil {
-			plog.Error("makeBlock error", "err", err, "height", height)
-			return
-		}
-	*/
 	nb, err := n.preMakeBlock(height, round)
 	if err != nil {
 		plog.Error("preMakeBlock error", "err", err, "height", height, "round", round)
@@ -874,7 +882,12 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 	comm := n.getCommittee(m.B.Height, round)
 	hash := m.B.TxHash
 	comm.bmp[string(hash)] = m.B
-	if len(comm.bmp) > 2 {
+	if len(comm.bmp) == 1 {
+		time.AfterFunc(time.Millisecond*700, func() {
+			n.vbch <- hr{m.B.Height, round}
+		})
+	}
+	if len(comm.comm) > 2 {
 		n.voteBlock(m.B.Height, round)
 	}
 	plog.Info("handleBlockMsg", "height", m.B.Height, "hash", common.HashHex(hash)[:16])
@@ -1230,12 +1243,10 @@ func (n *node) runLoop() {
 
 	tch := make(chan int64, 1)
 	nch := make(chan int64, 1)
-	vch := make(chan int64, 1)
 	cch := make(chan int64, 1)
 	blockTimeout := time.Second * 3
 	resortTimeout := time.Second * 1
 	voteCommitteeTmo := time.Second * 1
-	voteBlockTmo := time.Millisecond * 900
 
 	round := 0
 	blockD := int64(900)
@@ -1299,27 +1310,22 @@ func (n *node) runLoop() {
 		case height := <-nch:
 			cb := n.GetCurrentBlock()
 			if cb.Height == height-1 {
-				n.tryMakeBlock(height, round)
+				n.makeBlock(height, round)
+				n.makePreBlock(height, round)
 				time.AfterFunc(blockTimeout, func() {
 					if n.GetCurrentHeight() >= height {
 						return
 					}
 					tch <- height
 				})
-				time.AfterFunc(voteBlockTmo, func() {
-					vch <- height
-				})
 			}
-		case height := <-vch:
-			if height == n.GetCurrentHeight()+1 {
-				n.voteBlock(height, round)
-			}
+		case hr := <-n.vbch:
+			n.voteBlock(hr.h, hr.r)
 		case b := <-n.bch: // new block add to chain
-			if b.Height < n.GetCurrentHeight() && b.Height > 10 {
-				break
-			}
+			// if b.Height < n.GetCurrentHeight() && b.Height > 10 {
+			// 	break
+			// }
 			round = 0
-			// n.getCommittee(height, round).setCommittee(height)
 			n.handleNewBlock(b)
 			d := blockD
 			if b.Height > 0 {
@@ -1362,6 +1368,10 @@ func (n *node) setCommittee(height int64, round int) {
 }
 
 func (n *node) handleNewBlock(b *types.Block) {
+	// if b.Height <= n.lastB {
+	// 	return
+	// }
+	// n.lastB = b.Height
 	tb := time.Now()
 	round := 0
 	plog.Info("handleNewBlock", "height", b.Height, "round", round, "time", time.Now().Format("15:04:05.00000"))
@@ -1375,6 +1385,7 @@ func (n *node) handleNewBlock(b *types.Block) {
 	}
 	n.voteCommittee(b.Height+pt.Pos33SortBlocks/2, round)
 	n.setCommittee(b.Height+2, round)
+	n.makePreBlock(b.Height+2, round)
 	n.clear(b.Height)
 	plog.Debug("handleNewBlock cost", "height", b.Height, "cost", time.Since(tb))
 	if b.Height > 0 {
