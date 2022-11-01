@@ -93,9 +93,16 @@ func (c *committee) setCommittee(height int64) {
 			c.comm = append(c.comm, s)
 		}
 	}
+	mp := make(map[string]string)
 	for i, s := range c.comm {
+		addr := address.PubKeyToAddr(ethID, s.Proof.Pubkey)
+		_, ok := mp[addr]
+		if ok {
+			continue
+		}
+		mp[addr] = string(s.SortHash.Hash)
 		c.candidates = append(c.candidates, string(s.SortHash.Hash))
-		plog.Info("setCommittee", "canditate", common.HashHex(s.SortHash.Hash), "height", height)
+		plog.Info("setCommittee", "canditate", addr[:16], "height", height)
 		if i == 2 {
 			break
 		}
@@ -887,7 +894,7 @@ func (n *node) handleBlockMsg(m *pt.Pos33BlockMsg, myself bool) {
 			n.vbch <- hr{m.B.Height, round}
 		})
 	}
-	if len(comm.comm) > 2 {
+	if len(comm.bmp) > 2 {
 		n.voteBlock(m.B.Height, round)
 	}
 	plog.Info("handleBlockMsg", "height", m.B.Height, "hash", common.HashHex(hash)[:16])
