@@ -358,6 +358,7 @@ ForkParaRootHash=0
 ForkParaSupervision=0
 ForkParaAutonomySuperGroup = -1
 ForkParaFreeRegister = 0
+ForkParaCheckTx=15000000
 
 [fork.sub.multisig]
 Enable=0
