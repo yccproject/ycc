@@ -170,6 +170,7 @@ signType = "secp256k1"
 enableMVCC = false
 enableStat = false
 
+
 [exec.sub.coins]
 disableAddrReceiver = true
 disableCheckTxAmount = true
@@ -385,6 +386,19 @@ ForkUnfreezeIDX=0
 
 [fork.sub.store-kvmvccmavl]
 ForkKvmvccmavl=0
+
+[Fork.sub.exchange]
+Enable=0
+ForkFix1=0
+ForkParamV1 = 0
+ForkParamV2 = 0
+ForkParamV3 = 0
+ForkParamV4 = 0
+ForkParamV5 = 0
+ForkParamV6 = 0
+ForkParamV7 = 0
+ForkParamV8 = 0
+ForkParamV9 = 0
 
 [health]
 checkInterval=1
