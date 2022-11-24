@@ -312,13 +312,17 @@ func (n *node) makeBlock0(height int64, round int) (*types.Block, error) {
 
 	lb, err := n.RequestBlock(height - 1)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
 	sort := comm.myCandidataeSort()
+	if sort == nil {
+		return nil, nil
+	}
+
 	vs := comm.bvmp[string(sort.SortHash.Hash)]
 	if len(vs) < pt.Pos33VoterSize/2+1 {
-		return nil, fmt.Errorf("make block error: NOT enouph votes")
+		return nil, nil
 	}
 
 	priv := n.getPriv()
@@ -839,7 +843,7 @@ func (n *node) preMakeBlock(height int64, round int) (*types.Block, error) {
 	if sort == nil {
 		return nil, fmt.Errorf("preMakeBlock error: my candidate sort is nil. height=%d, round=%d", height, round)
 	}
-	plog.Info("preMakeBlock", "height", height, "sort hash", common.HashHex(sort.SortHash.Hash))
+	plog.Info("preMakeBlock", "height", height, "sort hash", common.HashHex(sort.SortHash.Hash)[:16])
 
 	cfg := n.GetAPI().GetConfig()
 	nb := &types.Block{

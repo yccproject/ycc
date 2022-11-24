@@ -175,6 +175,7 @@ disableCheckTxAmount = true
 friendExecer=["evm"]
 
 [exec.sub.evm]
+evmGasLimit=5000000
 ethMapFromExecutor="coins"
 ethMapFromSymbol="ycc"
 addressDriver="eth"
