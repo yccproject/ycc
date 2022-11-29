@@ -3,7 +3,7 @@ module github.com/yccproject/ycc
 go 1.15
 
 require (
-	github.com/33cn/chain33 v1.67.4
+	github.com/33cn/chain33 v1.67.5-0.20221025091716-3c28b5743b91
 	github.com/33cn/plugin v1.67.5-0.20221102075320-eb0191e2e8d7
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/golang/protobuf v1.5.2
