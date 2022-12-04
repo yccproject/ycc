@@ -195,9 +195,7 @@ func (g *gossip2) run(ps *pubsub.PubSub, topics, fs []string, forwardPeers bool)
 		for range time.NewTicker(time.Second * 60).C {
 			np := ps.ListPeers(topics[0])
 			plog.Info("pos33 peers ", "len", len(np), "peers", np)
-			if len(np) < 3 {
-				g.bootstrap(g.bootPeers...)
-			}
+			g.bootstrap(g.bootPeers...)
 		}
 	}()
 	if forwardPeers {
@@ -309,7 +307,7 @@ func newHost(ctx context.Context, priv crypto.PrivKey, port int, ns string) host
 			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port), // regular tcp connections
 		),
 		libp2p.EnableNATService(),
-		// libp2p.DefaultTransports,
+		libp2p.DefaultTransports,
 		libp2p.NATPortMap(),
 		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 			dht, err := dht.New(ctx, h)

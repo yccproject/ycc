@@ -263,25 +263,10 @@ func (action *Action) Pos33MinerNew(miner *ty.Pos33MinerMsg, index int) (*types.
 		return nil, types.ErrCoinBaseIndex
 	}
 
-	Coin := chain33Cfg.GetCoinPrecision()
-	// Pos33BlockReward 区块奖励
-	var Pos33BlockReward = Coin * 30
-	// Pos33VoteReward 每ticket区块voter奖励
-	var Pos33VoteReward = Coin / 2 // 0.5 coin
-	// Pos33MakerReward 每ticket区块bp奖励
-	var Pos33MakerReward = Coin * 22 / 100 // 0.22 coin
-
-	if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "ForkReward15") {
-		Pos33BlockReward /= 2
-		Pos33VoteReward /= 2
-		Pos33MakerReward /= 2
-	}
-	if chain33Cfg.IsDappFork(action.height, ty.Pos33TicketX, "UseEntrust") {
-		mp := ty.GetPos33MineParam(chain33Cfg, action.height)
-		Pos33BlockReward = mp.BlockReward
-		Pos33VoteReward = mp.VoteReward
-		Pos33MakerReward = mp.MineReward
-	}
+	pmp := ty.GetPos33MineParam(chain33Cfg, action.height)
+	Pos33BlockReward := pmp.BlockReward
+	Pos33VoteReward := pmp.VoteReward
+	Pos33MakerReward := pmp.MineReward
 
 	var kvs []*types.KeyValue
 	var logs []*types.ReceiptLog

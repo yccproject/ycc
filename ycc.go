@@ -108,8 +108,8 @@ count=1000
 [mver.consensus]
 addWalletTx = false
 fundKeyAddr = "0x92dd51393c77fd07c5840ae28076b7e0f072c289"
-maxTxNumber = 30000
 powLimitBits = "0x1f00ffff"
+maxTxNumber = 3000
 
 [mver.consensus.pos33]
 ticketPrice1=10000

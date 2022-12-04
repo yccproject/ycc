@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/difficulty"
 	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/types"
 	bls33 "github.com/33cn/plugin/plugin/crypto/bls"
@@ -31,7 +32,7 @@ const (
 	TyLogPos33TicketBind = 334
 )
 
-//ticket
+// ticket
 const (
 	// Pos33TicketActionGenesis action type
 	Pos33TicketActionGenesis = 11
@@ -201,6 +202,8 @@ const (
 	Pos33MakerSize = 15
 	// Pos33VoterSize  候选区块voter数量
 	Pos33VoterSize = 25
+	// Pos33CommitteeSize
+	Pos33CommitteeSize = 75
 	// Pos33MustVotes 必须达到的票数
 	Pos33MustVotes = 17
 )
@@ -250,7 +253,11 @@ type Sorts []*Pos33SortMsg
 
 func (m Sorts) Len() int { return len(m) }
 func (m Sorts) Less(i, j int) bool {
-	return string(m[i].SortHash.Hash) < string(m[j].SortHash.Hash)
+	h1 := make([]byte, 32)
+	copy(h1, m[i].SortHash.Hash)
+	h2 := make([]byte, 32)
+	copy(h2, m[j].SortHash.Hash)
+	return difficulty.HashToBig(h1).Cmp(difficulty.HashToBig(h2)) < 0
 }
 func (m Sorts) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 
@@ -259,10 +266,11 @@ type Votes []*Pos33VoteMsg
 
 func (m Votes) Len() int { return len(m) }
 func (m Votes) Less(i, j int) bool {
-	if m[i].Sort.SortHash.Num < m[j].Sort.SortHash.Num {
-		return true
-	}
-	return string(m[i].Sort.SortHash.Hash) < string(m[j].Sort.SortHash.Hash)
+	h1 := make([]byte, 32)
+	copy(h1, m[i].Sort.SortHash.Hash)
+	h2 := make([]byte, 32)
+	copy(h2, m[j].Sort.SortHash.Hash)
+	return difficulty.HashToBig(h1).Cmp(difficulty.HashToBig(h2)) < 0
 }
 func (m Votes) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 

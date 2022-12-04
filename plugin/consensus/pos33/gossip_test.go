@@ -9,7 +9,7 @@ import (
 )
 
 func TestGossip2(t *testing.T) {
-	c, err := ccrypto.New("secp256k1")
+	c, err := ccrypto.Load("secp256k1", 0)
 	if err != nil {
 		t.Error(err)
 		return

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
@@ -444,14 +445,18 @@ func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 
 // write block to chain
 func (client *Client) setBlock(b *types.Block) error {
-	cb := client.GetCurrentBlock()
-	if cb.Height >= b.Height {
+	if b == nil {
 		return nil
 	}
+	// cb := client.GetCurrentBlock()
+	// if cb.Height >= b.Height {
+	// 	return nil
+	// }
 	lastBlock, err := client.RequestBlock(b.Height - 1)
 	if err != nil {
 		return err
 	}
+	plog.Info("setBlock", "height", b.Height, "hash", common.HashHex(b.Hash(client.GetAPI().GetConfig()))[:16], "phash", common.HashHex(b.ParentHash)[:16])
 	err = client.WriteBlock(lastBlock.StateHash, b)
 	if err != nil {
 		plog.Error("writeBlock error", "err", err)

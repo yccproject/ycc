@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/33cn/chain33 v1.67.5-0.20221025091716-3c28b5743b91
 	github.com/33cn/plugin v1.67.5-0.20221102075320-eb0191e2e8d7
-	github.com/btcsuite/btcd v0.22.0-beta
+	github.com/btcsuite/btcd v0.22.1
 	github.com/golang/protobuf v1.5.2
 	github.com/libp2p/go-libp2p v0.15.0
 	github.com/libp2p/go-libp2p-autonat v0.4.2
@@ -14,17 +14,15 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-kad-dht v0.13.1
 	github.com/libp2p/go-libp2p-pubsub v0.5.4
-	github.com/multiformats/go-multiaddr v0.4.1
+	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/panjf2000/gnet v1.4.3
 	github.com/phoreproject/bls v0.0.0-20200525203911-a88a5ae26844
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.1
-	github.com/stretchr/testify v1.7.0
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sys v0.0.0-20220721230656-c6bc011c0c49 // indirect
+	github.com/stretchr/testify v1.8.0
+	golang.org/x/net v0.0.0-20220728211354-c7608f3a8462
 	google.golang.org/grpc v1.40.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 )
 
 // replace github.com/33cn/chain33 => /Users/w/pos33/chain33

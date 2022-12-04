@@ -143,6 +143,8 @@ func run(privs []crypto.PrivKey) {
 	max := 256
 	txs := make([]*types.Transaction, max)
 	ntx := 0
+	sleepd := time.Millisecond * 20
+	t := time.Now()
 	for tx := range ch {
 		select {
 		case <-tch:
@@ -166,15 +168,28 @@ func run(privs []crypto.PrivKey) {
 		hch <- height
 
 		txs[i] = tx
-
 		i++
+
 		ntx++
 		if ntx%1000 == 0 {
-			log.Println(i, "... txs sent")
+			if ntx%10000 == 0 {
+				log.Println(ntx, "... txs sent")
+				time.Sleep(time.Second * 1)
+			}
+
+			d := time.Since(t)
+			if d > time.Second*1 {
+				sleepd -= time.Millisecond * 10
+			} else if d < time.Second*1 {
+				sleepd += time.Millisecond * 10
+			}
+
+			t = time.Now()
 		}
 
 		if i == max {
 			sendTxs(txs)
+			time.Sleep(sleepd)
 			i = 0
 		}
 	}
@@ -284,7 +299,7 @@ func newTxWithTxHeight(priv crypto.PrivKey, amount int64, to string, height int6
 	}
 	tx.To = to
 	tx.Expire = height + 20 + types.TxHeightFlag
-	tx.ChainID = 999
+	tx.ChainID = 9991
 	tx.Fee = 1000000
 	tx.Nonce = rand.Int63()
 	if *sign {
@@ -318,7 +333,7 @@ func newNoUseTx() *Tx {
 	//tx.Sign(types.SECP256K1, priv)
 	// tx.Signature = &types.Signature{Ty: none.ID, Pubkey: priv.PubKey().Bytes()}
 	tx.Signature = &types.Signature{Ty: none.ID, Pubkey: noUseKey.PubKey().Bytes()}
-	tx.ChainID = 999
+	tx.ChainID = 9991
 	return tx
 }
 
@@ -331,7 +346,7 @@ func newTx(priv crypto.PrivKey, amount int64, to string) *Tx {
 	}
 	tx.Fee = 1000000
 	tx.To = to
-	tx.ChainID = 999
+	tx.ChainID = 9991
 	tx.Nonce = rand.Int63()
 	if *sign {
 		signID := types.EncodeSignID(types.SECP256K1, ethID)
@@ -556,9 +571,8 @@ func runLoadAccounts(filename string, max int) chan crypto.PrivKey {
 			privCh <- priv
 			b = b[n:]
 			if i%1000 == 0 {
-				log.Println("load acc:", i)
+				log.Println("account: ", i, " ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 			}
-			// log.Println("account: ", address.PubKeyToAddr(ethID, priv.PubKey().Bytes()))
 		}
 		close(privCh)
 	}()
