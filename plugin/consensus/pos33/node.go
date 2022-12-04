@@ -578,7 +578,7 @@ func (n *node) blockCheck(b *types.Block) error {
 	if act.Sort == nil || act.Sort.Proof == nil || act.Sort.Proof.Input == nil {
 		return fmt.Errorf("miner tx error")
 	}
-	if len(act.BlsPkList) < pt.Pos33CommitteeSize/2+1 {
+	if len(act.BlsPkList) < pt.Pos33VoterSize/2+1 {
 		return fmt.Errorf("NOT enought votes")
 	}
 	round := int(act.Sort.Proof.Input.Round)
