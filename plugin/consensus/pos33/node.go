@@ -1201,7 +1201,7 @@ func blockRound(b *types.Block) int {
 	return int(m.Sort.Proof.Input.Round)
 }
 
-const blockVotePath = "./datadir/bv.data"
+// const blockVotePath = "./datadir/bv.data"
 
 func (n *node) runLoop() {
 	lb, err := n.RequestLastBlock()
@@ -1262,19 +1262,19 @@ func (n *node) runLoop() {
 	round := 0
 	blockD := int64(900)
 
-	if lb.Height > 0 {
-		bvmp, err := readVotes(blockVotePath)
-		if err != nil {
-			plog.Info("readVotes error", "err", err)
-		}
-		lround := 0
-		if lb.Height != 0 {
-			lround = blockRound(lb)
-		}
-		lcomm := n.getCommittee(lb.Height, lround)
-		// lcomm.bmp[string(lb.Hash(n.GetAPI().GetConfig()))] = lb
-		lcomm.bvmp = bvmp
-	}
+	// if lb.Height > 0 {
+	// 	bvmp, err := readVotes(blockVotePath)
+	// 	if err != nil {
+	// 		plog.Info("readVotes error", "err", err)
+	// 	}
+	// 	lround := 0
+	// 	if lb.Height != 0 {
+	// 		lround = blockRound(lb)
+	// 	}
+	// 	lcomm := n.getCommittee(lb.Height, lround)
+	// 	// lcomm.bmp[string(lb.Hash(n.GetAPI().GetConfig()))] = lb
+	// 	lcomm.bvmp = bvmp
+	// }
 
 	go func() {
 		for range time.NewTicker(time.Second * 30).C {
@@ -1363,15 +1363,15 @@ func (n *node) runLoop() {
 	}
 }
 
-func writeBlockVotes(b *types.Block, n *node) error {
-	m, err := getMiner(b)
-	if err != nil {
-		return err
-	}
-	round := int(m.Sort.Proof.Input.Round)
-	comm := n.getCommittee(b.Height, round)
-	return writeVotes(blockVotePath, comm.bvmp)
-}
+// func writeBlockVotes(b *types.Block, n *node) error {
+// 	m, err := getMiner(b)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	round := int(m.Sort.Proof.Input.Round)
+// 	comm := n.getCommittee(b.Height, round)
+// 	return writeVotes(blockVotePath, comm.bvmp)
+// }
 
 func (n *node) setCommittee(height int64, round int) {
 	comm := n.getCommittee(height, round)
@@ -1399,12 +1399,12 @@ func (n *node) handleNewBlock(b *types.Block) {
 	n.makePreBlock(b.Height+2, round)
 	n.clear(b.Height)
 	plog.Debug("handleNewBlock cost", "height", b.Height, "cost", time.Since(tb))
-	if b.Height > 0 {
-		err := writeBlockVotes(b, n)
-		if err != nil {
-			plog.Error("writeBlockVotes error", "err", err)
-		}
-	}
+	// if b.Height > 0 {
+	// 	err := writeBlockVotes(b, n)
+	// 	if err != nil {
+	// 		plog.Error("writeBlockVotes error", "err", err)
+	// 	}
+	// }
 }
 
 func (n *node) sendCommitteeerSort(ss []*pt.Pos33Sorts, height int64, round, ty int) {
