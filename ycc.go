@@ -379,6 +379,7 @@ ForkEVMFrozen=0
 ForkEVMKVHash=0
 ForkEVMYoloV1=0
 ForkEVMTxGroup=0
+ForkEVMMixAddress=0
 
 [fork.sub.unfreeze]
 Enable=0
