@@ -53,10 +53,14 @@ github.com/33cn/chain33 v1.67.5-0.20221025091716-3c28b5743b91 h1:TRh3iYy7cJGHS+Z
 github.com/33cn/chain33 v1.67.5-0.20221025091716-3c28b5743b91/go.mod h1:uKMKtco0RFJYqJ45wlsTGt0kxQnj2CdFNZTCXLVEIaQ=
 github.com/33cn/chain33 v1.67.6-0.20221230080724-3c867c1d32e1 h1:RSTbz5ooOMFx5SzzsGHwA3/8bGBRkt/OXR5umj83UEU=
 github.com/33cn/chain33 v1.67.6-0.20221230080724-3c867c1d32e1/go.mod h1:rOabIpP0KWiehXmX6ShOrAveTUvdoQvjUkUePdwk/oQ=
+github.com/33cn/chain33 v1.67.6-0.20230202063800-bec7bd8482fe h1:ZuymWAASnCPpODNC/LCHsYRMmC7tsrkenSuG9eTz8/4=
+github.com/33cn/chain33 v1.67.6-0.20230202063800-bec7bd8482fe/go.mod h1:rOabIpP0KWiehXmX6ShOrAveTUvdoQvjUkUePdwk/oQ=
 github.com/33cn/plugin v1.67.5-0.20221102075320-eb0191e2e8d7 h1:86ouUny7UHEZxnwbKzMpZgxDtri/XIsJ7840H9fQh2Q=
 github.com/33cn/plugin v1.67.5-0.20221102075320-eb0191e2e8d7/go.mod h1:UxsVV8deE8FfOrUOr7RMzyTyhKMDvZjjmfRrtVlKihE=
 github.com/33cn/plugin v1.67.5-0.20221209032310-9d12d3122833 h1:tshGZVFF39aHFq3p9usDhbY0aLIEpsRBjxbw4cMePJc=
 github.com/33cn/plugin v1.67.5-0.20221209032310-9d12d3122833/go.mod h1:UxsVV8deE8FfOrUOr7RMzyTyhKMDvZjjmfRrtVlKihE=
+github.com/33cn/plugin v1.67.7-0.20230202080217-8be91ca80974 h1:xMonSa+YdOHlBDa8J4s/5vAZUlFoBGbJ2ROSoCj5GF0=
+github.com/33cn/plugin v1.67.7-0.20230202080217-8be91ca80974/go.mod h1:NllcQwrQOsJvQAL9J56sbrT7vNHuaDjRnfEzj9DWN84=
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 h1:cTp8I5+VIoKjsnZuH8vjyaysT/ses3EvZeaV/1UkF2M=
@@ -122,6 +126,7 @@ github.com/NebulousLabs/merkletree v0.0.0-20181203152040-08d5d54b07f5 h1:pk9SclN
 github.com/NebulousLabs/merkletree v0.0.0-20181203152040-08d5d54b07f5/go.mod h1:Cn056wBLKay+uIS9LJn7ymwhgC5mqbOtG6iOhEvyy4M=
 github.com/OneOfOne/xxhash v1.2.2 h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
+github.com/OneOfOne/xxhash v1.2.5/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
 github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/purell v1.1.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
