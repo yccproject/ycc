@@ -305,6 +305,9 @@ ForkReward15=0
 ForkFixReward=0
 UseEntrust=0
 
+[fork.sub.rollup]
+Enable=-1
+
 [fork.sub.none]
 ForkUseTimeDelay=0
 
