@@ -1,6 +1,6 @@
 package main
 
-//ycc 这部分配置随代码发布，不能修改
+// ycc 这部分配置随代码发布，不能修改
 var yccconfig = `
 TxHeight = true
 FixTime = false
@@ -382,6 +382,8 @@ ForkEVMKVHash=0
 ForkEVMYoloV1=0
 ForkEVMTxGroup=0
 ForkEVMMixAddress=0
+ForkEVMAddressInit=0
+ForkIntrinsicGas=25893256
 
 [fork.sub.unfreeze]
 Enable=0
