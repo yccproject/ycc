@@ -306,7 +306,7 @@ ForkFixReward=0
 UseEntrust=0
 
 [fork.sub.rollup]
-Enable=-1
+Enable=36000000
 
 [fork.sub.none]
 ForkUseTimeDelay=0
@@ -384,6 +384,7 @@ ForkEVMTxGroup=0
 ForkEVMMixAddress=0
 ForkEVMAddressInit=0
 ForkIntrinsicGas=25893256
+ForkEvmExecNonce=36000000
 
 [fork.sub.unfreeze]
 Enable=0
