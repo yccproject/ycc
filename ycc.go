@@ -293,7 +293,9 @@ ForkCacheDriver=0
 ForkTicketFundAddrV1=-1 #fork6.3
 #主链和平行链都使用同一个fork高度
 ForkRootHash=0 
+#eth address key format fork
 ForkFormatAddressKey=0
+ForkCheckEthTxSort=36000000
 
 [fork.sub.coins]
 Enable=0
@@ -340,6 +342,7 @@ ForkBadTokenSymbol=0
 ForkTokenPrice=300000
 ForkTokenSymbolWithNumber=0
 ForkTokenCheck=0
+ForkTokenEvm=-1
 
 [fork.sub.trade]
 Enable=0
@@ -406,6 +409,26 @@ ForkParamV6 = 0
 ForkParamV7 = 0
 ForkParamV8 = 0
 ForkParamV9 = 0
+ForkParamV10 = 0
+ForkParamV11 = 0
+ForkParamV12 = 0
+ForkParamV13 = 0
+ForkParamV14 = 0
+ForkParamV15 = 0
+ForkParamV16 = 0
+ForkParamV17 = 0
+ForkParamV18 = 0
+ForkParamV19 = 0
+ForkParamV20 = 0
+ForkParamV21 = 0
+ForkParamV22 = 0
+ForkParamV23 = 0
+ForkParamV24 = 0
+ForkParamV25 = 0
+ForkParamV26 = 0
+ForkParamV27 = 0
+ForkParamV28 = 0
+ForkParamV29 = 0
 
 [health]
 checkInterval=1

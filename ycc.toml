@@ -48,15 +48,6 @@ seeds = [
   "/ip4/121.52.224.85/tcp/13801/p2p/16Uiu2HAmMnGGDYg8oKvYeQuZWqer8m4u1k2bUZyNxuevhS9SZ1mm",
   "/ip4/121.52.224.86/tcp/13801/p2p/16Uiu2HAkxDkbdzH7LDMuwSkYPfApRDNd2jeSbwobL2m6LrpJzZbW",
 ]
-maxConnectNum=40
-
-[p2p.sub.dht.pubsub]
-gossipSubDlo=7
-gossipSubD=10
-gossipSubDhi=20
-gossipSubHeartbeatInterval=900
-gossipSubHistoryGossip=2
-gossipSubHistoryLength=7
 
 [p2p.sub.dht.broadcast]
 disableBatchTx = true
