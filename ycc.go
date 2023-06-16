@@ -295,7 +295,7 @@ ForkTicketFundAddrV1=-1 #fork6.3
 ForkRootHash=0 
 #eth address key format fork
 ForkFormatAddressKey=0
-ForkCheckEthTxSort=0
+ForkCheckEthTxSort=36000000
 
 [fork.sub.coins]
 Enable=0
@@ -308,7 +308,7 @@ ForkFixReward=0
 UseEntrust=0
 
 [fork.sub.rollup]
-Enable=0
+Enable=36000000
 
 [fork.sub.none]
 ForkUseTimeDelay=0
