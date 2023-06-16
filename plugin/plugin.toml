@@ -5,6 +5,9 @@ gitrepo = "github.com/yccproject/ycc/plugin/dapp/pos33"
 [consensus-pos33]
 gitrepo = "github.com/yccproject/ycc/plugin/consensus/pos33"
 
+[consensus-rollup]
+gitrepo = "github.com/33cn/plugin/plugin/consensus/rollup"
+
 [dapp-evm]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/evm"
 
@@ -34,6 +37,9 @@ gitrepo = "github.com/33cn/plugin/plugin/dapp/multisig"
 
 [dapp-unfreeze]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/unfreeze"
+
+[dapp-rollup]
+gitrepo = "github.com/33cn/plugin/plugin/dapp/rollup"
 
 [dapp-autonomy]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/autonomy"

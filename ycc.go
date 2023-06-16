@@ -295,11 +295,11 @@ ForkTicketFundAddrV1=-1 #fork6.3
 ForkRootHash=0 
 #eth address key format fork
 ForkFormatAddressKey=0
-ForkCheckEthTxSort=36000000
+ForkCheckEthTxSort=0
 
 [fork.sub.coins]
 Enable=0
-ForkFriendExecer=4864713
+ForkFriendExecer=0
 
 [fork.sub.pos33]
 Enable=0
@@ -308,7 +308,7 @@ ForkFixReward=0
 UseEntrust=0
 
 [fork.sub.rollup]
-Enable=36000000
+Enable=0
 
 [fork.sub.none]
 ForkUseTimeDelay=0
@@ -339,7 +339,7 @@ ForkManageAutonomyEnable=-1
 Enable=0
 ForkTokenBlackList=0
 ForkBadTokenSymbol=0
-ForkTokenPrice=300000
+ForkTokenPrice=0
 ForkTokenSymbolWithNumber=0
 ForkTokenCheck=0
 ForkTokenEvm=-1
@@ -366,7 +366,7 @@ ForkParaRootHash=0
 ForkParaSupervision=0
 ForkParaAutonomySuperGroup = -1
 ForkParaFreeRegister = 0
-ForkParaCheckTx=15000000
+ForkParaCheckTx=0
 
 [fork.sub.multisig]
 Enable=0
@@ -386,8 +386,8 @@ ForkEVMYoloV1=0
 ForkEVMTxGroup=0
 ForkEVMMixAddress=0
 ForkEVMAddressInit=0
-ForkIntrinsicGas=25893256
-ForkEvmExecNonce=36000000
+ForkIntrinsicGas=0
+ForkEvmExecNonce=0
 
 [fork.sub.unfreeze]
 Enable=0
